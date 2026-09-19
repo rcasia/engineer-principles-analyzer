@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/rcasia/principled/compare/v1.11.0...v1.11.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** allow POST through CloudFront so /analyze works in prod ([b15393c](https://github.com/rcasia/principled/commit/b15393c15fc9c1f7f9b51e0d9f59b4fb29967337)), closes [#34](https://github.com/rcasia/principled/issues/34)
+
 # [1.11.0](https://github.com/rcasia/principled/compare/v1.10.0...v1.11.0) (2026-09-19)
 
 
