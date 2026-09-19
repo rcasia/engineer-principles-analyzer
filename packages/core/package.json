@@ -1,9 +1,9 @@
 {
-  "name": "@epa/core",
+  "name": "@principled/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Domain and application layers of the engineer principles analyzer.",
+  "description": "Domain and application layers of Principled.",
   "license": "Apache-2.0",
   "exports": {
     ".": "./src/index.ts"

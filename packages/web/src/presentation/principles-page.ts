@@ -1,4 +1,4 @@
-import type { Principle } from "@epa/core";
+import type { Principle } from "@principled/core";
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
 
 export const PAGE_TITLE = "Engineer Principles Analyzer";

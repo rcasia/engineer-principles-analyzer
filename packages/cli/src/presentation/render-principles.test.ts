@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Principle } from "@epa/core";
+import type { Principle } from "@principled/core";
 import { renderPrinciples } from "./render-principles.ts";
 
 const tdd: Principle = { id: "tdd", title: "Test Driven Development" };

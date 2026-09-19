@@ -1,15 +1,15 @@
 {
-  "name": "@epa/web",
+  "name": "@principled/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Web adapter for the engineer principles analyzer.",
+  "description": "Web adapter for Principled.",
   "license": "Apache-2.0",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@epa/core": "*"
+    "@principled/core": "*"
   },
   "scripts": {
     "typecheck": "tsc --build",

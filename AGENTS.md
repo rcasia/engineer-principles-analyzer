@@ -52,7 +52,7 @@ If `bun run check` is red, nothing else matters. Fix that first.
 7. **Edit code in a worktree, not the shared checkout.** Agents run
    concurrently against this repository; editing the primary checkout
    directly risks mixing your changes with another agent's in-flight work.
-   Before touching code, run `git worktree add ../epa-<task> -b <branch>`,
+   Before touching code, run `git worktree add ../principled-<task> -b <branch>`,
    do the work there, push from it, and `git worktree remove` it once the
    branch has merged to `main`.
 
@@ -83,7 +83,7 @@ Tests are written to kill mutants, which in practice means:
 2. `tsconfig.json` extending `../../tsconfig.base.json`, with `references` to
    any workspace dependency.
 3. Add it to `references` in the root `tsconfig.json`.
-4. Depend on workspace packages with `"@epa/core": "*"`, **not**
+4. Depend on workspace packages with `"@principled/core": "*"`, **not**
    `"workspace:*"`. Bun links the local package either way, but
    semantic-release shells out to `npm`, and npm fails on the workspace
    protocol anywhere in the tree (`EUNSUPPORTEDPROTOCOL`).
@@ -93,7 +93,7 @@ Imports use explicit `.ts` extensions — Bun runs the sources directly and
 
 ## The published CLI
 
-`packages/cli` is published to npm as **`principled`**, with `@epa/core`
+`packages/cli` is published to npm as **`principled`**, with `@principled/core`
 bundled in, so the tarball has no runtime dependencies ([ADR-0008](docs/adr/0008-publish-the-cli-to-npm.md)).
 
 - The bundle targets **Node**, not Bun. Do not use Bun-only APIs in

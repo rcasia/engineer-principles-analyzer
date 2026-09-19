@@ -1,4 +1,4 @@
-import { InMemoryPrincipleCatalog, ListPrinciples } from "@epa/core";
+import { InMemoryPrincipleCatalog, ListPrinciples } from "@principled/core";
 import { createLambdaHandler } from "./lambda.ts";
 import { createRequestHandler } from "./server.ts";
 

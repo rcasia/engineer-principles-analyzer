@@ -2,7 +2,7 @@
 /**
  * Bundles the CLI into packages/cli/dist/cli.mjs for npm.
  *
- * @epa/core is bundled in rather than depended on, so the published package
+ * @principled/core is bundled in rather than depended on, so the published package
  * has no runtime dependencies and npm never sees the workspace: protocol
  * (ADR-0008). Bun is the bundler, Node is the runtime: the shebang is
  * /usr/bin/env node so `npx principled` works for everyone, not only for

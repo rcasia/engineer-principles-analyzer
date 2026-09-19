@@ -1,4 +1,4 @@
-import type { Principle } from "@epa/core";
+import type { Principle } from "@principled/core";
 
 export const NO_PRINCIPLES_MESSAGE = "No principles are defined yet.";
 

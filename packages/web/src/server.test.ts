@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { InMemoryPrincipleCatalog, ListPrinciples } from "@epa/core";
-import type { Principle } from "@epa/core";
+import { InMemoryPrincipleCatalog, ListPrinciples } from "@principled/core";
+import type { Principle } from "@principled/core";
 import { createRequestHandler } from "./server.ts";
 
 const tdd: Principle = { id: "tdd", title: "Test Driven Development" };

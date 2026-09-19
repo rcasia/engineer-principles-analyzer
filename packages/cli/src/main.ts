@@ -1,4 +1,4 @@
-import { InMemoryPrincipleCatalog, ListPrinciples } from "@epa/core";
+import { InMemoryPrincipleCatalog, ListPrinciples } from "@principled/core";
 import { renderPrinciples } from "./presentation/render-principles.ts";
 import {
   renderUnknownOption,

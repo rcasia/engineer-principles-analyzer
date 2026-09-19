@@ -1,4 +1,4 @@
-import type { ListPrinciples } from "@epa/core";
+import type { ListPrinciples } from "@principled/core";
 import { renderDesignPlayground } from "./presentation/design-playground.ts";
 import { renderPrinciplesPage } from "./presentation/principles-page.ts";
 

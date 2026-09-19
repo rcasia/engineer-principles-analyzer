@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { InMemoryPrincipleCatalog, ListPrinciples } from "@epa/core";
+import { InMemoryPrincipleCatalog, ListPrinciples } from "@principled/core";
 import { createRequestHandler } from "./server.ts";
 
 // Executable shim only. All behaviour lives in createRequestHandler, which is

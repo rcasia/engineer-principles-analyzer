@@ -36,9 +36,9 @@
     "access": "public",
     "provenance": true
   },
-  "_comment": "@epa/core is a devDependency on purpose: it is bundled into dist/cli.mjs at build time, so the published package has no runtime dependencies. The range is \"*\" rather than \"workspace:*\" because the workspace protocol is not valid semver and would end up verbatim in the published package.json.",
+  "_comment": "@principled/core is a devDependency on purpose: it is bundled into dist/cli.mjs at build time, so the published package has no runtime dependencies. The range is \"*\" rather than \"workspace:*\" because the workspace protocol is not valid semver and would end up verbatim in the published package.json.",
   "devDependencies": {
-    "@epa/core": "*"
+    "@principled/core": "*"
   },
   "scripts": {
     "typecheck": "tsc --build",
