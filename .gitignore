@@ -21,7 +21,8 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
-.terraform.lock.hcl
+# .terraform.lock.hcl is intentionally committed: it pins provider hashes
+# so CI and every contributor resolve the exact same provider builds.
 
 # Local env
 .env
