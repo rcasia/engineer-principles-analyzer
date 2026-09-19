@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/rcasia/principled/compare/v1.5.1...v1.6.0) (2026-09-19)
+
+
+### Bug Fixes
+
+* **deps:** override qs to a version without known advisories ([94e7656](https://github.com/rcasia/principled/commit/94e7656b3b0da6d29295b90822f8448423f0f568))
+
+
+### Features
+
+* **ci:** gate on bun audit at commit time, in CI, and weekly ([d985ad5](https://github.com/rcasia/principled/commit/d985ad5cb8f0855dfefb35e567bfbf6ee7bf92c1))
+
 ## [1.5.1](https://github.com/rcasia/principled/compare/v1.5.0...v1.5.1) (2026-09-19)
 
 
