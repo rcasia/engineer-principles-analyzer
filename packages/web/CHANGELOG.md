@@ -1,3 +1,15 @@
+## [1.5.1](https://github.com/rcasia/principled/compare/web-v1.5.0...web-v1.5.1) (2026-09-19)
+
+
+### Performance Improvements
+
+* **ci:** reuse Stryker incremental results via the Actions cache ([8ad2516](https://github.com/rcasia/principled/commit/8ad25164e4dd76e3e963584557a5ce4c0c18b144))
+
+
+### Reverts
+
+* **ci:** restore blocking dependency audit gate ([e4e1839](https://github.com/rcasia/principled/commit/e4e1839632ceea80ff6cb032e41166fe21234284)), closes [#48](https://github.com/rcasia/principled/issues/48)
+
 # [1.5.0](https://github.com/rcasia/principled/compare/web-v1.4.0...web-v1.5.0) (2026-09-19)
 
 
