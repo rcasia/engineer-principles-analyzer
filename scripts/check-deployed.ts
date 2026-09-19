@@ -32,7 +32,7 @@ if (page.status !== 200) fail(`expected 200 at /, got ${page.status}`);
 if (page.headers.get("content-type") !== "text/html; charset=utf-8") {
   fail(`unexpected content-type: ${page.headers.get("content-type")}`);
 }
-if (!body.includes("<title>Engineer Principles Analyzer</title>")) {
+if (!body.includes("<title>Principled</title>")) {
   fail("page did not contain the expected title");
 }
 if (!page.headers.get("cache-control")?.includes("max-age=60")) {

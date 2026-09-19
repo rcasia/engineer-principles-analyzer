@@ -23,7 +23,7 @@ assert.equal(page.statusCode, 200, "root should return 200");
 assert.equal(page.headers["content-type"], "text/html; charset=utf-8");
 assert.ok(page.body.startsWith("<!doctype html>"), "should return a document");
 assert.ok(
-  page.body.includes("<title>Engineer Principles Analyzer</title>"),
+  page.body.includes("<title>Principled</title>"),
   "should render the page title",
 );
 assert.ok(page.body.includes('<html lang="en">'), "should declare a language");

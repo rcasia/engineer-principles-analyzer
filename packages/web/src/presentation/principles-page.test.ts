@@ -43,14 +43,14 @@ describe("renderPrinciplesPage", () => {
 
     expect(html).toContain('<meta charset="utf-8">');
     expect(html).toContain('<meta name="viewport"');
-    expect(html).toContain("<title>Engineer Principles Analyzer</title>");
+    expect(html).toContain("<title>Principled</title>");
   });
 
   it("wraps content in a main landmark with a single level one heading", () => {
     const html = renderPrinciplesPage([tdd]);
 
     expect(html).toContain('<main class="page" id="main">');
-    expect(html).toContain("<h1>Engineer Principles Analyzer</h1>");
+    expect(html).toContain("<h1>Principled</h1>");
     expect(html.match(/<h1>/g)).toHaveLength(1);
   });
 
