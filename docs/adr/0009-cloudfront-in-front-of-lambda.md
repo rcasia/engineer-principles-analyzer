@@ -88,11 +88,19 @@ Put **CloudFront in front of the Lambda Function URL**, with
   to `cloudfront.amazonaws.com`, scoped by `SourceArn` to this distribution.
   Function URLs created after October 2025 require both; granting only the
   first returns `403 AccessDeniedException`.
-- Caching is driven by the **origin's** `Cache-Control`, using the managed
-  `UseOriginCacheControlHeaders` policy, so caching is decided in the
-  application: `max-age=60, stale-while-revalidate=600` for the page and
-  `max-age=300` for 404s. Without those headers the CDN revalidates on every
-  request and buys nothing.
+- Caching is driven by the **origin's** `Cache-Control`, so caching is decided
+  in the application: `max-age=60, stale-while-revalidate=600` for the page
+  and `max-age=300` for 404s. Without those headers the CDN revalidates on
+  every request and buys nothing.
+- This uses a **custom** cache policy, not the managed
+  `UseOriginCacheControlHeaders` one, for a reason worth stating plainly: that
+  managed policy independently whitelists `Host` in its own header
+  configuration, merged with whatever the origin request policy forwards.
+  That silently reintroduced the distribution's own `Host` on every origin
+  request, which broke OAC's signature (see the first deploy, below). The
+  custom policy carries the same TTL bounds with no header whitelist of its
+  own, so the origin request policy is the only place that decides what
+  reaches the origin.
 - The `Managed-AllViewerExceptHostHeader` origin request policy is required:
   forwarding the viewer `Host` would break the SigV4 signature.
 - `Managed-SecurityHeadersPolicy` adds HSTS and friends at no cost.
@@ -131,6 +139,35 @@ since that is personal data.
 - The deploy role needs CloudFront permissions that cannot be scoped by name,
   because distribution ARNs contain a generated ID. It is now the least
   scoped statement in the bootstrap policy.
+
+### What actually happened on the first deploy
+
+The first real `terraform apply` succeeded completely — nine resources
+created, plan matched exactly. `check-deployed.ts` then failed: every request
+returned `403 {"Message":null}`, with **zero Lambda invocations** logged in
+CloudWatch. That last fact mattered most: it proved the rejection happened at
+the IAM/authorizer layer, before the function ever ran, which ruled out an
+application bug immediately.
+
+What it was not, ruled out in order: IAM trust-policy propagation (a
+different, real issue fixed the same day — see ADR-0007's OIDC subject
+format note — but re-testing after 15+ minutes here changed nothing, and
+CloudFront reported `Deployed`); a missing `lambda:InvokeFunction` permission
+(both grants were present and correctly scoped, confirmed via
+`aws lambda get-policy`); the origin request policy forwarding too much
+(removing it entirely changed nothing).
+
+What it was: the managed cache policy's own `Host` whitelist, described
+above. Confirmed by reading that policy's actual definition via
+`aws cloudfront get-cache-policy`, not by inspecting our own config, which
+looked correct in isolation. Fixed and verified directly against the live
+distribution — 200, a genuine `x-cache: Hit from cloudfront` on a second
+request, the origin still 403 to direct access — before this was written up.
+
+The lesson worth keeping: two independent CloudFront settings (cache policy,
+origin request policy) both contribute to the same outgoing header set, and
+a managed policy's contents are not implied by its name. `UseOriginCacheControlHeaders`
+says nothing about `Host` in its name or its stated purpose.
 
 ### Risks and mitigations
 
