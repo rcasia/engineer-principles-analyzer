@@ -1,3 +1,15 @@
+# [1.2.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.1.0...v1.2.0) (2026-09-19)
+
+
+### Bug Fixes
+
+* **release:** write the cli version without npm version ([1c5fd2e](https://github.com/rcasia/engineer-principles-analyzer/commit/1c5fd2e74adb5bebd19d4cef9180b8d1718443b1))
+
+
+### Features
+
+* **cli:** make the cli publishable to npm as principled ([0143f8c](https://github.com/rcasia/engineer-principles-analyzer/commit/0143f8c885f239302a77500ffd81d9e8859f8890))
+
 # [1.1.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.0.1...v1.1.0) (2026-09-19)
 
 
