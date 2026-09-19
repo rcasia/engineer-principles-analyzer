@@ -1,4 +1,4 @@
-# engineer-principles-analyzer
+# principled
 
 Analyzes subjects against engineering principles.
 
