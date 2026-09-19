@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/rcasia/principled/compare/web-v1.3.2...web-v1.3.3) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** read edge scaffolding from origin.custom.customHeaders ([05455d2](https://github.com/rcasia/principled/commit/05455d24649beb419ca9e6346a69be8bee19764c))
+
 ## [1.3.2](https://github.com/rcasia/principled/compare/web-v1.3.1...web-v1.3.2) (2026-09-19)
 
 
