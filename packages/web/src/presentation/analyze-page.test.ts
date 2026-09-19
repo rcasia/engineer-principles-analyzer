@@ -100,6 +100,12 @@ describe("renderAnalyzePage", () => {
 
       expect(html).not.toContain("<script");
     });
+
+    it("shows the web version in the footer", () => {
+      expect(renderAnalyzePage({ kind: "form" })).toContain(
+        '<footer class="footer">Principled · evidence before opinion · v0.0.0-dev</footer>',
+      );
+    });
   });
 
   describe("the blank form", () => {

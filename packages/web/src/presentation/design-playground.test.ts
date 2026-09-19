@@ -35,4 +35,10 @@ describe("renderDesignPlayground", () => {
     expect(html).toContain(":focus-visible");
     expect(html).toContain("@media (max-width: 44.99rem)");
   });
+
+  it("shows the web version in the footer", () => {
+    const html = renderDesignPlayground();
+
+    expect(html).toContain("responsive · v0.0.0-dev</footer>");
+  });
 });

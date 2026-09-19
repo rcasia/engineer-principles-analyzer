@@ -1,5 +1,6 @@
 import type { Principle } from "@principled/core";
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
+import { VERSION } from "../version.ts";
 
 export const PAGE_TITLE = "Principled";
 export const EMPTY_STATE = "No principles are defined yet.";
@@ -67,7 +68,7 @@ export function renderPrinciplesPage(principles: readonly Principle[]): string {
 </header>
 ${renderPrinciples(principles)}
 </main>
-<footer class="footer">Principled · evidence before opinion</footer>
+<footer class="footer">Principled · evidence before opinion · v${VERSION}</footer>
 </body>
 </html>`;
 }

@@ -6,6 +6,7 @@ import type {
 } from "@principled/core";
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
 import { escapeHtml } from "./principles-page.ts";
+import { VERSION } from "../version.ts";
 
 export const ANALYZE_PAGE_TITLE = "Analyze | Principled";
 export const DEFAULT_LANGUAGE = "typescript";
@@ -224,7 +225,7 @@ export function renderAnalyzePage(view: AnalyzeView): string {
 <main class="page" id="main">
 ${renderMain(view)}
 </main>
-<footer class="footer">Principled · evidence before opinion</footer>
+<footer class="footer">Principled · evidence before opinion · v${VERSION}</footer>
 </body>
 </html>`;
 }

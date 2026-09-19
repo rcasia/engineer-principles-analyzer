@@ -100,4 +100,10 @@ describe("renderPrinciplesPage", () => {
   it("gives keyboard users a visible focus indicator", () => {
     expect(renderPrinciplesPage([])).toContain(":focus-visible");
   });
+
+  it("shows the web version in the footer", () => {
+    expect(renderPrinciplesPage([])).toContain(
+      '<footer class="footer">Principled · evidence before opinion · v0.0.0-dev</footer>',
+    );
+  });
 });

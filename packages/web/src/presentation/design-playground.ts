@@ -1,4 +1,5 @@
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
+import { VERSION } from "../version.ts";
 
 export const DESIGN_PLAYGROUND_TITLE = "Design playground | Principled";
 
@@ -216,7 +217,7 @@ export function renderDesignPlayground(): string {
     </div>
   </section>
 </main>
-<footer class="footer">Principled design reference · semantic HTML · light/dark · reduced motion · responsive</footer>
+<footer class="footer">Principled design reference · semantic HTML · light/dark · reduced motion · responsive · v${VERSION}</footer>
 </body>
 </html>`;
 }

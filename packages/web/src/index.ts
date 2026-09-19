@@ -20,5 +20,6 @@ export {
   renderAnalyzePage,
 } from "./presentation/analyze-page.ts";
 export type { AnalyzeView } from "./presentation/analyze-page.ts";
+export { VERSION } from "./version.ts";
 export { createLambdaHandler, toRequest } from "./lambda.ts";
 export type { FunctionUrlEvent, FunctionUrlResult } from "./lambda.ts";
