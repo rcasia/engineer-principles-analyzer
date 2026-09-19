@@ -86,6 +86,24 @@ jobs:
       - name: Smoke test the bundle
         run: node scripts/smoke-lambda.mjs
 
+  cli-package:
+    name: cli package installs from npm tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.0"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: bun install --frozen-lockfile
+      - run: bun run build:cli
+      # Packs the tarball npm would publish, installs it in a clean directory
+      # with Node and runs the binary. Proves the package works for someone
+      # without Bun, and that `files` ships nothing it should not.
+      - run: bun scripts/check-cli-package.ts
+
   infra:
     name: terraform
     runs-on: ubuntu-latest

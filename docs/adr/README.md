@@ -16,6 +16,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0005](0005-aws-lambda-function-url.md) | Deploy to AWS Lambda behind a Function URL, verified on LocalStack | Accepted | 2026-09-19 |
 | [0006](0006-trunk-based-delivery.md) | Push to main, gate with CI, release and deploy automatically | Accepted | 2026-09-19 |
 | [0007](0007-remote-terraform-state.md) | Keep production state in S3, provisioned by a bootstrap module | Accepted | 2026-09-19 |
+| [0008](0008-publish-the-cli-to-npm.md) | Publish the CLI to npm as `principled`, bundling core | Accepted | 2026-09-19 |
 
 ## Writing a new ADR
 

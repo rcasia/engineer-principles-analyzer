@@ -1,18 +1,44 @@
 {
-  "name": "@epa/cli",
+  "name": "principled",
   "version": "0.0.0",
-  "private": true,
   "type": "module",
-  "description": "Command line adapter for the engineer principles analyzer.",
+  "description": "Analyze a codebase against engineering principles.",
+  "keywords": [
+    "engineering",
+    "principles",
+    "code-quality",
+    "architecture",
+    "analysis",
+    "cli"
+  ],
   "license": "Apache-2.0",
+  "homepage": "https://github.com/rcasia/engineer-principles-analyzer#readme",
+  "bugs": "https://github.com/rcasia/engineer-principles-analyzer/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rcasia/engineer-principles-analyzer.git",
+    "directory": "packages/cli"
+  },
   "bin": {
-    "epa": "./src/bin.ts"
+    "principled": "./dist/cli.mjs"
   },
   "exports": {
     ".": "./src/index.ts"
   },
-  "dependencies": {
-    "@epa/core": "workspace:*"
+  "files": [
+    "dist/cli.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "_comment": "@epa/core is a devDependency on purpose: it is bundled into dist/cli.mjs at build time, so the published package has no runtime dependencies. The range is \"*\" rather than \"workspace:*\" because the workspace protocol is not valid semver and would end up verbatim in the published package.json.",
+  "devDependencies": {
+    "@epa/core": "*"
   },
   "scripts": {
     "typecheck": "tsc --build",

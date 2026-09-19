@@ -17,6 +17,16 @@ bun run check      # typecheck + tests
 bun run cli        # print the known principles
 ```
 
+Once published, the CLI needs only Node 20+:
+
+```sh
+npx principled             # list the known principles
+npx principled --help
+```
+
+It is not on npm yet — see [ADR-0008](docs/adr/0008-publish-the-cli-to-npm.md)
+for why, and how to switch it on.
+
 Run the web UI locally:
 
 ```sh
@@ -45,7 +55,8 @@ docs/adr/        why things are the way they are
 | `bun test`                  | Run the test suite                                  |
 | `bun run typecheck`         | Type check every package                            |
 | `bun run test:mutation`     | Mutation testing; fails below 95%                   |
-| `bun run cli`               | Run the CLI                                         |
+| `bun run cli`               | Run the CLI from source                             |
+| `bun run build:cli`         | Bundle the CLI for npm                              |
 | `bun run build:lambda`      | Bundle the web adapter for Lambda                   |
 | `bun run infra:validate`    | `terraform validate`, no credentials needed         |
 | `bun run localstack:up`     | Start LocalStack (needs Docker)                     |
@@ -64,6 +75,9 @@ Every push and pull request must pass all of these
   ([ADR-0003](docs/adr/0003-mutation-testing-gate.md)).
 - **Lambda bundle smoke test** — the built bundle is invoked under Node, the
   way AWS will invoke it.
+- **CLI package** — the npm tarball is packed, installed into a clean
+  directory with npm and Node, and the binary is run. Proves it works without
+  Bun.
 - **Terraform** — formatted, valid, and actually applied to LocalStack, with
   the deployed function checked over HTTP.
 
@@ -78,6 +92,9 @@ Git hooks run the fast subset locally. They are installed automatically by
 Commits go straight to main. If the gates pass, semantic-release derives the
 version from the commit messages, tags it and writes the changelog; the commit
 is then deployed. There is no review step — the gates are the safety net.
+
+Publishing the CLI to npm is skipped until `NPM_PUBLISH` is `true`; the
+version is still bumped and the tarball still built and verified.
 
 Deployment is skipped until `AWS_DEPLOY_ROLE_ARN` is set as a repository
 variable, so the pipeline is green without an AWS account. Turning it on is a

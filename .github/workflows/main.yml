@@ -45,6 +45,11 @@ jobs:
         run: ./node_modules/.bin/semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Publishing the CLI to npm is off until NPM_PUBLISH is "true" and
+          # an NPM_TOKEN exists. The version is bumped and the tarball is
+          # built and verified either way, so the path stays exercised.
+          NPM_PUBLISH: ${{ vars.NPM_PUBLISH }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   deploy:
     name: promote to production

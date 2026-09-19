@@ -71,6 +71,19 @@ Tests are written to kill mutants, which in practice means:
 Imports use explicit `.ts` extensions — Bun runs the sources directly and
 `tsc` only emits declarations ([ADR-0001](docs/adr/0001-bun-monorepo.md)).
 
+## The published CLI
+
+`packages/cli` is published to npm as **`principled`**, with `@epa/core`
+bundled in, so the tarball has no runtime dependencies ([ADR-0008](docs/adr/0008-publish-the-cli-to-npm.md)).
+
+- The bundle targets **Node**, not Bun. Do not use Bun-only APIs in
+  `packages/cli` or anything it imports.
+- `version.ts` exports the literal `0.0.0-dev`, which `scripts/build-cli.ts`
+  replaces with the release version. The build fails if that literal moves.
+- Anything added to `files` in `packages/cli/package.json` ships to users.
+  `scripts/check-cli-package.ts` fails if sources, tests or declarations
+  appear in the tarball.
+
 ## Composition roots
 
 Files that only wire things together (`bin.ts`, `lambda-entry.ts`) are
@@ -119,3 +132,6 @@ Honest list of what is not done, so nobody assumes otherwise:
 - No import-boundary lint rule enforces the dependency rule; it is convention
   today.
 - No budget alarm or reserved concurrency on the public Function URL.
+- The CLI is wired for npm but not published; `NPM_PUBLISH` is unset and the
+  name `principled` is unclaimed. npm's similarity check against the existing
+  `principle` package cannot be verified until the first publish.
