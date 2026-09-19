@@ -23,6 +23,11 @@ If `bun run check` is red, nothing else matters. Fix that first.
    Allowed scopes: `core`, `cli`, `web`, `infra`, `ci`, `deps`, `adr`,
    `release`.
 
+   Agents add a `model:` trailer to the footer naming the exact model that
+   authored the commit, e.g. `model: claude-sonnet-5`. This is audit-only —
+   it does not change review or authorship — so use the literal model ID,
+   not a vendor or product name. Humans do not add this trailer.
+
 2. **Documentation ships in the same commit as the change.** A commit that
    changes behaviour updates the docs that describe it. A commit that makes an
    architectural decision carries its ADR.
