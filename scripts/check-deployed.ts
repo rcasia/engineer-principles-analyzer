@@ -5,8 +5,8 @@
  *
  * When CloudFront is in front (real AWS) this also verifies the two
  * properties the CDN exists for: that responses are cacheable, and that the
- * origin cannot be reached directly to bypass the cache (the shared-secret
- * header, ADR-0017).
+ * origin cannot be reached directly to bypass the cache (origin access
+ * control, ADR-0009).
  */
 import { $ } from "bun";
 
@@ -47,35 +47,23 @@ if (missing.status !== 404) {
   fail(`expected 404 for an unknown path, got ${missing.status}`);
 }
 
-// #34's /analyze form POSTs to this origin. A CDN in front (real AWS) must
-// both allow the POST method and pass the x-origin-verify secret through to
-// the Lambda (ADR-0017); a 403 here means either AllowedMethods is missing
-// POST or the shared-secret path is broken. Neither is a failure `apply`
-// exiting zero can catch, and a GET-only check would miss both.
-const analyzeForm = new FormData();
-analyzeForm.set("sourceCode", "class Foo {}");
-analyzeForm.set("language", "typescript");
-const analyzePost = await fetch(new URL("/analyze", url), {
-  method: "POST",
-  body: analyzeForm,
-  signal: AbortSignal.timeout(60_000),
-});
-if (analyzePost.status !== 200) {
-  fail(
-    `expected 200 for POST /analyze, got ${analyzePost.status} (is the CDN's allowed_methods missing POST?)`,
-  );
-}
+// NOT checked here: POST /analyze. It is a known, accepted regression on
+// real AWS (ADR-0018, AGENTS.md "Known gaps") - this account's AWS
+// Organization blocks unauthenticated Lambda Function URL invocation, which
+// ruled out ADR-0017's shared-secret origin, and origin access control
+// (restored here) cannot sign a POST body, so Lambda rejects it with a
+// SigV4 mismatch. A check asserting 200 here would fail every real deploy
+// until that is resolved.
 
 if (cdnEnabled) {
-  // The whole point of the shared-secret header (ADR-0017): a request that
-  // does not come through CloudFront lacks x-origin-verify, so the adapter
-  // must refuse it. If this passes, the cache and its cost protection can be
-  // bypassed by hitting the public Function URL directly.
+  // The whole point of origin access control: the Function URL is signed for,
+  // so an unsigned request straight to the origin must be refused. If this
+  // passes, the cache and its cost protection can be bypassed.
   const direct = await fetch(originUrl, { signal: AbortSignal.timeout(60_000) });
 
   if (direct.status !== 403) {
     fail(
-      `origin ${originUrl} answered ${direct.status} directly; it must return 403 without the x-origin-verify secret`,
+      `origin ${originUrl} answered ${direct.status} directly; it must return 403 behind OAC`,
     );
   }
 

@@ -17,7 +17,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0006](0006-trunk-based-delivery.md) | Push to main, gate with CI, release and deploy automatically | Accepted | 2026-09-19 |
 | [0007](0007-remote-terraform-state.md) | Keep production state in S3, provisioned by a bootstrap module | Accepted | 2026-09-19 |
 | [0008](0008-publish-the-cli-to-npm.md) | Publish the CLI to npm as `principled`, bundling core | Accepted | 2026-09-19 |
-| [0009](0009-cloudfront-in-front-of-lambda.md) | Serve globally from CloudFront, with the origin locked to it | Accepted; origin lock superseded by [0017](0017-shared-secret-origin-instead-of-oac.md) | 2026-09-19 |
+| [0009](0009-cloudfront-in-front-of-lambda.md) | Serve globally from CloudFront, with the origin locked to it | Accepted (OAC restored by [0018](0018-revert-to-oac-scp-blocks-public-function-urls.md) after [0017](0017-shared-secret-origin-instead-of-oac.md)) | 2026-09-19 |
 | [0010](0010-npm-trusted-publishing.md) | Publish the CLI to npm with OIDC trusted publishing | Accepted | 2026-09-19 |
 | [0011](0011-dependency-vulnerability-audit-gate.md) | Gate on `bun audit`, at commit time, in CI, and on a schedule | Accepted | 2026-09-19 |
 | [0012](0012-event-sourcing-and-cqrs.md) | Use Event Sourcing and CQRS for application state | Accepted | 2026-09-19 |
@@ -25,7 +25,8 @@ commit changes how the system is built, its ADR ships with it.
 | [0014](0014-rule-evaluation-engine.md) | Build a fault-isolating rule evaluation engine, seeded with a fake ruleset | Accepted | 2026-09-19 |
 | [0015](0015-single-file-web-analysis-workflow.md) | Analyze a single source file on the web without client JavaScript | Accepted | 2026-09-19 |
 | [0016](0016-separate-cli-and-web-release-trains.md) | Split the CLI and web release trains by commit scope | Accepted | 2026-09-19 |
-| [0017](0017-shared-secret-origin-instead-of-oac.md) | Protect the CloudFront origin with a shared secret header, not OAC | Accepted | 2026-09-19 |
+| [0017](0017-shared-secret-origin-instead-of-oac.md) | Protect the CloudFront origin with a shared secret header, not OAC | Superseded by [0018](0018-revert-to-oac-scp-blocks-public-function-urls.md) | 2026-09-19 |
+| [0018](0018-revert-to-oac-scp-blocks-public-function-urls.md) | Revert to origin access control — an Organization SCP blocks public Function URLs | Accepted | 2026-09-19 |
 
 ## Writing a new ADR
 

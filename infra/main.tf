@@ -63,53 +63,30 @@ resource "aws_lambda_function" "web" {
 
   architectures = ["arm64"] # ~20% cheaper per GB-second than x86_64.
 
-  # Present only behind a CDN. When set, the adapter refuses any request whose
-  # x-origin-verify header does not match, so a direct hit on the public
-  # Function URL is rejected (ADR-0017). Absent on LocalStack, where the
-  # Function URL is deliberately open.
-  # for_each keys on a constant, not the secret's value: the secret is unknown
-  # until apply, and iterating a list whose single element is unknown makes
-  # Terraform plan zero blocks and then produce one, which it rejects as an
-  # inconsistent final plan. The count is fixed here; only the value inside is
-  # deferred.
-  dynamic "environment" {
-    for_each = local.use_cdn ? ["cdn"] : []
-
-    content {
-      variables = {
-        ORIGIN_VERIFY_SECRET = random_password.origin_secret[0].result
-      }
-    }
-  }
-
   depends_on = [
     aws_iam_role_policy.web_logging,
     aws_cloudwatch_log_group.web,
   ]
 }
 
-# AuthType NONE in every environment. AWS_IAM plus origin access control
-# would sign GET requests, but CloudFront OAC cannot sign a POST/PUT payload
-# (it never adds the required x-amz-content-sha256 header), so Lambda rejects
-# every POST with a SigV4 signature-mismatch 403. #34's /analyze is a POST
-# form and we serve no client-side JavaScript to compute that hash (ADR-0004),
-# so OAC is unusable here. The origin is instead kept private by a shared
-# secret header that only CloudFront knows (ADR-0017); the application refuses
-# any request that arrives without it.
+# Private behind CloudFront on real AWS (AWS_IAM + origin access control,
+# below), public on LocalStack, which has no CloudFront to sign requests
+# through. ADR-0017 tried replacing this with AuthType NONE plus a shared
+# secret header, specifically to let #34's POST /analyze work (OAC cannot
+# sign a POST/PUT payload, so a signed Function URL rejects it - see ADR-0017
+# for that reasoning, which still stands on its own). That deploy revealed a
+# constraint no application-level config can work around: this AWS account is
+# a member of an Organization with a Service Control Policy that blocks
+# unauthenticated Lambda Function URL invocation account-wide, independent of
+# the function's own AuthType or resource policy - confirmed by invoking the
+# URL directly with AWS_PROFILE=epa-bootstrap (root) and getting Lambda's
+# generic Function URL "Forbidden" before the handler ever ran, while the
+# plain (IAM) Invoke API on the same function succeeded. ADR-0018 reverts to
+# AWS_IAM; POST /analyze is knowingly broken again until that SCP is loosened
+# from the management account or a signing mechanism (Lambda@Edge) is added.
 resource "aws_lambda_function_url" "web" {
   function_name      = aws_lambda_function.web.function_name
-  authorization_type = "NONE"
-}
-
-# The shared secret CloudFront injects on every origin request and the Lambda
-# checks. Random, never checked into state in plaintext output, rotated by
-# tainting this resource. Only meaningful when a CDN is in front (real AWS);
-# on LocalStack the Function URL is intentionally public.
-resource "random_password" "origin_secret" {
-  count = local.use_cdn ? 1 : 0
-
-  length  = 48
-  special = false # Kept to an HTTP-header-safe alphabet.
+  authorization_type = local.use_cdn ? "AWS_IAM" : "NONE"
 }
 
 # ----------------------------------------------------------------------------
@@ -122,11 +99,12 @@ resource "random_password" "origin_secret" {
 # start. The first 1TB and 10M requests each month are permanently free, and
 # origin fetches from AWS cost nothing.
 #
-# A shared secret header keeps the Function URL private: CloudFront injects
-# x-origin-verify on every origin request and the adapter refuses any request
-# without it, so the cache cannot be bypassed and the Lambda free tier cannot
-# be burned through directly. Origin access control would be stronger but
-# cannot sign POST payloads, which /analyze needs (ADR-0017).
+# Origin access control keeps the Function URL private: only this
+# distribution can sign requests to it, so the cache cannot be bypassed and
+# the Lambda free tier cannot be burned through directly (ADR-0018 - reverted
+# here from ADR-0017's shared-secret header, which a Service Control Policy
+# in this account's Organization blocks regardless of the Function URL's own
+# config).
 # ----------------------------------------------------------------------------
 
 locals {
@@ -182,10 +160,8 @@ resource "aws_cloudfront_cache_policy" "web" {
 # Managed policies, read only when the CDN is built. Guarding them with count
 # matters: LocalStack cannot serve these lookups.
 #
-# The Host header must not be forwarded: the Function URL validates Host
-# against its own domain, so forwarding the viewer's Host makes the origin
-# answer 403. Everything else is forwarded; the x-origin-verify secret is
-# added separately as an origin custom_header, independent of this policy.
+# The Host header must not be forwarded: CloudFront signs requests for the
+# Function URL's own host, and overriding it breaks the SigV4 signature.
 data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
   count = local.use_cdn ? 1 : 0
   name  = "Managed-AllViewerExceptHostHeader"
@@ -196,20 +172,11 @@ data "aws_cloudfront_response_headers_policy" "security_headers" {
   name  = "Managed-SecurityHeadersPolicy"
 }
 
-# TRANSITIONAL: this origin access control is no longer referenced by the
-# distribution below (the origin now authenticates with the x-origin-verify
-# custom header, ADR-0017). It is kept in config for exactly one deploy so
-# this apply *updates* the distribution to stop using it, rather than trying
-# to *delete* it while the distribution still references it - CloudFront
-# rejects that with OriginAccessControlInUse, and removing the attribute
-# reference dropped the dependency edge that would have ordered the update
-# first. A follow-up commit deletes this block once the distribution update
-# has propagated. Do not add new references to it.
 resource "aws_cloudfront_origin_access_control" "web" {
   count = local.use_cdn ? 1 : 0
 
   name                              = "${local.name_prefix}-web"
-  description                       = "Unused; retained for one deploy to detach cleanly (ADR-0017)."
+  description                       = "Signs CloudFront requests to the web Lambda function URL."
   origin_access_control_origin_type = "lambda"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -228,16 +195,9 @@ resource "aws_cloudfront_distribution" "web" {
   price_class = "PriceClass_All"
 
   origin {
-    domain_name = local.function_url_host
-    origin_id   = local.origin_id
-
-    # The shared secret that proves a request came through this distribution.
-    # The adapter rejects anything without it, so the public Function URL
-    # cannot be used to bypass the cache (ADR-0017).
-    custom_header {
-      name  = "x-origin-verify"
-      value = random_password.origin_secret[0].result
-    }
+    domain_name              = local.function_url_host
+    origin_id                = local.origin_id
+    origin_access_control_id = aws_cloudfront_origin_access_control.web[0].id
 
     custom_origin_config {
       http_port              = 80
@@ -276,12 +236,34 @@ resource "aws_cloudfront_distribution" "web" {
   }
 }
 
-# The Function URL is public (AuthType NONE) in every environment, so anyone
-# may invoke it - on real AWS the x-origin-verify secret is what actually
-# gates access, checked by the adapter, not IAM (ADR-0017). CloudFront reaches
-# the origin as an ordinary anonymous HTTPS client, so it needs no
-# invoke permission of its own.
+# Function URLs created after October 2025 need both permissions; granting
+# only InvokeFunctionUrl returns 403 AccessDeniedException.
+resource "aws_lambda_permission" "cloudfront_invoke_function_url" {
+  count = local.use_cdn ? 1 : 0
+
+  statement_id           = "AllowCloudFrontInvokeFunctionUrl"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.web.function_name
+  principal              = "cloudfront.amazonaws.com"
+  source_arn             = aws_cloudfront_distribution.web[0].arn
+  function_url_auth_type = "AWS_IAM"
+}
+
+resource "aws_lambda_permission" "cloudfront_invoke_function" {
+  count = local.use_cdn ? 1 : 0
+
+  statement_id  = "AllowCloudFrontInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.web.function_name
+  principal     = "cloudfront.amazonaws.com"
+  source_arn    = aws_cloudfront_distribution.web[0].arn
+}
+
+# Only used on LocalStack, where the Function URL stays public because there
+# is no CloudFront to sign requests through.
 resource "aws_lambda_permission" "public_function_url" {
+  count = local.use_cdn ? 0 : 1
+
   statement_id           = "AllowPublicFunctionUrl"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.web.function_name

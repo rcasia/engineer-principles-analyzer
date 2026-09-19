@@ -175,8 +175,17 @@ supersedes it.
 Honest list of what is not done, so nobody assumes otherwise:
 
 - The principles catalog is empty and the analysis rules do not exist.
-- Deployment has never run against real AWS — only LocalStack. `infra/bootstrap`
-  is validated but has never been applied.
+- `POST /analyze` does not work on real AWS (LocalStack is unaffected). This
+  account's AWS Organization has a Service Control Policy that blocks
+  unauthenticated Lambda Function URL invocation account-wide, regardless of
+  the function's own `AuthType` or resource policy — confirmed directly
+  against the Function URL and the Organizations API, not inferred. That
+  ruled out replacing origin access control (OAC) with a public origin
+  (ADR-0017), because OAC itself cannot sign a POST body, so a
+  `AWS_IAM`-protected Function URL (restored in ADR-0018) rejects every POST
+  with a SigV4 mismatch. Fixing this needs either the Organization's SCP
+  loosened from the management account, or a signing mechanism such as
+  Lambda@Edge in front of the origin.
 - `infra/bootstrap` keeps its own state locally, so it is not reproducible
   from a clone; recovery is by `terraform import`.
 - No import-boundary lint rule enforces the dependency rule; it is convention

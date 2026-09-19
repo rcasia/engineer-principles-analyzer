@@ -1,8 +1,10 @@
 # ADR-0009: Serve globally from CloudFront, with the origin locked to it
 
 **Status**: Accepted (supersedes the "no CloudFront" decision in ADR-0005). The
-origin-access-control mechanism is superseded by [ADR-0017](0017-shared-secret-origin-instead-of-oac.md);
-CloudFront and the rest of this decision stand.
+origin-access-control mechanism was briefly superseded by
+[ADR-0017](0017-shared-secret-origin-instead-of-oac.md), which
+[ADR-0018](0018-revert-to-oac-scp-blocks-public-function-urls.md) reverted;
+this decision, OAC included, stands again as originally written.
 **Date**: 2026-09-19
 
 ## Context

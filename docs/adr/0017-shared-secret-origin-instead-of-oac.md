@@ -1,6 +1,11 @@
 # ADR-0017: Protect the CloudFront origin with a shared secret header, not OAC
 
-**Status**: Accepted (supersedes the origin-access-control decision in [ADR-0009](0009-cloudfront-in-front-of-lambda.md))
+**Status**: Superseded by [ADR-0018](0018-revert-to-oac-scp-blocks-public-function-urls.md). The
+mechanism here is sound and fully tested, but this AWS account's Organization
+blocks unauthenticated Lambda Function URLs account-wide, which was
+discovered only by deploying this and is outside anything this repository
+controls. Kept for the reasoning and the inert, ready-to-use code it left
+behind.
 **Date**: 2026-09-19
 
 ## Context
