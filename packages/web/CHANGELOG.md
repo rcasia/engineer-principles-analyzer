@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/rcasia/principled/compare/web-v1.3.0...web-v1.3.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** let the deploy role enable Lambda@Edge replication ([6fdc58d](https://github.com/rcasia/principled/commit/6fdc58d1c313c9f6787fa154d1200391af7c37cb))
+
 # [1.3.0](https://github.com/rcasia/principled/compare/web-v1.2.0...web-v1.3.0) (2026-09-19)
 
 
