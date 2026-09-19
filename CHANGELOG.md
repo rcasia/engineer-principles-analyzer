@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.3.2...v1.4.0) (2026-09-19)
+
+
+### Features
+
+* **cli:** prefer npm oidc trusted publishing over a long-lived token ([c9c7c6b](https://github.com/rcasia/engineer-principles-analyzer/commit/c9c7c6bb79202316435d94a20e5220221004ab34))
+
 ## [1.3.2](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.3.1...v1.3.2) (2026-09-19)
 
 
