@@ -9,3 +9,5 @@ export {
   PAGE_TITLE,
   renderPrinciplesPage,
 } from "./presentation/principles-page.ts";
+export { createLambdaHandler, toRequest } from "./lambda.ts";
+export type { FunctionUrlEvent, FunctionUrlResult } from "./lambda.ts";

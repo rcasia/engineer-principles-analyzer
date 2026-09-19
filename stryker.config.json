@@ -11,7 +11,8 @@
     "packages/*/src/**/*.ts",
     "!packages/*/src/**/*.test.ts",
     "!packages/*/src/index.ts",
-    "!packages/*/src/bin.ts"
+    "!packages/*/src/bin.ts",
+    "!packages/*/src/lambda-entry.ts"
   ],
   "thresholds": {
     "high": 100,
