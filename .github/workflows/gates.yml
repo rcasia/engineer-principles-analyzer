@@ -58,16 +58,7 @@ jobs:
       # Backstops the pre-commit hook (lefthook.yml) for commits made with
       # --no-verify and for pull requests from forks, where local hooks never
       # ran at all.
-      #
-      # continue-on-error: bun's audit backend has been returning 503 for
-      # every request (reproduced locally too, not GitHub-specific), which
-      # would otherwise block every release and the production deploy on an
-      # upstream outage rather than a real finding. This is not a substitute
-      # for the gate, just a way to stop it wedging the pipeline while the
-      # service is down. Tracked in #48 - remove once bun audit is healthy
-      # again.
       - run: bun run audit
-        continue-on-error: true
 
   mutation:
     name: mutation score
