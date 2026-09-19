@@ -97,6 +97,9 @@ is then deployed. There is no review step — the gates are the safety net.
 
 Publishing the CLI to npm is skipped until `NPM_PUBLISH` is `true`; the
 version is still bumped and the tarball still built and verified.
+Authentication prefers npm's OIDC trusted publishing, falling back to
+`NPM_TOKEN` for the one-time bootstrap publish a trusted publisher needs to
+exist against (see [ADR-0010](docs/adr/0010-npm-trusted-publishing.md)).
 
 Deployment is skipped until `AWS_DEPLOY_ROLE_ARN` is set as a repository
 variable, so the pipeline is green without an AWS account. Turning it on is a

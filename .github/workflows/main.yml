@@ -41,14 +41,22 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
+      # Node 22 bundles npm ~10.9.x. OIDC trusted publishing needs npm
+      # >= 11.5.1 (docs.npmjs.com/trusted-publishers), so it is upgraded
+      # explicitly rather than trusting whatever setup-node shipped.
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@^11.5.1
       - run: bun install --frozen-lockfile
       - name: Release
         run: ./node_modules/.bin/semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Publishing the CLI to npm is off until NPM_PUBLISH is "true" and
-          # an NPM_TOKEN exists. The version is bumped and the tarball is
-          # built and verified either way, so the path stays exercised.
+          # Publishing the CLI to npm is off until NPM_PUBLISH is "true".
+          # The version is bumped and the tarball is built and verified
+          # either way, so the path stays exercised. Publishing prefers OIDC
+          # trusted publishing (id-token: write, above); NPM_TOKEN is only a
+          # fallback for the one-time bootstrap publish, before a trusted
+          # publisher can be registered for this repository. See ADR-0010.
           NPM_PUBLISH: ${{ vars.NPM_PUBLISH }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 

@@ -150,3 +150,7 @@ Honest list of what is not done, so nobody assumes otherwise:
 - The CLI is wired for npm but not published; `NPM_PUBLISH` is unset and the
   name `principled` is unclaimed. npm's similarity check against the existing
   `principle` package cannot be verified until the first publish.
+- npm OIDC trusted publishing (ADR-0010) cannot be registered until after
+  that first publish — npm requires the package to already exist. Until a
+  maintainer completes that one-time step on npmjs.com, `NPM_TOKEN` is what
+  actually authenticates any real publish.
