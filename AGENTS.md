@@ -49,6 +49,13 @@ If `bun run check` is red, nothing else matters. Fix that first.
    you worked, `git pull --rebase` first. A commit left on a local branch is
    not delivered work.
 
+7. **Edit code in a worktree, not the shared checkout.** Agents run
+   concurrently against this repository; editing the primary checkout
+   directly risks mixing your changes with another agent's in-flight work.
+   Before touching code, run `git worktree add ../epa-<task> -b <branch>`,
+   do the work there, push from it, and `git worktree remove` it once the
+   branch has merged to `main`.
+
 ## Architecture in one paragraph
 
 `core` holds the rules and knows nothing about the outside world. It is
