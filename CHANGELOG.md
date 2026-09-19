@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.0.0...v1.0.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **release:** stop listing package.json as a release asset ([428f808](https://github.com/rcasia/engineer-principles-analyzer/commit/428f8084865de43f9f5a82decbf32a9fd5f50f36))
+
 # 1.0.0 (2026-09-19)
 
 
