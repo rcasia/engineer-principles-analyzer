@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/rcasia/principled/compare/v1.12.1...v1.13.0) (2026-09-19)
+
+
+### Features
+
+* **release:** route release trains by changed files ([3444019](https://github.com/rcasia/principled/commit/3444019ed4b02b9f0c93e55961d7585c46ed8cf9))
+
 ## [1.12.1](https://github.com/rcasia/principled/compare/v1.12.0...v1.12.1) (2026-09-19)
 
 
