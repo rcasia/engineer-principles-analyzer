@@ -15,7 +15,7 @@ Usage:
   ${COMMAND_NAME} --version    Show the version
 
 The principles catalog is empty while the analysis rules are being designed.
-See https://github.com/rcasia/engineer-principles-analyzer`;
+See https://github.com/rcasia/principled`;
 }
 
 export function renderUnknownOption(option: string): string {

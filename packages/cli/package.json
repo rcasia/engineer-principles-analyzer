@@ -12,11 +12,11 @@
     "cli"
   ],
   "license": "Apache-2.0",
-  "homepage": "https://github.com/rcasia/engineer-principles-analyzer#readme",
-  "bugs": "https://github.com/rcasia/engineer-principles-analyzer/issues",
+  "homepage": "https://github.com/rcasia/principled#readme",
+  "bugs": "https://github.com/rcasia/principled/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rcasia/engineer-principles-analyzer.git",
+    "url": "git+https://github.com/rcasia/principled.git",
     "directory": "packages/cli"
   },
   "bin": {

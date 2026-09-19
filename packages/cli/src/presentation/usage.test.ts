@@ -39,7 +39,7 @@ describe("usage", () => {
 
   it("points at the repository for more detail", () => {
     expect(renderUsage()).toContain(
-      "https://github.com/rcasia/engineer-principles-analyzer",
+      "https://github.com/rcasia/principled",
     );
   });
 
