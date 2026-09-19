@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.3.1...v1.3.2) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** stop the managed cache policy from reintroducing host ([2016e3f](https://github.com/rcasia/engineer-principles-analyzer/commit/2016e3f1f32b65e7a417409c2a8c7a0a314129e6))
+
 ## [1.3.1](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.3.0...v1.3.1) (2026-09-19)
 
 
