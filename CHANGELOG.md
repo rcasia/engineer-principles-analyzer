@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/rcasia/principled/compare/v1.13.0...v1.14.0) (2026-09-19)
+
+
+### Features
+
+* **ci:** run the cli and web release trains in parallel ([75e9f2b](https://github.com/rcasia/principled/commit/75e9f2bc18844fe696ff7e00ac9f5d80cf1e0598))
+
 # [1.13.0](https://github.com/rcasia/principled/compare/v1.12.1...v1.13.0) (2026-09-19)
 
 
