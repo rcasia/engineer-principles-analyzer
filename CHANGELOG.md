@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/rcasia/principled/compare/v1.8.0...v1.9.0) (2026-09-19)
+
+
+### Features
+
+* **core:** build the rule evaluation engine ([c1f8ab8](https://github.com/rcasia/principled/commit/c1f8ab8bfd0ef30790750aa343692b2d96b6307a)), closes [#9](https://github.com/rcasia/principled/issues/9) [#8](https://github.com/rcasia/principled/issues/8) [#33](https://github.com/rcasia/principled/issues/33)
+
 # [1.8.0](https://github.com/rcasia/principled/compare/v1.7.0...v1.8.0) (2026-09-19)
 
 
