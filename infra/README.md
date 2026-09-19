@@ -1,9 +1,16 @@
 # Infrastructure
 
-One Lambda function on arm64, exposed by a Lambda Function URL, with a
-log group capped at 7 days and an IAM role that can do nothing but write to
-it. That is the entire production stack. See
-[ADR-0005](../docs/adr/0005-aws-lambda-function-url.md) for why.
+CloudFront in front of one arm64 Lambda exposed by a Function URL, with a log
+group capped at 7 days and an IAM role that can do nothing but write to it.
+That is the entire production stack. See
+[ADR-0005](../docs/adr/0005-aws-lambda-function-url.md) for the compute
+choice and [ADR-0009](../docs/adr/0009-cloudfront-in-front-of-lambda.md) for
+the CDN.
+
+The Function URL requires `AWS_IAM` on real AWS and is reachable only through
+CloudFront, which signs requests with origin access control. On LocalStack
+there is no CloudFront, so the Function URL is public there instead — this is
+the one place local and production configuration differ.
 
 The same configuration targets LocalStack or real AWS. Setting
 `localstack_endpoint` redirects every AWS call and skips credential checks;

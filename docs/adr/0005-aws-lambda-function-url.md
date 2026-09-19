@@ -1,6 +1,9 @@
 # ADR-0005: Deploy to AWS Lambda behind a Function URL, verified on LocalStack
 
-**Status**: Accepted
+**Status**: Accepted. The "no CloudFront" part is superseded by
+[ADR-0009](0009-cloudfront-in-front-of-lambda.md), which found the cost
+premise behind it to be wrong. The Lambda, Function URL, runtime and
+LocalStack decisions here still stand.
 **Date**: 2026-09-19
 
 ## Context

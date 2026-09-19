@@ -109,6 +109,10 @@ bun run infra:destroy:local
 `terraform plan` needs no credentials. Run `terraform -chdir=infra fmt` before
 committing; CI checks formatting.
 
+Anything guarded by `local.use_cdn` only exists on real AWS. If you change
+the CDN, `terraform validate` is the only automated check before deploy, so
+read it carefully.
+
 Do not run `terraform` directly inside `infra/`: the backend declared there is
 **production**. Use the `infra:*:local` scripts, which select a local backend
 via a generated override file (ADR-0007). Production setup is a one-time
@@ -134,7 +138,10 @@ Honest list of what is not done, so nobody assumes otherwise:
   from a clone; recovery is by `terraform import`.
 - No import-boundary lint rule enforces the dependency rule; it is convention
   today.
-- No budget alarm or reserved concurrency on the public Function URL.
+- No budget alarm or reserved concurrency on the Lambda.
+- CloudFront and origin access control are not covered by the LocalStack
+  gate; LocalStack Community cannot emulate CloudFront. They are validated in
+  CI and verified by `scripts/check-deployed.ts` on real deploys only.
 - The CLI is wired for npm but not published; `NPM_PUBLISH` is unset and the
   name `principled` is unclaimed. npm's similarity check against the existing
   `principle` package cannot be verified until the first publish.

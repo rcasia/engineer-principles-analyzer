@@ -236,6 +236,40 @@ data "aws_iam_policy_document" "deploy" {
     actions   = ["logs:DescribeLogGroups"]
     resources = ["*"]
   }
+
+  # CloudFront distribution ARNs contain a generated ID, not a name, so they
+  # cannot be matched by prefix the way the Lambda and IAM statements are.
+  # This is the least scoped statement in the policy; see README.md.
+  statement {
+    sid    = "Cdn"
+    effect = "Allow"
+    actions = [
+      "cloudfront:CreateDistribution",
+      "cloudfront:UpdateDistribution",
+      "cloudfront:GetDistribution",
+      "cloudfront:GetDistributionConfig",
+      "cloudfront:DeleteDistribution",
+      "cloudfront:ListDistributions",
+      "cloudfront:TagResource",
+      "cloudfront:UntagResource",
+      "cloudfront:ListTagsForResource",
+      "cloudfront:CreateOriginAccessControl",
+      "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:GetOriginAccessControl",
+      "cloudfront:GetOriginAccessControlConfig",
+      "cloudfront:DeleteOriginAccessControl",
+      "cloudfront:ListOriginAccessControls",
+      "cloudfront:CreateInvalidation",
+      # Read only: resolves the managed cache and header policies by name.
+      "cloudfront:GetCachePolicy",
+      "cloudfront:ListCachePolicies",
+      "cloudfront:GetOriginRequestPolicy",
+      "cloudfront:ListOriginRequestPolicies",
+      "cloudfront:GetResponseHeadersPolicy",
+      "cloudfront:ListResponseHeadersPolicies",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "deploy" {

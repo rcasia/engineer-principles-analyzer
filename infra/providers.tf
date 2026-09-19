@@ -1,5 +1,11 @@
 locals {
   use_localstack = var.localstack_endpoint != null
+
+  # LocalStack Community cannot emulate CloudFront, so the CDN exists only
+  # when targeting real AWS. Everything guarded by this is verified by
+  # terraform validate in CI and end to end by scripts/check-deployed.ts on a
+  # real deploy. See docs/adr/0009-cloudfront-in-front-of-lambda.md
+  use_cdn        = var.localstack_endpoint == null
   name_prefix    = "epa-${var.environment}"
   lambda_package = coalesce(var.lambda_package_path, "${path.module}/build/handler.zip")
 

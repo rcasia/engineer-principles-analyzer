@@ -79,7 +79,9 @@ Every push and pull request must pass all of these
   directory with npm and Node, and the binary is run. Proves it works without
   Bun.
 - **Terraform** — formatted, valid, and actually applied to LocalStack, with
-  the deployed function checked over HTTP.
+  the deployed function checked over HTTP. The CloudFront layer is the one
+  exception: LocalStack Community cannot emulate it, so it is validated in CI
+  and verified end to end on real deploys.
 
 None of the gates need secrets, so they run on forks and pull requests from
 anyone.
@@ -102,12 +104,21 @@ one-time setup documented in [`infra/bootstrap`](infra/bootstrap/README.md):
 it creates the Terraform state bucket, the GitHub OIDC provider and the
 deploy role.
 
-## Cost
+## Global delivery and cost
 
-One arm64 Lambda behind a Function URL, nothing else. Lambda's free tier is
-perpetual and there is no always-on component, so idle cost is $0. Log
-retention is capped at 7 days, which is the only part that can quietly spend
-money ([ADR-0005](docs/adr/0005-aws-lambda-function-url.md)).
+CloudFront serves the site from ~600 edge locations, with one arm64 Lambda in
+`eu-west-1` as the origin. Cached responses never reach the origin, so most
+users skip the Lambda cold start entirely
+([ADR-0009](docs/adr/0009-cloudfront-in-front-of-lambda.md)).
+
+The Function URL is **not public**: origin access control means only the
+CloudFront distribution can sign requests to it, so the cache cannot be
+bypassed.
+
+Idle cost is $0 and there is no always-on component. CloudFront's free tier
+(1 TB egress and 10M requests per month) and Lambda's are both perpetual, and
+origin fetches from AWS cost nothing. Log retention is capped at 7 days,
+which is the main thing that could quietly spend money.
 
 ## Documentation
 

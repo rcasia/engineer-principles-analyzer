@@ -101,6 +101,11 @@ Scoped to this project, not the account:
 - Manage log groups under `/aws/lambda/epa-*`.
 - `logs:DescribeLogGroups` account-wide, because that call cannot be scoped
   to a single group. It is read only.
+- Manage CloudFront distributions and origin access controls. **This is the
+  least scoped statement in the policy**: CloudFront ARNs contain a generated
+  ID rather than a name, so they cannot be restricted by prefix the way the
+  Lambda and IAM statements are. In an account shared with other CloudFront
+  distributions, prefer a dedicated account over tightening this.
 
 Be clear about what this means: **a green commit on main can create and
 modify IAM roles prefixed `epa-`, with no human review.** That is a

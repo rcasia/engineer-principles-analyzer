@@ -13,10 +13,11 @@ commit changes how the system is built, its ADR ships with it.
 | [0002](0002-hexagonal-architecture.md) | Organise code as vertical slices over a hexagon | Accepted | 2026-09-19 |
 | [0003](0003-mutation-testing-gate.md) | Gate on mutation score, not line coverage | Accepted | 2026-09-19 |
 | [0004](0004-server-rendered-web-without-client-javascript.md) | Render the web UI on the server with no client-side JavaScript | Accepted | 2026-09-19 |
-| [0005](0005-aws-lambda-function-url.md) | Deploy to AWS Lambda behind a Function URL, verified on LocalStack | Accepted | 2026-09-19 |
+| [0005](0005-aws-lambda-function-url.md) | Deploy to AWS Lambda behind a Function URL, verified on LocalStack | Partly superseded by [0009](0009-cloudfront-in-front-of-lambda.md) | 2026-09-19 |
 | [0006](0006-trunk-based-delivery.md) | Push to main, gate with CI, release and deploy automatically | Accepted | 2026-09-19 |
 | [0007](0007-remote-terraform-state.md) | Keep production state in S3, provisioned by a bootstrap module | Accepted | 2026-09-19 |
 | [0008](0008-publish-the-cli-to-npm.md) | Publish the CLI to npm as `principled`, bundling core | Accepted | 2026-09-19 |
+| [0009](0009-cloudfront-in-front-of-lambda.md) | Serve globally from CloudFront, with the origin locked to it | Accepted | 2026-09-19 |
 
 ## Writing a new ADR
 
