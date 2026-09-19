@@ -1,0 +1,19 @@
+# Guardrails that run locally before code ever reaches main.
+# The same checks run in CI (.github/workflows/) so the two cannot drift.
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}
+
+pre-commit:
+  parallel: true
+  commands:
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: bun run typecheck
+
+pre-push:
+  commands:
+    test:
+      run: bun test

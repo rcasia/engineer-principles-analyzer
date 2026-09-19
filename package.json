@@ -17,13 +17,17 @@
   },
   "packageManager": "bun@1.3.0",
   "scripts": {
+    "prepare": "lefthook install",
     "typecheck": "tsc --build",
     "test": "bun test",
     "test:mutation": "bunx stryker run",
     "check": "bun run typecheck && bun run test"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@types/bun": "^1.4.2",
+    "lefthook": "^2.1.14",
     "typescript": "^7.0.2"
   }
 }
