@@ -39,6 +39,11 @@ If `bun run check` is red, nothing else matters. Fix that first.
    `*.tfstate`, `*.tfvars`, `infra/build/` and `.env`. Check `git status`
    before staging.
 
+6. **Done means pushed to `main`.** The trunk is the delivery target: once
+   `bun run check` is green, commit and push. If `origin/main` moved while
+   you worked, `git pull --rebase` first. A commit left on a local branch is
+   not delivered work.
+
 ## Architecture in one paragraph
 
 `core` holds the rules and knows nothing about the outside world. It is
