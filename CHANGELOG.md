@@ -1,3 +1,11 @@
+## [1.12.1](https://github.com/rcasia/principled/compare/v1.12.0...v1.12.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **ci:** check out main's current tip in release-web and deploy ([42634aa](https://github.com/rcasia/principled/commit/42634aa7e89cd08ba4a7b34c71c0e78417fbb2aa))
+* **ci:** don't let bun audit's outage block the pipeline ([eab51de](https://github.com/rcasia/principled/commit/eab51de2252468cfb8702378f9084e2ba35db769)), closes [#48](https://github.com/rcasia/principled/issues/48)
+
 # [1.12.0](https://github.com/rcasia/principled/compare/v1.11.1...v1.12.0) (2026-09-19)
 
 
