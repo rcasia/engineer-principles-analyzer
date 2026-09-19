@@ -10,7 +10,11 @@ locals {
   lambda_package = coalesce(var.lambda_package_path, "${path.module}/build/handler.zip")
   # Bundle produced by scripts/build-edge-signer.ts. Only ever deployed when
   # a CDN is in front (LocalStack has no CloudFront and no Lambda@Edge).
-  edge_signer_package = "${path.module}/build/edge-signer.zip"
+  # Routed through a variable like lambda_package above: besides the
+  # override knob, indirection through a variable is what keeps `terraform
+  # validate` from hashing the file before it is built (validate runs in CI
+  # with no bundles present; a bare path literal fails it).
+  edge_signer_package = coalesce(var.edge_signer_package_path, "${path.module}/build/edge-signer.zip")
 
   tags = {
     Project     = "principled"

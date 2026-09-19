@@ -30,6 +30,12 @@ variable "lambda_package_path" {
   default     = null
 }
 
+variable "edge_signer_package_path" {
+  description = "Zip built by scripts/build-edge-signer.ts. Defaults to infra/build/edge-signer.zip."
+  type        = string
+  default     = null
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention. Kept short: logs are the main way this stack can cost money."
   type        = number
