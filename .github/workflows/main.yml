@@ -27,6 +27,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      id-token: write # npm provenance when publishing is switched on.
     steps:
       - uses: actions/checkout@v5
         with:

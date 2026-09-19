@@ -86,11 +86,22 @@ the registry verbatim.
 
 The bundle targets **Node** (`#!/usr/bin/env node`). Bun is the bundler only.
 
-Publishing is **switched off**: `release.config.mjs` reads `NPM_PUBLISH`, the
-same pattern as `AWS_DEPLOY_ROLE_ARN` for deployment (ADR-0007). Until it is
-`"true"`, semantic-release still writes the version into
+Publishing is **switched off**: `scripts/publish-cli.ts` reads `NPM_PUBLISH`,
+the same pattern as `AWS_DEPLOY_ROLE_ARN` for deployment (ADR-0007). Until it
+is `"true"`, the release still writes the version into
 `packages/cli/package.json`, still builds the bundle and still verifies the
-tarball. Only the upload is skipped.
+tarball. Only the upload is skipped. If the switch is on and `NPM_TOKEN` is
+missing, the release fails rather than silently not publishing.
+
+**`@semantic-release/npm` is deliberately not used.** Its prepare step shells
+out to `npm version`, which reifies the entire workspace tree; that fails
+with `EUNSUPPORTEDPROTOCOL` on any dependency using a non-npm range. Stryker's
+transitive dependencies ship `catalog:` ranges, which we do not control, so
+the command can never succeed in this repository. `scripts/release-cli.ts`
+writes the version instead, and `npm` is only invoked for `pack` and
+`publish`, both of which work. The same constraint is why workspace
+dependencies are ranged `*` rather than `workspace:*` **everywhere**, not
+just in the published package.
 
 The version is stamped into the bundle by replacing a placeholder exported
 from `version.ts`, and the build **fails** if the placeholder is missing, so

@@ -66,7 +66,10 @@ Tests are written to kill mutants, which in practice means:
 2. `tsconfig.json` extending `../../tsconfig.base.json`, with `references` to
    any workspace dependency.
 3. Add it to `references` in the root `tsconfig.json`.
-4. Depend on workspace packages with `"@epa/core": "workspace:*"`.
+4. Depend on workspace packages with `"@epa/core": "*"`, **not**
+   `"workspace:*"`. Bun links the local package either way, but
+   semantic-release shells out to `npm`, and npm fails on the workspace
+   protocol anywhere in the tree (`EUNSUPPORTEDPROTOCOL`).
 
 Imports use explicit `.ts` extensions — Bun runs the sources directly and
 `tsc` only emits declarations ([ADR-0001](docs/adr/0001-bun-monorepo.md)).

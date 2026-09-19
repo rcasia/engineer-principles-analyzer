@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@epa/core": "workspace:*"
+    "@epa/core": "*"
   },
   "scripts": {
     "typecheck": "tsc --build",
