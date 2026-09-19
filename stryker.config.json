@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation testing is the real coverage gate. Line coverage only proves a line ran; a surviving mutant proves a test would not have noticed it breaking. See docs/adr/0003-mutation-testing-gate.md",
+  "packageManager": "npm",
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "bun test"
+  },
+  "coverageAnalysis": "off",
+  "mutate": [
+    "packages/*/src/**/*.ts",
+    "!packages/*/src/**/*.test.ts",
+    "!packages/*/src/index.ts"
+  ],
+  "thresholds": {
+    "high": 100,
+    "low": 95,
+    "break": 95
+  },
+  "reporters": ["clear-text", "progress", "html"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  },
+  "tempDirName": ".stryker-tmp",
+  "cleanTempDir": true
+}
