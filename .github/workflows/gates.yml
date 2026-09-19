@@ -55,7 +55,7 @@ jobs:
         with:
           bun-version: "1.3.0"
       # Stryker runs on Node even though the tests it drives run on Bun.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - run: bun install --frozen-lockfile
@@ -76,7 +76,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.3.0"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - run: bun install --frozen-lockfile
@@ -94,7 +94,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.3.0"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - run: bun install --frozen-lockfile
