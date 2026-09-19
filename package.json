@@ -1,0 +1,29 @@
+{
+  "name": "engineer-principles-analyzer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Analyzes subjects against engineering principles.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rcasia/engineer-principles-analyzer.git"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "packageManager": "bun@1.3.0",
+  "scripts": {
+    "typecheck": "tsc --build",
+    "test": "bun test",
+    "test:mutation": "bunx stryker run",
+    "check": "bun run typecheck && bun run test"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2"
+  }
+}
