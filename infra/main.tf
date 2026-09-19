@@ -67,12 +67,17 @@ resource "aws_lambda_function" "web" {
   # x-origin-verify header does not match, so a direct hit on the public
   # Function URL is rejected (ADR-0017). Absent on LocalStack, where the
   # Function URL is deliberately open.
+  # for_each keys on a constant, not the secret's value: the secret is unknown
+  # until apply, and iterating a list whose single element is unknown makes
+  # Terraform plan zero blocks and then produce one, which it rejects as an
+  # inconsistent final plan. The count is fixed here; only the value inside is
+  # deferred.
   dynamic "environment" {
-    for_each = local.use_cdn ? [random_password.origin_secret[0].result] : []
+    for_each = local.use_cdn ? ["cdn"] : []
 
     content {
       variables = {
-        ORIGIN_VERIFY_SECRET = environment.value
+        ORIGIN_VERIFY_SECRET = random_password.origin_secret[0].result
       }
     }
   }
@@ -189,6 +194,25 @@ data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
 data "aws_cloudfront_response_headers_policy" "security_headers" {
   count = local.use_cdn ? 1 : 0
   name  = "Managed-SecurityHeadersPolicy"
+}
+
+# TRANSITIONAL: this origin access control is no longer referenced by the
+# distribution below (the origin now authenticates with the x-origin-verify
+# custom header, ADR-0017). It is kept in config for exactly one deploy so
+# this apply *updates* the distribution to stop using it, rather than trying
+# to *delete* it while the distribution still references it - CloudFront
+# rejects that with OriginAccessControlInUse, and removing the attribute
+# reference dropped the dependency edge that would have ordered the update
+# first. A follow-up commit deletes this block once the distribution update
+# has propagated. Do not add new references to it.
+resource "aws_cloudfront_origin_access_control" "web" {
+  count = local.use_cdn ? 1 : 0
+
+  name                              = "${local.name_prefix}-web"
+  description                       = "Unused; retained for one deploy to detach cleanly (ADR-0017)."
+  origin_access_control_origin_type = "lambda"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
 }
 
 resource "aws_cloudfront_distribution" "web" {
