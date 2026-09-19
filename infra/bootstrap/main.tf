@@ -245,6 +245,11 @@ data "aws_iam_policy_document" "deploy" {
       "lambda:RemovePermission",
       "lambda:PutFunctionConcurrency",
       "lambda:DeleteFunctionConcurrency",
+      # Associating a Lambda@Edge function for the first time makes
+      # CloudFront enable replication on it; the caller needs this or
+      # UpdateDistribution fails with AccessDenied (ADR-0019). Needed once
+      # per function, kept permanently like the rest of this statement.
+      "lambda:EnableReplication*",
     ]
     resources = ["arn:aws:lambda:*:*:function:${var.resource_prefix}-*"]
   }

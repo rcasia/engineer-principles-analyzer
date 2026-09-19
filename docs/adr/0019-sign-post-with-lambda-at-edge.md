@@ -104,6 +104,13 @@ Adopt **Option 1**. Concretely:
   `origin-request` association with `include_body = true` on the default
   cache behavior; `x-origin-host`/`x-origin-region` origin custom headers
   carrying the deploy-time values the signer cannot get from environment.
+- The deploy role (`infra/bootstrap`) gains `lambda:EnableReplication*`
+  scoped to the project's functions: associating an edge function for the
+  first time makes CloudFront enable replication on it, and the first real
+  deploy failed on exactly that missing permission. Because bootstrap keeps
+  local state and cannot be re-applied from CI, the identical statement was
+  applied to the live role by hand first and recorded here second - config
+  and reality match, so a future bootstrap apply converges to no-op.
 - The distribution origin drops `origin_access_control_id` in this deploy
   while the OAC **resource is retained**, unreferenced - the same detach
   pattern that worked in `4433f27`. The CloudFront invoke permissions stay
