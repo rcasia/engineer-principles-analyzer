@@ -21,7 +21,7 @@ variable "state_bucket_name" {
 variable "github_repository" {
   description = "Repository allowed to assume the deploy role, as \"owner/name\"."
   type        = string
-  default     = "rcasia/engineer-principles-analyzer"
+  default     = "rcasia/principled"
 
   validation {
     condition     = can(regex("^[^/]+/[^/]+$", var.github_repository))

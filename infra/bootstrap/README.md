@@ -40,7 +40,7 @@ gh api repos/OWNER/REPO/actions/oidc/customization/sub
 
 If `use_immutable_subject` is `true`, the response includes the exact
 `sub_claim_prefix` your trust policy must match — this module builds it from
-`github_owner_id` and `github_repo_id`, defaulted for `rcasia/engineer-principles-analyzer`.
+`github_owner_id` and `github_repo_id`, defaulted for `rcasia/principled`.
 **Override both on a fork**, since forking creates a new repository with new
 IDs. Look them up with:
 
@@ -80,7 +80,7 @@ Useful variables:
 | --------------------- | ------------------------------------- | ---------------------------------------- |
 | `state_bucket_name`   | _required_                            | Must be globally unique                  |
 | `aws_region`          | `eu-west-1`                           | Must match the region used at `init`     |
-| `github_repository`   | `rcasia/engineer-principles-analyzer` | Change this on a fork                    |
+| `github_repository`   | `rcasia/principled`                   | Change this on a fork                    |
 | `github_environment`  | `production`                          | Must match `environment:` in `main.yml`  |
 | `create_oidc_provider`| `true`                                | `false` if one already exists            |
 | `resource_prefix`     | `epa`                                 | What the deploy role may manage          |
