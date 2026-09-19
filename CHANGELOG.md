@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.3.0...v1.3.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** match github's immutable oidc subject claim format ([421a96a](https://github.com/rcasia/engineer-principles-analyzer/commit/421a96a44c15b78f781428d18f2e5b04421d894d))
+
 # [1.3.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.2.0...v1.3.0) (2026-09-19)
 
 
