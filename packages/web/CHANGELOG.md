@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/rcasia/principled/compare/web-v1.0.0...web-v1.0.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** restore prod by detaching OAC before deleting it ([4433f27](https://github.com/rcasia/principled/commit/4433f27fa62a09430eacac4dc7c342fcb6da2c25))
+
 # 1.0.0 (2026-09-19)
 
 
