@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.0.1...v1.1.0) (2026-09-19)
+
+
+### Features
+
+* **infra:** add bootstrap module for state bucket and deploy role ([85b4f1e](https://github.com/rcasia/engineer-principles-analyzer/commit/85b4f1ef7437831c966a7c2bef00b57d495ba1ac))
+
 ## [1.0.1](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.0.0...v1.0.1) (2026-09-19)
 
 
