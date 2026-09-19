@@ -21,6 +21,7 @@
     "typecheck": "tsc --build",
     "test": "bun test",
     "test:mutation": "bunx stryker run",
+    "audit": "bun audit",
     "cli": "bun packages/cli/src/bin.ts",
     "check": "bun run typecheck && bun run test",
     "build:lambda": "bun scripts/build-lambda.ts",

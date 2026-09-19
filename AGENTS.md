@@ -10,6 +10,8 @@ this conversation.
 bun install          # also installs the git hooks
 bun run check        # typecheck + tests, run this constantly
 bun run test:mutation # before pushing anything that changes behaviour
+bun run audit        # dependency vulnerabilities; the hook runs this for you
+                      # whenever package.json or bun.lock changes (ADR-0011)
 ```
 
 If `bun run check` is red, nothing else matters. Fix that first.
@@ -40,16 +42,22 @@ If `bun run check` is red, nothing else matters. Fix that first.
 4. **The domain has no I/O.** `packages/core/src/*/domain/` imports nothing
    from `application/` or `infrastructure/`. Dependencies point inward, always.
 
-5. **Never commit secrets, state or build output.** `.gitignore` covers
+5. **Dependencies stay free of known vulnerabilities.** `bun run audit` runs
+   on every commit that touches `package.json` or `bun.lock`, on every push
+   and pull request, and weekly against `main` (ADR-0011). Fix a finding with
+   an upstream update or a `package.json` override — never `--ignore` unless
+   no fix exists yet.
+
+6. **Never commit secrets, state or build output.** `.gitignore` covers
    `*.tfstate`, `*.tfvars`, `infra/build/` and `.env`. Check `git status`
    before staging.
 
-6. **Done means pushed to `main`.** The trunk is the delivery target: once
+7. **Done means pushed to `main`.** The trunk is the delivery target: once
    `bun run check` is green, commit and push. If `origin/main` moved while
    you worked, `git pull --rebase` first. A commit left on a local branch is
    not delivered work.
 
-7. **Edit code in a worktree, not the shared checkout.** Agents run
+8. **Edit code in a worktree, not the shared checkout.** Agents run
    concurrently against this repository; editing the primary checkout
    directly risks mixing your changes with another agent's in-flight work.
    Before touching code, run `git worktree add ../principled-<task> -b <branch>`,

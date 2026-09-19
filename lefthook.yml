@@ -12,6 +12,11 @@ pre-commit:
     typecheck:
       glob: "*.{ts,tsx}"
       run: bun run typecheck
+    audit:
+      glob:
+        - "package.json"
+        - "bun.lock"
+      run: bun run audit
 
 pre-push:
   commands:

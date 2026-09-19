@@ -19,6 +19,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0008](0008-publish-the-cli-to-npm.md) | Publish the CLI to npm as `principled`, bundling core | Accepted | 2026-09-19 |
 | [0009](0009-cloudfront-in-front-of-lambda.md) | Serve globally from CloudFront, with the origin locked to it | Accepted | 2026-09-19 |
 | [0010](0010-npm-trusted-publishing.md) | Publish the CLI to npm with OIDC trusted publishing | Accepted | 2026-09-19 |
+| [0011](0011-dependency-vulnerability-audit-gate.md) | Gate on `bun audit`, at commit time, in CI, and on a schedule | Accepted | 2026-09-19 |
 
 ## Writing a new ADR
 
