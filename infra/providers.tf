@@ -25,12 +25,35 @@ locals {
 
 # Lambda@Edge functions must live in us-east-1 - the only region CloudFront
 # replicates from - while everything else stays in var.aws_region (ADR-0019).
-# Plain configuration, no LocalStack endpoints: no edge resource is ever
-# created off real AWS (all of them are count-guarded by local.use_cdn), so
-# this provider is simply unused on local runs.
+# No edge resource is ever created off real AWS (all of them are
+# count-guarded by local.use_cdn), so on local runs this provider is
+# configured but never called. It still needs the same dummy credentials
+# and endpoint overrides as the main provider below: Terraform configures
+# every provider in the tree regardless of count, and without them it falls
+# through to the real credential chain (EC2 IMDS) and fails where no AWS
+# credentials exist at all - which is exactly the CI gate.
 provider "aws" {
   alias  = "useast1"
   region = "us-east-1"
+
+  access_key                  = local.use_localstack ? "test" : null
+  secret_key                  = local.use_localstack ? "test" : null
+  skip_credentials_validation = local.use_localstack
+  skip_metadata_api_check     = local.use_localstack
+  skip_requesting_account_id  = local.use_localstack
+  s3_use_path_style           = local.use_localstack
+
+  dynamic "endpoints" {
+    for_each = local.use_localstack ? [var.localstack_endpoint] : []
+
+    content {
+      cloudwatchlogs = endpoints.value
+      iam            = endpoints.value
+      lambda         = endpoints.value
+      s3             = endpoints.value
+      sts            = endpoints.value
+    }
+  }
 
   default_tags {
     tags = local.tags
