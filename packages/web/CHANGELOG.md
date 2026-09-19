@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/rcasia/principled/compare/web-v1.0.2...web-v1.1.0) (2026-09-19)
+
+
+### Features
+
+* **release:** route release trains by changed files ([3444019](https://github.com/rcasia/principled/commit/3444019ed4b02b9f0c93e55961d7585c46ed8cf9))
+
 ## [1.0.2](https://github.com/rcasia/principled/compare/web-v1.0.1...web-v1.0.2) (2026-09-19)
 
 
