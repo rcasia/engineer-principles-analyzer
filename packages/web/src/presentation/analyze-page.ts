@@ -4,6 +4,7 @@ import type {
   Evidence,
   SourceLocation,
 } from "@principled/core";
+import { CODE_EXAMPLES, exampleFor } from "./code-examples.ts";
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
 import { escapeHtml } from "./principles-page.ts";
 import { VERSION } from "../version.ts";
@@ -15,13 +16,19 @@ export const NO_FINDINGS_MESSAGE =
 
 /**
  * What the `/analyze` page can show, chosen by the request handler
- * (ADR-0015): the blank form on `GET`, a validation error that preserves
+ * (ADR-0015): the playground on `GET` — blank, or prefilled when the
+ * visitor followed a `?example=` link — a validation error that preserves
  * what the visitor typed, or the structured findings from a completed run.
  * There is deliberately no fourth "loading" variant — see ADR-0015 for why
  * a page with no client-side JavaScript (ADR-0004) does not need one.
  */
 export type AnalyzeView =
-  | { readonly kind: "form" }
+  | {
+      readonly kind: "form";
+      readonly sourceCode: string;
+      readonly language: string;
+      readonly exampleId: string | null;
+    }
   | {
       readonly kind: "invalid";
       readonly message: string;
@@ -129,55 +136,208 @@ function renderFindings(results: readonly AnalysisResult[]): string {
 }
 
 function renderErrorBanner(message: string): string {
-  return `<div class="field__error" role="alert">${escapeHtml(message)}</div>`;
+  return `<div class="field__error" id="analyze-error" role="alert">${escapeHtml(message)}</div>`;
 }
 
-function renderForm(options: {
+/**
+ * Display names and file extensions per language, as shown in the editor
+ * toolbar and status bar. The backend accepts any free-text language, so an
+ * unlisted one is echoed back untouched with a plain `.txt` filename rather
+ * than rejected.
+ */
+const LANGUAGE_DETAILS: Record<
+  string,
+  { readonly label: string; readonly extension: string }
+> = {
+  typescript: { label: "TypeScript", extension: "ts" },
+  javascript: { label: "JavaScript", extension: "js" },
+  python: { label: "Python", extension: "py" },
+  go: { label: "Go", extension: "go" },
+  rust: { label: "Rust", extension: "rs" },
+  java: { label: "Java", extension: "java" },
+};
+
+function canonicalLanguage(language: string): string {
+  return language.trim().toLowerCase();
+}
+
+/** Raw display name; the single `escapeHtml` at the render site handles user input. */
+function languageLabel(language: string): string {
+  return LANGUAGE_DETAILS[canonicalLanguage(language)]?.label ?? language;
+}
+
+function extensionFor(language: string): string {
+  return LANGUAGE_DETAILS[canonicalLanguage(language)]?.extension ?? "txt";
+}
+
+/**
+ * The filename in the editor toolbar. Real for examples, derived for
+ * anything the visitor typed. Every source here is static or map-derived,
+ * never user input, so there is nothing to escape.
+ */
+function filenameFor(language: string, exampleId: string | null): string {
+  const example = exampleFor(exampleId);
+
+  if (example !== undefined) {
+    return example.filename;
+  }
+
+  return `snippet.${extensionFor(language)}`;
+}
+
+/**
+ * "0 lines" for the empty buffer, singular for one. Split on "\n" only:
+ * the textarea normalises newlines on submit, so this matches what the
+ * backend will receive.
+ */
+function lineCountLabel(sourceCode: string): string {
+  if (sourceCode.length === 0) {
+    return "0 lines";
+  }
+
+  const count = sourceCode.split("\n").length;
+
+  return count === 1 ? "1 line" : `${count} lines`;
+}
+
+/**
+ * Static line numbers beside the editor. Sized to the initial content with
+ * a floor that fills the empty editor; with no client-side JavaScript
+ * (ADR-0004) they cannot track typing, which is why they describe the
+ * loaded buffer rather than pretend to be live.
+ */
+const MIN_GUTTER_LINES = 24;
+
+function gutterLineCount(sourceCode: string): number {
+  return Math.max(sourceCode.split("\n").length, MIN_GUTTER_LINES);
+}
+
+function renderGutter(sourceCode: string): string {
+  const lines: string[] = [];
+  const count = gutterLineCount(sourceCode);
+
+  for (let line = 1; line <= count; line += 1) {
+    lines.push(`<span>${line}</span>`);
+  }
+
+  return `<div class="editor__gutter" aria-hidden="true">${lines.join("")}</div>`;
+}
+
+/**
+ * The engineering contract the code is tested against, as static display:
+ * the rule catalog is still empty (no rule-selection backend exists yet),
+ * so these are deliberately `checked disabled` — visibly on, not
+ * configurable here, and never submitted with the form.
+ */
+const CONTRACT_GROUPS: readonly {
+  readonly title: string;
+  readonly principles: readonly string[];
+}[] = [
+  {
+    title: "Architecture",
+    principles: ["Hexagonal Architecture", "Dependency Direction"],
+  },
+  { title: "Design", principles: ["SOLID", "Single Responsibility"] },
+  { title: "Testing", principles: ["DTT"] },
+];
+
+function renderContractGroup(group: {
+  readonly title: string;
+  readonly principles: readonly string[];
+}): string {
+  const items = group.principles
+    .map(
+      (principle) =>
+        `<label class="contract__item"><input type="checkbox" checked disabled><span>${principle}</span></label>`,
+    )
+    .join("");
+
+  return `<div class="contract__group"><h3 class="contract__group-title">${group.title}</h3><div class="contract__items">${items}</div></div>`;
+}
+
+function renderContract(): string {
+  const groups = CONTRACT_GROUPS.map(renderContractGroup).join("");
+  const total = CONTRACT_GROUPS.reduce(
+    (count, group) => count + group.principles.length,
+    0,
+  );
+
+  return `<section class="panel contract" aria-labelledby="contract-heading">
+  <h2 class="panel__label" id="contract-heading">Engineering contract</h2>
+  ${groups}
+  <p class="contract__count">${total} principles enabled</p>
+</section>`;
+}
+
+/** Plain navigations: each link reloads the page with the editor prefilled, no script involved. */
+function renderExamples(activeId: string | null): string {
+  const links = CODE_EXAMPLES.map((example) => {
+    const current = activeId === example.id ? ' aria-current="true"' : "";
+
+    return `<a class="button" href="/analyze?example=${example.id}"${current}>${example.label}</a>`;
+  }).join("");
+
+  return `<section class="examples" aria-labelledby="examples-heading">
+  <h2 id="examples-heading">Try an example</h2>
+  <div class="button-row">${links}</div>
+</section>`;
+}
+
+function renderPlayground(options: {
   readonly sourceCode: string;
   readonly language: string;
   readonly invalid: boolean;
+  readonly exampleId: string | null;
 }): string {
-  const invalidAttr = options.invalid ? ' aria-invalid="true"' : "";
+  const invalidAttr = options.invalid
+    ? ' aria-invalid="true" aria-describedby="analyze-error"'
+    : "";
 
   return `<form method="post" action="/analyze" enctype="multipart/form-data" class="analyze-form">
-  <div class="field field--wide">
-    <label for="sourceCode">Paste source code</label>
-    <textarea class="textarea" id="sourceCode" name="sourceCode" rows="16" spellcheck="false"${invalidAttr} placeholder="Paste exactly one source file">${escapeHtml(options.sourceCode)}</textarea>
-    <p class="field__help">Or choose a single file below. If both are given, the file is used.</p>
+  <div class="analyze-grid">
+    <section class="panel editor" aria-label="Source code editor">
+      <div class="editor__toolbar">
+        <span class="editor__filename">${filenameFor(options.language, options.exampleId)}</span>
+        <span class="editor__actions">
+          <label class="button" for="sourceFile" title="If a file is chosen it is used instead of the pasted text">Upload</label>
+          <input class="visually-hidden" id="sourceFile" name="sourceFile" type="file">
+          <input class="editor__language" id="language" name="language" type="text" value="${escapeHtml(options.language)}" required spellcheck="false" autocomplete="off" aria-label="Language">
+        </span>
+      </div>
+      <div class="editor__body">
+        ${renderGutter(options.sourceCode)}
+        <label class="visually-hidden" for="sourceCode">Source code</label>
+        <textarea class="editor__input" id="sourceCode" name="sourceCode" rows="16" spellcheck="false"${invalidAttr} placeholder="Paste exactly one source file">${escapeHtml(options.sourceCode)}</textarea>
+      </div>
+    </section>
+    ${renderContract()}
   </div>
-  <div class="field-grid">
-    <div class="field">
-      <label for="sourceFile">Source file</label>
-      <input class="input" id="sourceFile" name="sourceFile" type="file">
-    </div>
-    <div class="field">
-      <label for="language">Language</label>
-      <input class="input" id="language" name="language" type="text" value="${escapeHtml(options.language)}" required>
-    </div>
+  <div class="analyze-toolbar">
+    <p class="analyze-toolbar__meta">${escapeHtml(languageLabel(options.language))} · ${lineCountLabel(options.sourceCode)}</p>
+    <button class="button button--primary" type="submit">Analyze →</button>
   </div>
-  <div class="button-row">
-    <button class="button button--primary" type="submit">Analyze</button>
-  </div>
-</form>`;
+</form>
+${renderExamples(options.exampleId)}
+<p class="playground__note">Single-file analysis · Nothing you submit is stored.</p>`;
+}
+
+function renderPlaygroundHeader(): string {
+  return `<header class="page-header">
+<p class="eyebrow">Code → principles → findings</p>
+<h1>Analyze</h1>
+<p class="lede">Test your engineering principles against real code.</p>
+</header>`;
 }
 
 function renderMain(view: AnalyzeView): string {
   switch (view.kind) {
     case "form":
-      return `<header class="page-header">
-<p class="eyebrow">Single-file analysis</p>
-<h1>Analyze a source file</h1>
-<p class="lede">Paste or submit exactly one file to check it against the engineering principles Principled can evaluate. Nothing you submit is stored.</p>
-</header>
-${renderForm({ sourceCode: "", language: DEFAULT_LANGUAGE, invalid: false })}`;
+      return `${renderPlaygroundHeader()}
+${renderPlayground({ sourceCode: view.sourceCode, language: view.language, invalid: false, exampleId: view.exampleId })}`;
     case "invalid":
-      return `<header class="page-header">
-<p class="eyebrow">Single-file analysis</p>
-<h1>Analyze a source file</h1>
-<p class="lede">Paste or submit exactly one file to check it against the engineering principles Principled can evaluate. Nothing you submit is stored.</p>
-</header>
+      return `${renderPlaygroundHeader()}
 ${renderErrorBanner(view.message)}
-${renderForm({ sourceCode: view.sourceCode, language: view.language, invalid: true })}`;
+${renderPlayground({ sourceCode: view.sourceCode, language: view.language, invalid: true, exampleId: null })}`;
     case "completed":
       return `<header class="page-header">
 <p class="eyebrow">Single-file analysis</p>
@@ -197,9 +357,12 @@ ${renderFindings(view.results)}
  * Renders the whole `/analyze` page server side, for every {@link AnalyzeView}
  * (ADR-0004: no client-side JavaScript at all, so the empty form, a
  * validation error and completed findings are three full page renders, not
- * three states of one script).
+ * three states of one script). The playground gets the full content width;
+ * findings stay at reading width.
  */
 export function renderAnalyzePage(view: AnalyzeView): string {
+  const mainClass = view.kind === "completed" ? "page" : "playground";
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -222,7 +385,7 @@ export function renderAnalyzePage(view: AnalyzeView): string {
     </nav>
   </div>
 </header>
-<main class="page" id="main">
+<main class="${mainClass}" id="main">
 ${renderMain(view)}
 </main>
 <footer class="footer">Principled · evidence before opinion · v${VERSION}</footer>

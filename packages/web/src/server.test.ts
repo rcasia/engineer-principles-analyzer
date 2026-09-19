@@ -120,7 +120,7 @@ describe("createRequestHandler", () => {
   );
 
   describe("GET /analyze", () => {
-    it("serves the blank single-file analysis form", async () => {
+    it("serves the blank analysis playground", async () => {
       const response = await handlerFor()(
         new Request("http://localhost/analyze"),
       );
@@ -129,8 +129,10 @@ describe("createRequestHandler", () => {
       expect(response.headers.get("content-type")).toBe(
         "text/html; charset=utf-8",
       );
-      await expect(response.text()).resolves.toContain(
-        "<h1>Analyze a source file</h1>",
+      const body = await response.text();
+      expect(body).toContain("<h1>Analyze</h1>");
+      expect(body).toContain(
+        'placeholder="Paste exactly one source file"></textarea>',
       );
     });
 
@@ -139,6 +141,46 @@ describe("createRequestHandler", () => {
         new Request("http://localhost/analyze"),
       );
 
+      expect(response.headers.get("cache-control")).toBe(
+        "public, max-age=60, stale-while-revalidate=600",
+      );
+    });
+
+    it("prefills the editor when an example link is followed", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/analyze?example=single-responsibility"),
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain(
+        '<span class="editor__filename">UserService.ts</span>',
+      );
+      expect(body).toContain("sendWelcomeEmail");
+      expect(body).toContain(
+        '<a class="button" href="/analyze?example=single-responsibility" aria-current="true">',
+      );
+    });
+
+    it("never caches a prefilled example, as the cdn cache key ignores the query", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/analyze?example=single-responsibility"),
+      );
+
+      expect(response.headers.get("cache-control")).toBe(
+        ANALYSIS_CACHE_CONTROL,
+      );
+    });
+
+    it("falls back to the blank form for an unknown example", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/analyze?example=bogus"),
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<span class="editor__filename">snippet.ts</span>');
+      expect(body).not.toContain('aria-current="true"');
       expect(response.headers.get("cache-control")).toBe(
         "public, max-age=60, stale-while-revalidate=600",
       );

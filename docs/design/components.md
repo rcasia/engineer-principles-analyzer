@@ -45,6 +45,17 @@ for its content (source code gets a tall default, not a two-line box) and
 resizable vertically only. It follows the same label, help and
 `aria-invalid` conventions as single-line fields.
 
+The `/analyze` playground is the deliberate exception: its source field is an
+editor, not a labelled form field. A toolbar carries the derived filename,
+an upload action (a `<label>` for the native file input, so no custom
+control exists) and the free-text language input; a static server-rendered
+gutter numbers the loaded buffer; a status bar shows the display language
+and line count beside the submit action. Labels are visually hidden but
+present (`aria-label`), and validation still uses `aria-invalid` with
+`aria-describedby` pointing at the error banner. Example snippets are plain
+`GET /analyze?example=<id>` links that prefill the editor server side, so
+the page keeps working with scripting disabled.
+
 ### Forms
 
 Group related fields with `fieldset` and `legend`. Align labels and controls in

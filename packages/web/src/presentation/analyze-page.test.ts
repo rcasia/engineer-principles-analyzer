@@ -51,15 +51,32 @@ function resultFor(overrides: {
   );
 }
 
-/** Slices out just the `<form>` element, so CSS selectors elsewhere on the page (e.g. `.textarea[aria-invalid="true"]`) cannot cause a false match. */
+/** Slices out just the `<form>` element, so markup elsewhere on the page cannot cause a false match. */
 function formSectionOf(html: string): string {
   return html.slice(html.indexOf("<form"), html.indexOf("</form>"));
+}
+
+/** Slices out just the gutter `<div>`, so identical markup elsewhere (e.g. the navbar brand) cannot cause a false match. */
+function gutterSectionOf(html: string): string {
+  const start = html.indexOf('<div class="editor__gutter"');
+  const end = html.indexOf("</div>", start);
+
+  return html.slice(start, end);
+}
+
+function blankForm(): AnalyzeView {
+  return {
+    kind: "form",
+    sourceCode: "",
+    language: "typescript",
+    exampleId: null,
+  };
 }
 
 describe("renderAnalyzePage", () => {
   describe("the shared page shell", () => {
     it("declares a doctype, language and title", () => {
-      const html = renderAnalyzePage({ kind: "form" });
+      const html = renderAnalyzePage(blankForm());
 
       expect(html).toStartWith("<!doctype html>");
       expect(html).toContain('<html lang="en">');
@@ -68,22 +85,28 @@ describe("renderAnalyzePage", () => {
     });
 
     it("marks Analyze as the current page in the primary nav", () => {
-      const html = renderAnalyzePage({ kind: "form" });
+      const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain('<a href="/analyze" aria-current="page">Analyze</a>');
     });
 
     it("lets keyboard users bypass navigation", () => {
-      expect(renderAnalyzePage({ kind: "form" })).toContain(
+      expect(renderAnalyzePage(blankForm())).toContain(
         '<a class="skip-link" href="#main">Skip to content</a>',
       );
     });
 
     it("wraps content in a single main landmark with one h1", () => {
-      const html = renderAnalyzePage({ kind: "form" });
+      const html = renderAnalyzePage(blankForm());
+
+      expect(html).toContain('<main class="playground" id="main">');
+      expect(html.match(/<h1>/g)).toHaveLength(1);
+    });
+
+    it("keeps completed findings at reading width", () => {
+      const html = renderAnalyzePage({ kind: "completed", results: [] });
 
       expect(html).toContain('<main class="page" id="main">');
-      expect(html.match(/<h1>/g)).toHaveLength(1);
     });
 
     it("throws for an AnalyzeView kind it does not recognise", () => {
@@ -102,41 +125,129 @@ describe("renderAnalyzePage", () => {
     });
 
     it("shows the web version in the footer", () => {
-      expect(renderAnalyzePage({ kind: "form" })).toContain(
+      expect(renderAnalyzePage(blankForm())).toContain(
         '<footer class="footer">Principled · evidence before opinion · v0.0.0-dev</footer>',
       );
     });
   });
 
-  describe("the blank form", () => {
-    it("renders an empty textarea and the default language", () => {
-      const html = renderAnalyzePage({ kind: "form" });
+  describe("the blank playground", () => {
+    it("frames the page as testing code against a contract", () => {
+      const html = renderAnalyzePage(blankForm());
 
-      expect(html).toContain('<h1>Analyze a source file</h1>');
+      expect(html).toContain("<h1>Analyze</h1>");
       expect(html).toContain(
-        '<textarea class="textarea" id="sourceCode" name="sourceCode" rows="16" spellcheck="false" placeholder="Paste exactly one source file"></textarea>',
+        "<p class=\"lede\">Test your engineering principles against real code.</p>",
+      );
+      expect(html).not.toContain("Paste or submit exactly one file");
+    });
+
+    it("renders an empty editor with a derived filename and the default language", () => {
+      const html = renderAnalyzePage(blankForm());
+
+      expect(html).toContain('<span class="editor__filename">snippet.ts</span>');
+      expect(html).toContain(
+        '<textarea class="editor__input" id="sourceCode" name="sourceCode" rows="16" spellcheck="false" placeholder="Paste exactly one source file"></textarea>',
       );
       expect(html).toContain('value="typescript"');
       expect(DEFAULT_LANGUAGE).toBe("typescript");
     });
 
-    it("does not mark the textarea invalid", () => {
-      const html = renderAnalyzePage({ kind: "form" });
+    it("numbers enough gutter lines to fill the empty editor", () => {
+      const gutter = gutterSectionOf(renderAnalyzePage(blankForm()));
 
-      expect(formSectionOf(html)).not.toContain("aria-invalid");
+      expect(gutter).toStartWith(
+        '<div class="editor__gutter" aria-hidden="true"><span>1</span>',
+      );
+      expect(gutter).toContain("</span><span>");
+      expect(gutter).toContain("<span>24</span>");
+      expect(gutter).not.toContain("<span>25</span>");
     });
 
-    it("accepts a single file, not multiple", () => {
-      const html = renderAnalyzePage({ kind: "form" });
+    it("does not mark the editor invalid", () => {
+      const html = renderAnalyzePage(blankForm());
+
+      expect(formSectionOf(html)).not.toContain("aria-invalid");
+      expect(formSectionOf(html)).not.toContain("aria-describedby");
+    });
+
+    it("hides the native file input behind a toolbar upload action, single file only", () => {
+      const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain(
-        '<input class="input" id="sourceFile" name="sourceFile" type="file">',
+        '<label class="button" for="sourceFile" title="If a file is chosen it is used instead of the pasted text">Upload</label>',
       );
-      expect(html).not.toContain("multiple");
+      expect(html).toContain(
+        '<input class="visually-hidden" id="sourceFile" name="sourceFile" type="file">',
+      );
+      expect(formSectionOf(html)).not.toContain("multiple");
+    });
+
+    it("shows the principles under test as a checked, non-editable contract", () => {
+      const html = renderAnalyzePage(blankForm());
+
+      expect(html).toContain('id="contract-heading">Engineering contract</h2>');
+      expect(html).toContain(">Architecture</h3>");
+      expect(html).toContain(">Design</h3>");
+      expect(html).toContain(">Testing</h3>");
+      expect(html).toContain("<span>Hexagonal Architecture</span>");
+      expect(html).toContain("<span>Dependency Direction</span>");
+      expect(html).toContain("<span>SOLID</span>");
+      // Scoped to the contract item: an example button shares this label.
+      expect(html).toContain("<span>Single Responsibility</span>");
+      expect(html).toContain("<span>DTT</span>");
+      expect(html).toContain(
+        '<label class="contract__item"><input type="checkbox" checked disabled><span>SOLID</span></label>',
+      );
+      expect(html).toContain("</label><label class=\"contract__item\">");
+      expect(html).toContain("</div></div><div class=\"contract__group\">");
+      expect(html.match(/type="checkbox" checked disabled/g)).toHaveLength(5);
+      expect(html).toContain(
+        '<p class="contract__count">5 principles enabled</p>',
+      );
+    });
+
+    it("ends the playground with a status bar and a prominent analyze action", () => {
+      const html = renderAnalyzePage(blankForm());
+
+      expect(html).toContain(
+        '<p class="analyze-toolbar__meta">TypeScript · 0 lines</p>',
+      );
+      expect(html).toContain(
+        '<button class="button button--primary" type="submit">Analyze →</button>',
+      );
+    });
+
+    it("offers one link per example and marks none current", () => {
+      const html = renderAnalyzePage(blankForm());
+
+      expect(html).toContain("<h2 id=\"examples-heading\">Try an example</h2>");
+      expect(html).toContain(
+        '<a class="button" href="/analyze?example=single-responsibility">Single Responsibility</a>',
+      );
+      expect(html).toContain(
+        '<a class="button" href="/analyze?example=hexagonal-violation">Hexagonal violation</a>',
+      );
+      expect(html).toContain(
+        '<a class="button" href="/analyze?example=dependency-inversion">Dependency inversion</a>',
+      );
+      expect(html).toContain(
+        '<a class="button" href="/analyze?example=clean-architecture">Clean architecture</a>',
+      );
+      expect(html).toContain('</a><a class="button"');
+      expect(html).not.toContain('aria-current="true"');
+    });
+
+    it("keeps the privacy promise to one subtle line", () => {
+      const html = renderAnalyzePage(blankForm());
+
+      expect(html).toContain(
+        '<p class="playground__note">Single-file analysis · Nothing you submit is stored.</p>',
+      );
     });
 
     it("posts to /analyze as multipart form data", () => {
-      const html = renderAnalyzePage({ kind: "form" });
+      const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain(
         '<form method="post" action="/analyze" enctype="multipart/form-data"',
@@ -144,9 +255,132 @@ describe("renderAnalyzePage", () => {
     });
 
     it("shows no error banner", () => {
-      const html = renderAnalyzePage({ kind: "form" });
+      const html = renderAnalyzePage(blankForm());
 
       expect(html).not.toContain('role="alert"');
+    });
+  });
+
+  describe("a prefilled example", () => {
+    const exampleView: AnalyzeView = {
+      kind: "form",
+      sourceCode: "class UserService {}",
+      language: "typescript",
+      exampleId: "single-responsibility",
+    };
+
+    it("shows the example filename and marks its link current", () => {
+      const html = renderAnalyzePage(exampleView);
+
+      expect(html).toContain(
+        '<span class="editor__filename">UserService.ts</span>',
+      );
+      expect(html).toContain(">class UserService {}</textarea>");
+      expect(html).toContain(
+        '<a class="button" href="/analyze?example=single-responsibility" aria-current="true">Single Responsibility</a>',
+      );
+      expect(html.match(/aria-current="true"/g)).toHaveLength(1);
+    });
+
+    it("falls back to the blank form for an unknown example id", () => {
+      const html = renderAnalyzePage({
+        kind: "form",
+        sourceCode: "",
+        language: "typescript",
+        exampleId: "bogus",
+      });
+
+      expect(html).toContain('<span class="editor__filename">snippet.ts</span>');
+      expect(html).not.toContain('aria-current="true"');
+    });
+  });
+
+  describe("editor details", () => {
+    it("grows the gutter with long content", () => {
+      const source = Array.from({ length: 30 }, (_, index) => `line ${index + 1}`).join(
+        "\n",
+      );
+      const gutter = gutterSectionOf(
+        renderAnalyzePage({
+          kind: "form",
+          sourceCode: source,
+          language: "typescript",
+          exampleId: null,
+        }),
+      );
+
+      expect(gutter).toContain("<span>30</span>");
+      expect(gutter).not.toContain("<span>31</span>");
+    });
+
+    it.each([
+      ["python", "Python", "snippet.py"],
+      ["javascript", "JavaScript", "snippet.js"],
+      ["go", "Go", "snippet.go"],
+      ["rust", "Rust", "snippet.rs"],
+      ["java", "Java", "snippet.java"],
+      ["  TYPESCRIPT ", "TypeScript", "snippet.ts"],
+    ])(
+      "names %p as %p with a %p filename",
+      (language, label, filename) => {
+        const html = renderAnalyzePage({
+          kind: "form",
+          sourceCode: "",
+          language,
+          exampleId: null,
+        });
+
+        expect(html).toContain(
+          `<p class="analyze-toolbar__meta">${label} · 0 lines</p>`,
+        );
+        expect(html).toContain(
+          `<span class="editor__filename">${filename}</span>`,
+        );
+      },
+    );
+
+    it("echoes an unlisted language untouched with a plain text filename", () => {
+      const html = renderAnalyzePage({
+        kind: "form",
+        sourceCode: "",
+        language: "haskell",
+        exampleId: null,
+      });
+
+      expect(html).toContain(
+        '<p class="analyze-toolbar__meta">haskell · 0 lines</p>',
+      );
+      expect(html).toContain('<span class="editor__filename">snippet.txt</span>');
+    });
+
+    it.each([
+      ["", "0 lines"],
+      ["class Foo {}", "1 line"],
+      ["class Foo {\n}", "2 lines"],
+    ])("counts %p as %p", (sourceCode, label) => {
+      const html = renderAnalyzePage({
+        kind: "form",
+        sourceCode,
+        language: "typescript",
+        exampleId: null,
+      });
+
+      expect(html).toContain(
+        `<p class="analyze-toolbar__meta">TypeScript · ${label}</p>`,
+      );
+    });
+
+    it("escapes a hostile language in both the input value and the status bar", () => {
+      const html = renderAnalyzePage({
+        kind: "form",
+        sourceCode: "",
+        language: 'a"b<c>',
+        exampleId: null,
+      });
+
+      expect(html).toContain('value="a&quot;b&lt;c&gt;"');
+      expect(html).toContain("a&quot;b&lt;c&gt; · 0 lines");
+      expect(html).not.toContain('a"b<c>');
     });
   });
 
@@ -162,25 +396,39 @@ describe("renderAnalyzePage", () => {
       const html = renderAnalyzePage(view);
 
       expect(html).toContain(
-        '<div class="field__error" role="alert">sourceCode must not be empty.</div>',
+        '<div class="field__error" id="analyze-error" role="alert">sourceCode must not be empty.</div>',
       );
     });
 
-    it("marks the textarea invalid", () => {
+    it("keeps the playground header and marks the editor invalid", () => {
       const html = renderAnalyzePage(view);
 
-      expect(formSectionOf(html)).toContain('aria-invalid="true"');
+      expect(html).toContain("<h1>Analyze</h1>");
+      expect(formSectionOf(html)).toContain(
+        'aria-invalid="true" aria-describedby="analyze-error"',
+      );
+      expect(html).toContain(
+        '<div class="field__error" id="analyze-error" role="alert">',
+      );
     });
 
-    it("echoes back what the visitor submitted", () => {
+    it("echoes back what the visitor submitted, with a matching filename", () => {
       const html = renderAnalyzePage({
         kind: "invalid",
         message: "language must not be empty.",
         sourceCode: "class Foo {}",
-        language: "",
+        language: "python",
       });
 
       expect(html).toContain(">class Foo {}</textarea>");
+      expect(html).toContain('<span class="editor__filename">snippet.py</span>');
+      expect(html).toContain("Python · 1 line");
+    });
+
+    it("marks no example current on a rejected submission", () => {
+      const html = renderAnalyzePage(view);
+
+      expect(html).not.toContain('aria-current="true"');
     });
 
     it("escapes echoed source and the error message", () => {

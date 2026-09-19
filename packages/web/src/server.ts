@@ -1,6 +1,10 @@
 import type { AnalyzeSubject, EventStore, ListPrinciples } from "@principled/core";
 import { Subject } from "@principled/core";
-import { renderAnalyzePage } from "./presentation/analyze-page.ts";
+import {
+  DEFAULT_LANGUAGE,
+  renderAnalyzePage,
+} from "./presentation/analyze-page.ts";
+import { exampleFor } from "./presentation/code-examples.ts";
 import { renderDesignPlayground } from "./presentation/design-playground.ts";
 import { renderPrinciplesPage } from "./presentation/principles-page.ts";
 
@@ -115,7 +119,7 @@ export function createRequestHandler(
   deps: RequestHandlerDependencies,
 ): (request: Request) => Promise<Response> {
   return async (request: Request): Promise<Response> => {
-    const { pathname } = new URL(request.url);
+    const { pathname, searchParams } = new URL(request.url);
 
     if (pathname === "/design") {
       return htmlResponse(renderDesignPlayground(), 200, PAGE_CACHE_CONTROL);
@@ -126,10 +130,32 @@ export function createRequestHandler(
         return handleAnalyzeSubmission(request, deps);
       }
 
+      const example = exampleFor(searchParams.get("example"));
+
+      if (example === undefined) {
+        return htmlResponse(
+          renderAnalyzePage({
+            kind: "form",
+            sourceCode: "",
+            language: DEFAULT_LANGUAGE,
+            exampleId: null,
+          }),
+          200,
+          PAGE_CACHE_CONTROL,
+        );
+      }
+
+      // Prefilled by query, which the CDN cache key ignores: this response
+      // must not be stored, or one visitor's example would be served to all.
       return htmlResponse(
-        renderAnalyzePage({ kind: "form" }),
+        renderAnalyzePage({
+          kind: "form",
+          sourceCode: example.source,
+          language: example.language,
+          exampleId: example.id,
+        }),
         200,
-        PAGE_CACHE_CONTROL,
+        ANALYSIS_CACHE_CONTROL,
       );
     }
 
