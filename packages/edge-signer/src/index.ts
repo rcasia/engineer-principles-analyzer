@@ -19,6 +19,7 @@ export {
   amzDateOf,
   canonicalQueryString,
   canonicalRequestOf,
+  customHeaderValue,
   EDGE_FORBIDDEN_BODY,
   edgeCredentials,
   handleOriginRequest,
@@ -31,8 +32,10 @@ export {
   sortedHeaderNames,
 } from "./signer.ts";
 export type {
+  CloudFrontCustomOrigin,
   CloudFrontEvent,
   CloudFrontHeader,
+  CloudFrontOrigin,
   CloudFrontRequest,
   EdgeCredentials,
   EdgeErrorResponse,

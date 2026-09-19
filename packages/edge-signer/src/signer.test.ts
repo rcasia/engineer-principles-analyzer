@@ -15,6 +15,7 @@ import {
   signatureOf,
   sortedHeaderNames,
   type CloudFrontEvent,
+  type CloudFrontOrigin,
   type CloudFrontRequest,
   type EdgeCredentials,
 } from "./signer.ts";
@@ -338,9 +339,25 @@ describe("handleOriginRequest", () => {
   const now = new Date("2024-01-15T12:34:56.000Z");
   const originHost = "abc.lambda-url.eu-west-1.on.aws";
 
-  function eventFor(headers: Record<string, string>, body?: CloudFrontRequest["body"]): CloudFrontEvent {
-    const cfHeaders: CloudFrontRequest["headers"] = {};
+  function originWith(headers: Record<string, string>): CloudFrontOrigin {
+    const customHeaders: Record<string, { key: string; value: string }[]> = {};
     for (const [name, value] of Object.entries(headers)) {
+      customHeaders[name] = [{ key: name, value }];
+    }
+    return { custom: { customHeaders } };
+  }
+
+  function validOrigin(): CloudFrontOrigin {
+    return originWith({ [ORIGIN_HOST_HEADER]: originHost, [ORIGIN_REGION_HEADER]: "eu-west-1" });
+  }
+
+  function eventFor(
+    viewerHeaders: Record<string, string>,
+    body?: CloudFrontRequest["body"],
+    origin: CloudFrontOrigin = validOrigin(),
+  ): CloudFrontEvent {
+    const cfHeaders: CloudFrontRequest["headers"] = {};
+    for (const [name, value] of Object.entries(viewerHeaders)) {
       cfHeaders[name] = [{ key: name, value }];
     }
 
@@ -353,6 +370,7 @@ describe("handleOriginRequest", () => {
               uri: "/analyze",
               querystring: "",
               headers: cfHeaders,
+              origin,
               body,
             },
           },
@@ -368,13 +386,9 @@ describe("handleOriginRequest", () => {
     );
   }
 
-  it("signs a GET and strips the scaffolding headers before forwarding", async () => {
+  it("signs a GET from the origin custom headers and leaves viewer headers alone", async () => {
     const result = handleOriginRequest(
-      eventFor({
-        host: "d111.cloudfront.net",
-        [ORIGIN_HOST_HEADER]: originHost,
-        [ORIGIN_REGION_HEADER]: "eu-west-1",
-      }),
+      eventFor({ host: "d111.cloudfront.net" }),
       { credentials, now },
     );
 
@@ -389,14 +403,22 @@ describe("handleOriginRequest", () => {
     expect(ORIGIN_REGION_HEADER).toBe("x-origin-region");
   });
 
+  it("matches origin custom header names case-insensitively", async () => {
+    const result = handleOriginRequest(
+      eventFor(
+        { host: "d111.cloudfront.net" },
+        undefined,
+        originWith({ "X-Origin-Host": originHost, "X-Origin-Region": "eu-west-1" }),
+      ),
+      { credentials, now },
+    );
+
+    expect(signedHeadersOf(result)["host"]).toBe(originHost);
+  });
+
   it("overwrites a viewer-supplied authorization header instead of trusting it", async () => {
     const result = handleOriginRequest(
-      eventFor({
-        host: "d111.cloudfront.net",
-        authorization: "hunter2",
-        [ORIGIN_HOST_HEADER]: originHost,
-        [ORIGIN_REGION_HEADER]: "eu-west-1",
-      }),
+      eventFor({ host: "d111.cloudfront.net", authorization: "hunter2" }),
       { credentials, now },
     );
 
@@ -406,7 +428,7 @@ describe("handleOriginRequest", () => {
   it("signs a text-encoded POST body as its UTF-8 bytes", async () => {
     const result = handleOriginRequest(
       eventFor(
-        { host: "d111.cloudfront.net", [ORIGIN_HOST_HEADER]: originHost, [ORIGIN_REGION_HEADER]: "eu-west-1" },
+        { host: "d111.cloudfront.net" },
         { encoding: "text", data: "class Foo {}", inputTruncated: false },
       ),
       { credentials, now },
@@ -421,7 +443,7 @@ describe("handleOriginRequest", () => {
     const raw = "class Foo {}";
     const result = handleOriginRequest(
       eventFor(
-        { host: "d111.cloudfront.net", [ORIGIN_HOST_HEADER]: originHost, [ORIGIN_REGION_HEADER]: "eu-west-1" },
+        { host: "d111.cloudfront.net" },
         { encoding: "base64", data: Buffer.from(raw, "utf8").toString("base64"), inputTruncated: false },
       ),
       { credentials, now },
@@ -434,7 +456,7 @@ describe("handleOriginRequest", () => {
 
   it("forwards the session token as a signed header when credentials carry one", async () => {
     const result = handleOriginRequest(
-      eventFor({ host: "d111.cloudfront.net", [ORIGIN_HOST_HEADER]: originHost, [ORIGIN_REGION_HEADER]: "eu-west-1" }),
+      eventFor({ host: "d111.cloudfront.net" }),
       { credentials: { ...credentials, sessionToken: "token" }, now },
     ) as CloudFrontRequest;
 
@@ -446,12 +468,7 @@ describe("handleOriginRequest", () => {
 
   it("drops a viewer-supplied session token when the signer has none to sign", async () => {
     const result = handleOriginRequest(
-      eventFor({
-        host: "d111.cloudfront.net",
-        "x-amz-security-token": "smuggled",
-        [ORIGIN_HOST_HEADER]: originHost,
-        [ORIGIN_REGION_HEADER]: "eu-west-1",
-      }),
+      eventFor({ host: "d111.cloudfront.net", "x-amz-security-token": "smuggled" }),
       { credentials, now },
     );
 
@@ -460,8 +477,11 @@ describe("handleOriginRequest", () => {
 
   it.each<Record<string, string>>([{}, { [ORIGIN_REGION_HEADER]: "eu-west-1" }, { [ORIGIN_HOST_HEADER]: "" }])(
     "refuses to forward unsigned when the origin host is missing or empty: %p",
-    async (headers) => {
-      const result = handleOriginRequest(eventFor(headers), { credentials, now });
+    async (customHeaders) => {
+      const result = handleOriginRequest(
+        eventFor({ host: "d111.cloudfront.net" }, undefined, originWith(customHeaders)),
+        { credentials, now },
+      );
 
       expect(result).toEqual({
         status: "403",
@@ -476,9 +496,35 @@ describe("handleOriginRequest", () => {
     },
   );
 
+  it("refuses when the origin itself is missing", async () => {
+    const event = eventFor({ host: "d111.cloudfront.net" });
+    const request = event.Records[0]?.cf.request as unknown as Record<string, unknown>;
+    delete request["origin"];
+
+    const result = handleOriginRequest(event, { credentials, now });
+
+    expect((result as { status: string }).status).toBe("403");
+  });
+
+  it.each<CloudFrontOrigin>([{}, { custom: {} }])(
+    "refuses when the origin carries no usable custom origin: %p",
+    async (origin) => {
+      const result = handleOriginRequest(
+        eventFor({ host: "d111.cloudfront.net" }, undefined, origin),
+        { credentials, now },
+      );
+
+      expect((result as { status: string }).status).toBe("403");
+    },
+  );
+
   it("refuses when the origin region is missing", async () => {
     const result = handleOriginRequest(
-      eventFor({ host: "d111.cloudfront.net", [ORIGIN_HOST_HEADER]: originHost }),
+      eventFor(
+        { host: "d111.cloudfront.net" },
+        undefined,
+        originWith({ [ORIGIN_HOST_HEADER]: originHost }),
+      ),
       { credentials, now },
     );
 
@@ -487,11 +533,11 @@ describe("handleOriginRequest", () => {
 
   it("refuses an empty origin host even when the region is fine", async () => {
     const result = handleOriginRequest(
-      eventFor({
-        host: "d111.cloudfront.net",
-        [ORIGIN_HOST_HEADER]: "",
-        [ORIGIN_REGION_HEADER]: "eu-west-1",
-      }),
+      eventFor(
+        { host: "d111.cloudfront.net" },
+        undefined,
+        originWith({ [ORIGIN_HOST_HEADER]: "", [ORIGIN_REGION_HEADER]: "eu-west-1" }),
+      ),
       { credentials, now },
     );
 
@@ -500,11 +546,11 @@ describe("handleOriginRequest", () => {
 
   it("refuses an empty origin region even when the host is fine", async () => {
     const result = handleOriginRequest(
-      eventFor({
-        host: "d111.cloudfront.net",
-        [ORIGIN_HOST_HEADER]: originHost,
-        [ORIGIN_REGION_HEADER]: "",
-      }),
+      eventFor(
+        { host: "d111.cloudfront.net" },
+        undefined,
+        originWith({ [ORIGIN_HOST_HEADER]: originHost, [ORIGIN_REGION_HEADER]: "" }),
+      ),
       { credentials, now },
     );
 
@@ -534,7 +580,7 @@ describe("handleOriginRequest", () => {
   it("refuses a truncated body it could not hash correctly", async () => {
     const result = handleOriginRequest(
       eventFor(
-        { host: "d111.cloudfront.net", [ORIGIN_HOST_HEADER]: originHost, [ORIGIN_REGION_HEADER]: "eu-west-1" },
+        { host: "d111.cloudfront.net" },
         { encoding: "text", data: "partial", inputTruncated: true },
       ),
       { credentials, now },
@@ -544,7 +590,7 @@ describe("handleOriginRequest", () => {
   });
 
   it("refuses when no credentials are available to sign with", async () => {
-    const headers = { host: "d111.cloudfront.net", [ORIGIN_HOST_HEADER]: originHost, [ORIGIN_REGION_HEADER]: "eu-west-1" };
+    const headers = { host: "d111.cloudfront.net" };
 
     expect(
       (handleOriginRequest(eventFor(headers), { credentials: undefined, now }) as { status: string }).status,
@@ -564,7 +610,7 @@ describe("handleOriginRequest", () => {
     { accessKeyId: "AKID", secretAccessKey: "" },
   ])("refuses when exactly one key part is empty: %p", async (credentials) => {
     const result = handleOriginRequest(
-      eventFor({ host: "d111.cloudfront.net", [ORIGIN_HOST_HEADER]: originHost, [ORIGIN_REGION_HEADER]: "eu-west-1" }),
+      eventFor({ host: "d111.cloudfront.net" }),
       { credentials, now },
     );
 
@@ -572,11 +618,13 @@ describe("handleOriginRequest", () => {
   });
 
   it("refuses when the origin host header is present but holds no values", async () => {
-    const event = eventFor({ host: "d111.cloudfront.net", [ORIGIN_REGION_HEADER]: "eu-west-1" });
-    const request = event.Records[0]?.cf.request as CloudFrontRequest;
-    request.headers[ORIGIN_HOST_HEADER] = [];
-
-    const result = handleOriginRequest(event, { credentials, now });
+    const origin = originWith({ [ORIGIN_REGION_HEADER]: "eu-west-1" });
+    const customHeaders = origin.custom?.customHeaders as Record<string, { key: string; value: string }[]>;
+    customHeaders[ORIGIN_HOST_HEADER] = [];
+    const result = handleOriginRequest(
+      eventFor({ host: "d111.cloudfront.net" }, undefined, origin),
+      { credentials, now },
+    );
 
     expect((result as { status: string }).status).toBe("403");
   });

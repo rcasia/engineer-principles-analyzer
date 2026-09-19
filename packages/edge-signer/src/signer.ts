@@ -10,9 +10,12 @@
  * URL's resource path authorizes.
  *
  * Pure `node:crypto`, no SDK, no environment variables (Lambda@Edge forbids
- * them): the origin's own host arrives in an origin custom header that
- * Terraform sets, and the function fails closed with a 403 edge response
- * whenever anything needed for a valid signature is missing.
+ * them): the origin's own host and region arrive as origin custom headers
+ * that Terraform sets, read from `request.origin.custom.customHeaders` -
+ * the only place they appear (origin custom headers are NOT merged into
+ * `request.headers` at the origin-request trigger). The function fails
+ * closed with a 403 edge response whenever anything needed for a valid
+ * signature is missing.
  */
 
 import { createHash, createHmac } from "node:crypto";
@@ -234,11 +237,20 @@ export interface CloudFrontHeader {
   readonly value: string;
 }
 
+export interface CloudFrontCustomOrigin {
+  readonly customHeaders?: Readonly<Record<string, ReadonlyArray<CloudFrontHeader>>> | undefined;
+}
+
+export interface CloudFrontOrigin {
+  readonly custom?: CloudFrontCustomOrigin | undefined;
+}
+
 export interface CloudFrontRequest {
   readonly method: string;
   readonly uri: string;
   readonly querystring: string;
   readonly headers: Record<string, CloudFrontHeader[]>;
+  readonly origin?: CloudFrontOrigin | undefined;
   readonly body?:
     | {
         readonly encoding: "base64" | "text";
@@ -288,17 +300,30 @@ export function edgeCredentials(): EdgeCredentials | undefined {
   };
 }
 
-/** First value of a CloudFront header, or undefined when absent or empty. */
-function firstHeaderValue(request: CloudFrontRequest, name: string): string | undefined {
-  const values = request.headers[name];
-  if (values === undefined) {
+/**
+ * First value of an origin custom header, matched case-insensitively, or
+ * undefined when absent or empty.
+ */
+export function customHeaderValue(
+  customHeaders: Readonly<Record<string, ReadonlyArray<CloudFrontHeader>>> | undefined,
+  name: string,
+): string | undefined {
+  if (customHeaders === undefined) {
     return undefined;
   }
-  const first = values[0];
-  if (first === undefined) {
-    return undefined;
+
+  const wanted = name.toLowerCase();
+  for (const [key, values] of Object.entries(customHeaders)) {
+    if (key.toLowerCase() === wanted) {
+      const first = values[0];
+      if (first === undefined) {
+        return undefined;
+      }
+      return first.value;
+    }
   }
-  return first.value;
+
+  return undefined;
 }
 
 function decodeBody(body: NonNullable<CloudFrontRequest["body"]>): Uint8Array {
@@ -342,14 +367,19 @@ export function handleOriginRequest(
   }
   const request = record.cf.request;
 
-  // Without the origin's own host there is nothing correct to sign for.
-  // A viewer-supplied header of the same name can only produce a signature
-  // for a host the origin itself rejects, so this fails safe either way.
-  const originHost = firstHeaderValue(request, ORIGIN_HOST_HEADER);
+  // Deploy-time values live in origin.custom.customHeaders - NOT in
+  // request.headers, which never carries origin custom headers at the
+  // origin-request trigger. Without the origin's own host there is nothing
+  // correct to sign for.
+  const origin = request.origin;
+  if (origin === undefined || origin.custom === undefined) {
+    return forbidden();
+  }
+  const originHost = customHeaderValue(origin.custom.customHeaders, ORIGIN_HOST_HEADER);
   if (originHost === undefined || originHost === "") {
     return forbidden();
   }
-  const originRegion = firstHeaderValue(request, ORIGIN_REGION_HEADER);
+  const originRegion = customHeaderValue(origin.custom.customHeaders, ORIGIN_REGION_HEADER);
   if (originRegion === undefined || originRegion === "") {
     return forbidden();
   }
@@ -392,9 +422,10 @@ export function handleOriginRequest(
   } else {
     delete request.headers["x-amz-security-token"];
   }
-  // Scaffolding only: the origin must never see how the signer learned its host.
-  delete request.headers[ORIGIN_HOST_HEADER];
-  delete request.headers[ORIGIN_REGION_HEADER];
-
+  // The scaffolding headers are origin custom headers, not request headers:
+  // CloudFront adds them to the origin request itself, where they are
+  // harmless (static config values the origin ignores), and a
+  // viewer-supplied header of the same name is overwritten by CloudFront
+  // before forwarding - so there is nothing to strip and nothing to spoof.
   return request;
 }

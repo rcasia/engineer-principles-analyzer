@@ -207,8 +207,12 @@ resource "aws_cloudfront_distribution" "web" {
 
     # Deploy-time configuration for the Lambda@Edge signer. Edge functions
     # forbid environment variables, so the origin's own host and region
-    # travel as custom headers, which the signer reads, signs for, and
-    # strips before forwarding (ADR-0019).
+    # travel as custom headers, which the signer reads from
+    # origin.custom.customHeaders - the only place they appear (origin
+    # custom headers are NOT merged into request.headers at the
+    # origin-request trigger; reading them there fail-closed prod until
+    # that was found). CloudFront overwrites same-named viewer headers
+    # with these values, so they cannot be spoofed (ADR-0019).
     custom_header {
       name  = "x-origin-host"
       value = local.function_url_host

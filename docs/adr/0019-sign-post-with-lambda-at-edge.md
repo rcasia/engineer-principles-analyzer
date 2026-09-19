@@ -104,6 +104,16 @@ Adopt **Option 1**. Concretely:
   `origin-request` association with `include_body = true` on the default
   cache behavior; `x-origin-host`/`x-origin-region` origin custom headers
   carrying the deploy-time values the signer cannot get from environment.
+- The signer reads those headers from `request.origin.custom.customHeaders
+  ` - the ONLY place they appear. Origin custom headers are not merged
+  into `request.headers` at the origin-request trigger, and the first
+  version of this code read them there, fail-closed prod with the signer's
+  own 403 on every request until that was found (direct-invoking the edge
+  function with hand-supplied headers had passed, which is exactly why the
+  mismatch survived review). Matched case-insensitively; CloudFront
+  overwrites same-named viewer headers with the configured values, so they
+  cannot be spoofed, and they are left forwarded - static config the origin
+  ignores.
 - The deploy role (`infra/bootstrap`) gains `lambda:EnableReplication*`
   scoped to the project's functions: associating an edge function for the
   first time makes CloudFront enable replication on it, and the first real
