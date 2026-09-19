@@ -101,13 +101,53 @@ locals {
   origin_id = "${local.name_prefix}-web-lambda"
 }
 
-# Managed policies, read only when the CDN is built. Guarding them with count
-# matters: LocalStack cannot serve these lookups.
-data "aws_cloudfront_cache_policy" "use_origin_cache_control" {
+# A custom cache policy, not the managed "UseOriginCacheControlHeaders" one.
+# That managed policy's own header whitelist includes "host" - independently
+# of, and merged with, whatever the origin request policy forwards. That
+# reintroduces the CloudFront distribution's own Host header on every
+# request, which breaks OAC's SigV4 signature: CloudFront signs assuming the
+# Function URL's own host, so the origin sees a signed Host that doesn't
+# match what was actually sent, and Lambda rejects it with a generic
+# AccessDeniedException. Confirmed by removing the origin request policy
+# entirely first (no effect - ruled out) and then inspecting this managed
+# policy's definition directly, which still failed until this policy's own
+# header whitelist was removed too.
+#
+# TTL bounds replicate the managed policy's "honour the origin's
+# Cache-Control" behaviour; header/cookie/query-string forwarding is left
+# entirely to the origin request policy below, so there is exactly one place
+# that decides what reaches the origin.
+resource "aws_cloudfront_cache_policy" "web" {
   count = local.use_cdn ? 1 : 0
-  name  = "UseOriginCacheControlHeaders"
+
+  name    = "${local.name_prefix}-web"
+  comment = "Honours origin Cache-Control. No cache-key headers: the origin request policy owns forwarding, so Host cannot be reintroduced."
+
+  default_ttl = 0
+  max_ttl     = 31536000
+  min_ttl     = 0
+
+  parameters_in_cache_key_and_forwarded_to_origin {
+    enable_accept_encoding_gzip   = true
+    enable_accept_encoding_brotli = true
+
+    headers_config {
+      header_behavior = "none"
+    }
+
+    cookies_config {
+      cookie_behavior = "none"
+    }
+
+    query_strings_config {
+      query_string_behavior = "none"
+    }
+  }
 }
 
+# Managed policies, read only when the CDN is built. Guarding them with count
+# matters: LocalStack cannot serve these lookups.
+#
 # The Host header must not be forwarded: CloudFront signs requests for the
 # Function URL's own host, and overriding it breaks the SigV4 signature.
 data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
@@ -162,7 +202,7 @@ resource "aws_cloudfront_distribution" "web" {
     cached_methods         = ["GET", "HEAD"]
     compress               = true
 
-    cache_policy_id            = data.aws_cloudfront_cache_policy.use_origin_cache_control[0].id
+    cache_policy_id            = aws_cloudfront_cache_policy.web[0].id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host[0].id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers[0].id
   }
