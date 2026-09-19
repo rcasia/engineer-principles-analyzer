@@ -42,6 +42,7 @@ packages/web/    http adapter, server rendered, no client JavaScript
 infra/           terraform: one lambda behind a function url
 scripts/         build and verification scripts
 docs/adr/        why things are the way they are
+docs/design/     product design language and interaction standards
 ```
 
 `core` is organised as vertical slices, each internally ports and adapters.
@@ -127,6 +128,8 @@ which is the main thing that could quietly spend money.
 
 - [Architecture decision records](docs/adr/README.md) — the reasoning behind
   every choice here, including the downsides.
+- [Product design](docs/design/README.md) — visual language, components, layout
+  and UX standards.
 - [Infrastructure](infra/README.md) — how to plan, apply and destroy.
 - [AGENTS.md](AGENTS.md) — conventions for agents and humans working here.
 

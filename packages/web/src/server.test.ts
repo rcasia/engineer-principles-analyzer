@@ -48,7 +48,19 @@ describe("createRequestHandler", () => {
     expect(response.status).toBe(200);
   });
 
-  it.each(["/missing", "/principles", "//"])(
+  it("serves the internal design playground", async () => {
+    const response = await handlerFor()(new Request("http://localhost/design"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe(
+      "text/html; charset=utf-8",
+    );
+    await expect(response.text()).resolves.toContain(
+      "Design playground | Principled",
+    );
+  });
+
+  it.each(["/missing", "/principles", "/design/", "//"])(
     "responds 404 as plain text for %p",
     async (pathname) => {
       const response = await handlerFor()(

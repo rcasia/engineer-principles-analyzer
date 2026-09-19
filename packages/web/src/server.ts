@@ -1,4 +1,5 @@
 import type { ListPrinciples } from "@epa/core";
+import { renderDesignPlayground } from "./presentation/design-playground.ts";
 import { renderPrinciplesPage } from "./presentation/principles-page.ts";
 
 export const HTML_CONTENT_TYPE = "text/html; charset=utf-8";
@@ -24,6 +25,16 @@ export function createRequestHandler(
 ): (request: Request) => Promise<Response> {
   return async (request: Request): Promise<Response> => {
     const { pathname } = new URL(request.url);
+
+    if (pathname === "/design") {
+      return new Response(renderDesignPlayground(), {
+        status: 200,
+        headers: {
+          "content-type": HTML_CONTENT_TYPE,
+          "cache-control": PAGE_CACHE_CONTROL,
+        },
+      });
+    }
 
     if (pathname !== "/") {
       return new Response(NOT_FOUND_BODY, {

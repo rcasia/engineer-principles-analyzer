@@ -49,9 +49,15 @@ describe("renderPrinciplesPage", () => {
   it("wraps content in a main landmark with a single level one heading", () => {
     const html = renderPrinciplesPage([tdd]);
 
-    expect(html).toContain("<main>");
+    expect(html).toContain('<main class="page" id="main">');
     expect(html).toContain("<h1>Engineer Principles Analyzer</h1>");
     expect(html.match(/<h1>/g)).toHaveLength(1);
+  });
+
+  it("lets keyboard users bypass navigation", () => {
+    expect(renderPrinciplesPage([])).toContain(
+      '<a class="skip-link" href="#main">Skip to content</a>',
+    );
   });
 
   it("shows an empty state when there are no principles", () => {
@@ -64,10 +70,12 @@ describe("renderPrinciplesPage", () => {
   it("renders principles as a labelled list", () => {
     const html = renderPrinciplesPage([tdd, ci]);
 
-    expect(html).toContain('<ul aria-label="Engineering principles">');
     expect(html).toContain(
-      "<li><h2>Test Driven Development</h2><p>tdd</p></li><li><h2>Continuous Integration</h2><p>ci</p></li>",
+      '<ul aria-label="Engineering principles" class="principles-list">',
     );
+    expect(html).toContain("<h2>Test Driven Development</h2><p>tdd</p>");
+    expect(html).toContain("<h2>Continuous Integration</h2><p>ci</p>");
+    expect(html).toContain("</li><li");
     expect(html).not.toContain("No principles are defined yet.");
   });
 
