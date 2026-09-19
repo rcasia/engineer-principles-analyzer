@@ -63,3 +63,28 @@ export type { SourceLocationProps } from "./analysis/domain/source-location.ts";
 export type { AnalyzerMetadata } from "./analysis/domain/analyzer-metadata.ts";
 export { err, ok, unwrap, unwrapErr, UnwrapError } from "./shared/result.ts";
 export type { Result } from "./shared/result.ts";
+
+// Rule evaluation engine (#9).
+export { InvalidSubjectError, Subject } from "./engine/domain/subject.ts";
+export type { SubjectProps } from "./engine/domain/subject.ts";
+export {
+  ANALYSIS_COMPLETED_EVENT,
+  ANALYSIS_FAILED_EVENT,
+  ANALYSIS_REQUESTED_EVENT,
+} from "./engine/domain/analysis-event.ts";
+export type {
+  AnalysisCompletedPayload,
+  AnalysisEventPayload,
+  AnalysisFailedPayload,
+  AnalysisRequestedPayload,
+} from "./engine/domain/analysis-event.ts";
+export type { Rule } from "./engine/application/rule.port.ts";
+export type { RuleCatalog } from "./engine/application/rule-catalog.port.ts";
+export type { EngineInstrumentation } from "./engine/application/instrumentation.port.ts";
+export {
+  AnalyzeSubject,
+  type AnalysisRequest,
+  type AnalysisRun,
+  type IdGenerator,
+} from "./engine/application/analyze-subject.use-case.ts";
+export { InMemoryRuleCatalog } from "./engine/infrastructure/in-memory-rule-catalog.ts";
