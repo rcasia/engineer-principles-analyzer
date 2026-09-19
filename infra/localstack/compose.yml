@@ -19,7 +19,12 @@ services:
       # explicit network they land on the default bridge and cannot reach
       # LocalStack's runtime API, so every invocation fails with a 500.
       LAMBDA_DOCKER_NETWORK: "localstack-net"
-      # Keep invocations warm-ish and fail fast rather than hanging in CI.
+      # The function is arm64 in production because it is cheaper. On an
+      # x86_64 runner LocalStack would build an arm64 container and inject an
+      # x86_64 init binary, which dies with "exec format error". This tells
+      # the emulator to use the host architecture and leaves the real
+      # infrastructure definition untouched.
+      LAMBDA_IGNORE_ARCHITECTURE: "1"
       LAMBDA_KEEPALIVE_MS: "300000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
