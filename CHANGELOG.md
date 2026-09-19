@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.2.0...v1.3.0) (2026-09-19)
+
+
+### Features
+
+* **infra:** serve globally through cloudfront with a locked-down origin ([8d0795f](https://github.com/rcasia/engineer-principles-analyzer/commit/8d0795f5d89472cb1b3e1b8e40c95e42b24e66a2))
+* **web:** make responses cacheable ([174fce1](https://github.com/rcasia/engineer-principles-analyzer/commit/174fce1c2c7ae2833e3d8daefb3dd76a9ae2c049))
+
 # [1.2.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.1.0...v1.2.0) (2026-09-19)
 
 
