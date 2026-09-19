@@ -6,7 +6,7 @@ function eventFor(overrides: Partial<FunctionUrlEvent> = {}): FunctionUrlEvent {
   return {
     rawPath: "/",
     rawQueryString: "",
-    headers: { host: "epa.example.com" },
+    headers: { host: "principled.example.com" },
     isBase64Encoded: false,
     requestContext: { http: { method: "GET" } },
     ...overrides,
@@ -16,7 +16,7 @@ function eventFor(overrides: Partial<FunctionUrlEvent> = {}): FunctionUrlEvent {
 describe("toRequest", () => {
   it("builds an https url from the host header and raw path", () => {
     expect(toRequest(eventFor({ rawPath: "/principles" })).url).toBe(
-      "https://epa.example.com/principles",
+      "https://principled.example.com/principles",
     );
   });
 
@@ -26,9 +26,9 @@ describe("toRequest", () => {
 
   it("appends the query string only when there is one", () => {
     expect(toRequest(eventFor({ rawQueryString: "a=1&b=2" })).url).toBe(
-      "https://epa.example.com/?a=1&b=2",
+      "https://principled.example.com/?a=1&b=2",
     );
-    expect(toRequest(eventFor()).url).toBe("https://epa.example.com/");
+    expect(toRequest(eventFor()).url).toBe("https://principled.example.com/");
   });
 
   it("carries the http method through", () => {
@@ -42,7 +42,7 @@ describe("toRequest", () => {
   it("forwards headers and drops undefined ones", () => {
     const request = toRequest(
       eventFor({
-        headers: { host: "epa.example.com", "x-kept": "yes", "x-dropped": undefined },
+        headers: { host: "principled.example.com", "x-kept": "yes", "x-dropped": undefined },
       }),
     );
 
@@ -117,7 +117,7 @@ describe("createLambdaHandler", () => {
     expect(await handler(eventFor())).toEqual({
       statusCode: 201,
       headers: { "content-type": "text/plain" },
-      body: "seen https://epa.example.com/",
+      body: "seen https://principled.example.com/",
     });
   });
 });
