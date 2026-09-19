@@ -10,6 +10,7 @@ commit changes how the system is built, its ADR ships with it.
 | ADR                            | Title                                     | Status   | Date       |
 | ------------------------------ | ----------------------------------------- | -------- | ---------- |
 | [0001](0001-bun-monorepo.md)   | Use Bun as the runtime and a single monorepo | Accepted | 2026-09-19 |
+| [0002](0002-hexagonal-architecture.md) | Organise code as vertical slices over a hexagon | Accepted | 2026-09-19 |
 
 ## Writing a new ADR
 

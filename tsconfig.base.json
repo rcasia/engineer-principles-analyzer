@@ -17,6 +17,10 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
 
+    // Bun executes TypeScript sources directly, so the build only ever needs
+    // to produce types. This keeps explicit .ts import specifiers legal.
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
