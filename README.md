@@ -94,9 +94,10 @@ Git hooks run the fast subset locally. They are installed automatically by
 
 Commits go straight to main. If the gates pass, semantic-release runs twice -
 once for the CLI, once for the web app - each deriving its own version from
-only the commits scoped to its package (a commit scoped `web` never bumps the
-CLI's version, and vice versa; see
-[ADR-0016](docs/adr/0015-separate-cli-and-web-release-trains.md)). The web
+only the commits that changed its files (a commit touching only `packages/web/`
+never bumps the CLI's version, and vice versa; a `packages/core/` change bumps
+both; see [ADR-0016](docs/adr/0016-separate-cli-and-web-release-trains.md) and
+[ADR-0019](docs/adr/0019-route-release-trains-by-changed-files.md)). The web
 app is then deployed. There is no review step — the gates are the safety net.
 
 Publishing the CLI to npm is skipped until `NPM_PUBLISH` is `true`; the

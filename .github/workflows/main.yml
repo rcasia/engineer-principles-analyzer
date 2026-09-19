@@ -22,8 +22,9 @@ jobs:
   # Two independent release trains, run in sequence rather than in parallel:
   # each pushes its own commit and tag with @semantic-release/git, and two
   # semantic-release processes pushing to main at the same time would race.
-  # See ADR-0016 for why the trains are split and scripts/scoped-release-plugins.mjs
-  # for how each train only sees the commits scoped to its own package.
+  # See ADR-0016 for why the trains are split, ADR-0019 for why routing is
+  # by changed files, and scripts/scoped-release-plugins.mjs for how each
+  # train only sees the commits that touched its own files or core.
   release-cli:
     name: release the cli
     needs: gates

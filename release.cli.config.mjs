@@ -3,9 +3,9 @@
  *
  * This is one of two independent trains - see release.web.config.mjs for
  * the other - so that a web-only change cannot bump the CLI's version, and
- * vice versa. Only commits scoped "cli" or "core" (core is bundled into the
- * published tarball) count toward this train; see
- * scripts/scoped-release-plugins.mjs and ADR-0016.
+ * vice versa. A commit only counts toward this train if it changed
+ * touched its files or core - core changes count toward both. See
+ * scripts/scoped-release-plugins.mjs and ADR-0019.
  *
  * npm publishing is switched on by the NPM_PUBLISH environment variable, the
  * same way deployment is switched on by AWS_DEPLOY_ROLE_ARN. Until it is
@@ -16,19 +16,20 @@
  * See docs/adr/0008-publish-the-cli-to-npm.md
  */
 import {
+  CLI_PATHS,
   RELEASE_RULES,
   scopedCommitAnalyzer,
   scopedReleaseNotesGenerator,
+  WEB_PATHS,
 } from "./scripts/scoped-release-plugins.mjs";
 
 const CLI_PACKAGE = "packages/cli";
-const CLI_SCOPES = ["cli", "core"];
 
 export default {
   branches: ["main"],
   plugins: [
-    [scopedCommitAnalyzer(CLI_SCOPES), { releaseRules: RELEASE_RULES }],
-    scopedReleaseNotesGenerator(CLI_SCOPES),
+    [scopedCommitAnalyzer(CLI_PATHS, WEB_PATHS), { releaseRules: RELEASE_RULES }],
+    scopedReleaseNotesGenerator(CLI_PATHS, WEB_PATHS),
     "@semantic-release/changelog",
     // @semantic-release/npm is deliberately not used: it shells out to
     // `npm version`, which reifies the whole workspace tree and fails on any
