@@ -33,6 +33,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0021](0021-incremental-mutation-testing-with-cache.md) | Cache Stryker incremental reports, forcing full runs on test changes | Accepted | 2026-09-20 |
 | [0022](0022-srp-heuristic-rule.md) | Detect Single Responsibility violations with a dependency-free method-name heuristic | Accepted | 2026-09-20 |
 | [0023](0023-react-hydration-frontend.md) | Migrate the web UI to React with selective hydration | Proposed | 2026-09-20 |
+| [0024](0024-jev-backed-srp-rule-adapter.md) | Judge SRP with a Jev-backed Rule adapter to validate the core | Accepted | 2026-09-20 |
 
 ## Writing a new ADR
 
