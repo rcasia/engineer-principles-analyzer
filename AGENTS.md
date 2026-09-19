@@ -1,0 +1,115 @@
+# AGENTS.md
+
+Conventions for anyone changing this repository, human or agent. This project
+is agentic first: assume the next contributor is a model with no memory of
+this conversation.
+
+## The loop
+
+```sh
+bun install          # also installs the git hooks
+bun run check        # typecheck + tests, run this constantly
+bun run test:mutation # before pushing anything that changes behaviour
+```
+
+If `bun run check` is red, nothing else matters. Fix that first.
+
+## Non-negotiables
+
+1. **Commits are conventional and atomic.** One reason to change per commit.
+   If the subject needs an "and", it is two commits. `commitlint` enforces the
+   format; only you can enforce the atomicity.
+
+   Allowed scopes: `core`, `cli`, `web`, `infra`, `ci`, `deps`, `adr`,
+   `release`.
+
+2. **Documentation ships in the same commit as the change.** A commit that
+   changes behaviour updates the docs that describe it. A commit that makes an
+   architectural decision carries its ADR.
+
+3. **Mutation score stays at or above 95%.** A surviving mutant is a missing
+   test, not a statistic. Read what the mutant did and write the test that
+   would have caught it. Do not raise the threshold's exemption list to go
+   green.
+
+4. **The domain has no I/O.** `packages/core/src/*/domain/` imports nothing
+   from `application/` or `infrastructure/`. Dependencies point inward, always.
+
+5. **Never commit secrets, state or build output.** `.gitignore` covers
+   `*.tfstate`, `*.tfvars`, `infra/build/` and `.env`. Check `git status`
+   before staging.
+
+## Architecture in one paragraph
+
+`core` holds the rules and knows nothing about the outside world. It is
+organised as vertical slices (one directory per capability), and each slice is
+internally ports and adapters: `domain/` for pure rules, `application/` for
+ports and use cases, `infrastructure/` for adapters. `cli` and `web` are
+driving adapters — they compose the hexagon and translate, and contain no
+rules. Read [ADR-0002](docs/adr/0002-hexagonal-architecture.md) before adding
+a package.
+
+## Writing tests
+
+Tests are written to kill mutants, which in practice means:
+
+- Assert exact values, not truthiness. `toBe("...")`, not `toBeTruthy()`.
+- Test boundaries, not just the happy path: `0`, `100`, `-1`, `101`, `NaN`.
+- Assert literal strings, **not** the constant the code exports. Asserting
+  `expect(x).toBe(MESSAGE)` lets a mutant change both sides and survive.
+- Prefer a real in-memory adapter over a mock, so the port itself is exercised.
+
+## Adding a package
+
+1. `packages/<name>/package.json`, `type: module`, `exports` pointing at
+   `./src/index.ts`.
+2. `tsconfig.json` extending `../../tsconfig.base.json`, with `references` to
+   any workspace dependency.
+3. Add it to `references` in the root `tsconfig.json`.
+4. Depend on workspace packages with `"@epa/core": "workspace:*"`.
+
+Imports use explicit `.ts` extensions — Bun runs the sources directly and
+`tsc` only emits declarations ([ADR-0001](docs/adr/0001-bun-monorepo.md)).
+
+## Composition roots
+
+Files that only wire things together (`bin.ts`, `lambda-entry.ts`) are
+excluded from mutation testing in `stryker.config.json`. Keep them trivial. If
+logic appears in one, move it into a tested module instead of widening the
+exclusion.
+
+## Infrastructure
+
+`infra/` targets LocalStack or real AWS from the same configuration. Always
+verify locally before pushing:
+
+```sh
+bun run localstack:up
+bun run infra:apply:local
+bun scripts/check-deployed.ts
+bun run infra:destroy:local
+```
+
+`terraform plan` needs no credentials. Run `terraform -chdir=infra fmt` before
+committing; CI checks formatting.
+
+## Decisions
+
+Anything that constrains future work gets an ADR in `docs/adr/`, using
+`template.md`, added to the index, committed alongside the change. Be explicit
+about the downsides — an ADR that lists no costs has not been thought through.
+
+Do not edit an accepted ADR to change its decision. Write a new one that
+supersedes it.
+
+## Known gaps
+
+Honest list of what is not done, so nobody assumes otherwise:
+
+- The principles catalog is empty and the analysis rules do not exist.
+- Terraform state is local; a remote backend is needed before more than one
+  actor deploys.
+- Deployment has never run against real AWS — only LocalStack.
+- No import-boundary lint rule enforces the dependency rule; it is convention
+  today.
+- No budget alarm or reserved concurrency on the public Function URL.
