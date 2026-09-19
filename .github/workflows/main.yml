@@ -74,11 +74,15 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      # Fresh checkout, after release-cli: sees its release commit, if any,
-      # so this train's tag and changelog land on top of it rather than
-      # racing it.
+      # `ref: main` matters here: without it, checkout defaults to the SHA
+      # that triggered the whole workflow run, which is now one commit
+      # behind main if release-cli just pushed a release commit. semantic-
+      # release safely refuses to release from a stale HEAD ("local branch
+      # is behind the remote one"), so this fetches the branch's current tip
+      # instead of the run's original, now-stale, triggering commit.
       - uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
@@ -105,7 +109,13 @@ jobs:
       contents: read
       id-token: write # OIDC only. No long lived AWS keys in this repository.
     steps:
+      # `ref: main`: same reason as release-web's checkout - two release
+      # jobs may already have pushed to main by the time this job starts,
+      # and this should build and deploy what is actually on main now, not
+      # the SHA that originally triggered the run.
       - uses: actions/checkout@v7
+        with:
+          ref: main
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.3.0"
