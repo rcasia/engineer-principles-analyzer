@@ -2,6 +2,8 @@ export {
   createRequestHandler,
   HTML_CONTENT_TYPE,
   NOT_FOUND_BODY,
+  NOT_FOUND_CACHE_CONTROL,
+  PAGE_CACHE_CONTROL,
 } from "./server.ts";
 export {
   EMPTY_STATE,

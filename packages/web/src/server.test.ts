@@ -26,6 +26,20 @@ describe("createRequestHandler", () => {
     );
   });
 
+  it("lets the cdn cache the page and serve it stale while revalidating", async () => {
+    const response = await handlerFor()(new Request("http://localhost/"));
+
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=60, stale-while-revalidate=600",
+    );
+  });
+
+  it("lets the cdn cache 404s so they never reach the origin twice", async () => {
+    const response = await handlerFor()(new Request("http://localhost/gone"));
+
+    expect(response.headers.get("cache-control")).toBe("public, max-age=300");
+  });
+
   it("ignores the query string when routing", async () => {
     const response = await handlerFor()(
       new Request("http://localhost/?anything=1"),
