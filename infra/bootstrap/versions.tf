@@ -18,7 +18,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project   = "engineer-principles-analyzer"
+      Project   = "principled"
       Component = "bootstrap"
       ManagedBy = "terraform"
     }

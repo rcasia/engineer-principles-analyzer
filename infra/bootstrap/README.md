@@ -7,7 +7,7 @@ anything. It creates the three things the pipeline cannot create for itself:
 | -------------------------- | ------------------------------------------------------ |
 | S3 bucket for Terraform state | The main stack stores its state in it, so it must exist first |
 | GitHub OIDC provider       | Needed to obtain credentials at all                     |
-| `epa-github-deploy` role   | The identity the pipeline assumes                       |
+| `principled-github-deploy` role   | The identity the pipeline assumes                       |
 
 Everything else — the Lambda, its role, its log group, the Function URL — is
 created by the pipeline. Nothing here is on the deploy path, so this module
@@ -21,7 +21,7 @@ You need:
   an OIDC provider and an S3 bucket. This is the **only** time a human uses
   AWS credentials directly.
 - A globally unique S3 bucket name. Bucket names are global across all AWS
-  accounts, so pick something with entropy: `epa-tfstate-a1b2c3`.
+  accounts, so pick something with entropy: `principled-tfstate-a1b2c3`.
 - Terraform 1.10 or newer (`use_lockfile` requires it).
 
 ## Before you apply: check your OIDC subject format
@@ -67,7 +67,7 @@ second time, this is almost certainly the cause. Compare
 cd infra/bootstrap
 
 terraform init
-terraform apply -var 'state_bucket_name=epa-tfstate-CHANGEME'
+terraform apply -var 'state_bucket_name=principled-tfstate-CHANGEME'
 ```
 
 If the account already has a GitHub OIDC provider — an account can only have
@@ -83,7 +83,7 @@ Useful variables:
 | `github_repository`   | `rcasia/principled`                   | Change this on a fork                    |
 | `github_environment`  | `production`                          | Must match `environment:` in `main.yml`  |
 | `create_oidc_provider`| `true`                                | `false` if one already exists            |
-| `resource_prefix`     | `epa`                                 | What the deploy role may manage          |
+| `resource_prefix`     | `principled`                          | What the deploy role may manage          |
 
 ### 2. Create the GitHub environment
 
@@ -130,10 +130,10 @@ gh workflow run main.yml   # runs the whole pipeline on main
 Scoped to this project, not the account:
 
 - Read and write **only** the state bucket.
-- Create, update and delete IAM roles named `epa-*` — required because the
+- Create, update and delete IAM roles named `principled-*` — required because the
   stack provisions its own Lambda execution role.
-- Manage Lambda functions named `epa-*` and their Function URLs.
-- Manage log groups under `/aws/lambda/epa-*`.
+- Manage Lambda functions named `principled-*` and their Function URLs.
+- Manage log groups under `/aws/lambda/principled-*`.
 - `logs:DescribeLogGroups` account-wide, because that call cannot be scoped
   to a single group. It is read only.
 - Manage CloudFront distributions and origin access controls. **This is the
@@ -143,7 +143,7 @@ Scoped to this project, not the account:
   distributions, prefer a dedicated account over tightening this.
 
 Be clear about what this means: **a green commit on main can create and
-modify IAM roles prefixed `epa-`, with no human review.** That is a
+modify IAM roles prefixed `principled-`, with no human review.** That is a
 consequence of the trunk-based model in ADR-0006, and the name prefix is what
 bounds it. If that trade is not acceptable, add a required reviewer to the
 `production` environment in step 2.
@@ -158,8 +158,8 @@ Losing it is recoverable and harmless — nothing is deleted. Re-import the
 three resources instead of re-applying:
 
 ```sh
-terraform import aws_s3_bucket.state epa-tfstate-CHANGEME
-terraform import aws_iam_role.deploy epa-github-deploy
+terraform import aws_s3_bucket.state principled-tfstate-CHANGEME
+terraform import aws_iam_role.deploy principled-github-deploy
 terraform import 'aws_iam_openid_connect_provider.github[0]' \
   arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com
 ```

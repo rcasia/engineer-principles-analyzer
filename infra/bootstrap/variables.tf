@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "state_bucket_name" {
   description = <<-EOT
     Globally unique name for the Terraform state bucket, for example
-    "epa-tfstate-a1b2c3". S3 bucket names are global, so this cannot have a
+    "principled-tfstate-a1b2c3". S3 bucket names are global, so this cannot have a
     sensible default.
   EOT
   type        = string
@@ -91,7 +91,7 @@ variable "create_oidc_provider" {
 variable "resource_prefix" {
   description = "Prefix of the resources the deploy role is allowed to manage."
   type        = string
-  default     = "epa"
+  default     = "principled"
 }
 
 variable "noncurrent_version_expiration_days" {

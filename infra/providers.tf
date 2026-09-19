@@ -6,11 +6,11 @@ locals {
   # terraform validate in CI and end to end by scripts/check-deployed.ts on a
   # real deploy. See docs/adr/0009-cloudfront-in-front-of-lambda.md
   use_cdn        = var.localstack_endpoint == null
-  name_prefix    = "epa-${var.environment}"
+  name_prefix    = "principled-${var.environment}"
   lambda_package = coalesce(var.lambda_package_path, "${path.module}/build/handler.zip")
 
   tags = {
-    Project     = "engineer-principles-analyzer"
+    Project     = "principled"
     Environment = var.environment
     ManagedBy   = "terraform"
   }
