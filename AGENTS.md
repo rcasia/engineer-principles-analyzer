@@ -29,6 +29,12 @@ If `bun run check` is red, nothing else matters. Fix that first.
    it is "one reason". If a change only makes sense together with another to
    keep the trunk deployable, they are one commit.
 
+   Why this size: agents run concurrently, so a big-bang change is one that
+   cannot be merged with another agent's in-flight work without a fight. Small
+   commits pushed often keep everyone rebasing onto tiny, already-integrated
+   steps instead of resolving one enormous conflict at the end. Prefer many
+   small pushes over one large one — see rule 7.
+
    Allowed scopes: `core`, `cli`, `web`, `infra`, `ci`, `deps`, `adr`,
    `release`.
 
@@ -63,6 +69,11 @@ If `bun run check` is red, nothing else matters. Fix that first.
    `bun run check` is green, commit and push. If `origin/main` moved while
    you worked, `git pull --rebase` first. A commit left on a local branch is
    not delivered work.
+
+   Push often, not once at the end. Every green commit that lands on `main`
+   is one another agent can rebase onto immediately, so integrating early and
+   in small steps is how concurrent work stays mergeable. Do not batch a day's
+   worth of commits into a single late push.
 
 8. **Edit code in a worktree, not the shared checkout.** Agents run
    concurrently against this repository; editing the primary checkout
