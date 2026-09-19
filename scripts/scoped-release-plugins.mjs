@@ -37,9 +37,11 @@ export const CLI_PATHS = [
 ];
 export const WEB_PATHS = [
   "packages/web/",
+  "packages/edge-signer/",
   "infra/",
   "docs/design/",
   "scripts/build-lambda.ts",
+  "scripts/build-edge-signer.ts",
   "scripts/check-deployed.ts",
   "scripts/release-web.ts",
   "scripts/smoke-lambda.mjs",

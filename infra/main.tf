@@ -172,11 +172,18 @@ data "aws_cloudfront_response_headers_policy" "security_headers" {
   name  = "Managed-SecurityHeadersPolicy"
 }
 
+# TRANSITIONAL: no longer referenced by the distribution below - the
+# Lambda@Edge signer (ADR-0019) authenticates origin requests now, because
+# OAC cannot sign POST bodies. Kept for exactly one deploy so this apply
+# *updates* the distribution to stop using it instead of trying to *delete*
+# it while still referenced (CloudFront rejects that with
+# OriginAccessControlInUse). A follow-up commit deletes this block once the
+# distribution update has propagated. Do not add new references to it.
 resource "aws_cloudfront_origin_access_control" "web" {
   count = local.use_cdn ? 1 : 0
 
   name                              = "${local.name_prefix}-web"
-  description                       = "Signs CloudFront requests to the web Lambda function URL."
+  description                       = "Unused; retained for one deploy to detach cleanly (ADR-0019)."
   origin_access_control_origin_type = "lambda"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -195,9 +202,22 @@ resource "aws_cloudfront_distribution" "web" {
   price_class = "PriceClass_All"
 
   origin {
-    domain_name              = local.function_url_host
-    origin_id                = local.origin_id
-    origin_access_control_id = aws_cloudfront_origin_access_control.web[0].id
+    domain_name = local.function_url_host
+    origin_id   = local.origin_id
+
+    # Deploy-time configuration for the Lambda@Edge signer. Edge functions
+    # forbid environment variables, so the origin's own host and region
+    # travel as custom headers, which the signer reads, signs for, and
+    # strips before forwarding (ADR-0019).
+    custom_header {
+      name  = "x-origin-host"
+      value = local.function_url_host
+    }
+
+    custom_header {
+      name  = "x-origin-region"
+      value = var.aws_region
+    }
 
     custom_origin_config {
       http_port              = 80
@@ -223,6 +243,16 @@ resource "aws_cloudfront_distribution" "web" {
     cache_policy_id            = aws_cloudfront_cache_policy.web[0].id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host[0].id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers[0].id
+
+    # Signs every origin request - GET and POST alike - with SigV4 using the
+    # signer's own credentials, which the Function URL authorizes (ADR-0019).
+    # include_body is what makes POST work: without it the trigger never sees
+    # the bytes it must hash.
+    lambda_function_association {
+      event_type   = "origin-request"
+      lambda_arn   = "${aws_lambda_function.edge_signer[0].arn}:${aws_lambda_function.edge_signer[0].version}"
+      include_body = true
+    }
   }
 
   restrictions {
@@ -234,6 +264,125 @@ resource "aws_cloudfront_distribution" "web" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
+}
+
+# ----------------------------------------------------------------------------
+# Lambda@Edge origin-request signer (ADR-0019)
+#
+# Signs every CloudFront origin request with SigV4 - including POST bodies,
+# which origin access control cannot sign - so the AWS_IAM Function URL
+# accepts them. The function must live in us-east-1 (CloudFront replicates
+# from there), is published versioned (associations require a version ARN,
+# so each code change cuts a new version automatically), and carries no
+# environment block: Lambda@Edge rejects functions that have one, which is
+# why deploy-time values travel as origin custom headers instead.
+# ----------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "edge_signer_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type = "Service"
+      identifiers = [
+        "lambda.amazonaws.com",
+        "edgelambda.amazonaws.com",
+      ]
+    }
+  }
+}
+
+resource "aws_iam_role" "edge_signer" {
+  count = local.use_cdn ? 1 : 0
+
+  name               = "${local.name_prefix}-edge-signer"
+  assume_role_policy = data.aws_iam_policy_document.edge_signer_assume_role.json
+}
+
+# Least privilege: own log streams, plus invoking the web origin's Function
+# URL - the identity whose signature the origin authorizes. Both Invoke
+# actions, same post-October-2025 requirement as the CloudFront grants below.
+#
+# Two log statements because replicated executions do not log to the explicit
+# group below: each region writes to its own
+# /aws/lambda/us-east-1.<name> group, created on first execution (hence
+# CreateLogGroup). The account and region wildcards are scoped by that exact
+# name pattern - the only way to cover regions CloudFront chooses at runtime.
+data "aws_iam_policy_document" "edge_signer" {
+  count = local.use_cdn ? 1 : 0
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+    resources = ["${aws_cloudwatch_log_group.edge_signer[0].arn}:*"]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+    resources = ["arn:aws:logs:*:*:log-group:/aws/lambda/us-east-1.${local.name_prefix}-edge-signer*"]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "lambda:InvokeFunctionUrl",
+      "lambda:InvokeFunction",
+    ]
+    resources = [aws_lambda_function.web.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "edge_signer" {
+  count = local.use_cdn ? 1 : 0
+
+  name   = "${local.name_prefix}-edge-signer"
+  role   = aws_iam_role.edge_signer[0].id
+  policy = data.aws_iam_policy_document.edge_signer[0].json
+}
+
+# Explicit so retention is capped, like the web function's group. Lives in
+# us-east-1 with the function. Replicated executions log to per-region
+# /aws/lambda/us-east-1.<name> groups instead (covered by the policy above);
+# those groups are CloudFront-managed, so their retention is not capped here.
+resource "aws_cloudwatch_log_group" "edge_signer" {
+  count = local.use_cdn ? 1 : 0
+
+  provider          = aws.useast1
+  name              = "/aws/lambda/${local.name_prefix}-edge-signer"
+  retention_in_days = var.log_retention_days
+}
+
+resource "aws_lambda_function" "edge_signer" {
+  count = local.use_cdn ? 1 : 0
+
+  provider      = aws.useast1
+  function_name = "${local.name_prefix}-edge-signer"
+  role          = aws_iam_role.edge_signer[0].arn
+
+  filename         = local.edge_signer_package
+  source_code_hash = filebase64sha256(local.edge_signer_package)
+
+  runtime     = "nodejs22.x"
+  handler     = "signer.handler"
+  memory_size = 128
+  timeout     = 5
+
+  architectures = ["x86_64"]
+  publish       = true
+
+  depends_on = [
+    aws_iam_role_policy.edge_signer,
+    aws_cloudwatch_log_group.edge_signer,
+  ]
 }
 
 # Function URLs created after October 2025 need both permissions; granting

@@ -13,8 +13,6 @@ import type { EventStore, Principle, Rule } from "@principled/core";
 import {
   ANALYSIS_CACHE_CONTROL,
   createRequestHandler,
-  FORBIDDEN_BODY,
-  ORIGIN_VERIFY_HEADER,
   type RequestHandlerDependencies,
 } from "./server.ts";
 
@@ -43,7 +41,6 @@ function handlerFor(overrides?: {
   readonly principles?: readonly Principle[];
   readonly rules?: readonly Rule[];
   readonly eventStore?: EventStore;
-  readonly originSecret?: string;
 }): (request: Request) => Promise<Response> {
   const deps: RequestHandlerDependencies = {
     listPrinciples: new ListPrinciples(
@@ -53,7 +50,6 @@ function handlerFor(overrides?: {
       new InMemoryRuleCatalog(overrides?.rules ?? []),
     ),
     eventStore: overrides?.eventStore ?? new InMemoryEventStore(),
-    originSecret: overrides?.originSecret,
   };
 
   return createRequestHandler(deps);
@@ -122,75 +118,6 @@ describe("createRequestHandler", () => {
       await expect(response.text()).resolves.toBe("Not found");
     },
   );
-
-  describe("origin secret enforcement", () => {
-    const secret = "s3cr3t-from-cloudfront";
-
-    it("refuses a request with no origin-verify header when a secret is set", async () => {
-      const response = await handlerFor({ principles: [tdd], originSecret: secret })(
-        new Request("http://localhost/"),
-      );
-
-      expect(response.status).toBe(403);
-      expect(response.headers.get("content-type")).toBe(
-        "text/plain; charset=utf-8",
-      );
-      expect(response.headers.get("cache-control")).toBe("no-store");
-      await expect(response.text()).resolves.toBe("Forbidden");
-      expect(FORBIDDEN_BODY).toBe("Forbidden");
-    });
-
-    it("refuses a request whose origin-verify header does not match the secret", async () => {
-      const response = await handlerFor({ principles: [tdd], originSecret: secret })(
-        new Request("http://localhost/", {
-          headers: { [ORIGIN_VERIFY_HEADER]: "wrong" },
-        }),
-      );
-
-      expect(response.status).toBe(403);
-      await expect(response.text()).resolves.toBe("Forbidden");
-    });
-
-    it("serves the request when the origin-verify header matches the secret", async () => {
-      const response = await handlerFor({ principles: [tdd], originSecret: secret })(
-        new Request("http://localhost/", {
-          headers: { [ORIGIN_VERIFY_HEADER]: secret },
-        }),
-      );
-
-      expect(response.status).toBe(200);
-      await expect(response.text()).resolves.toContain(
-        "Test Driven Development",
-      );
-    });
-
-    it("does not require the header when no secret is configured", async () => {
-      const response = await handlerFor({ principles: [tdd] })(
-        new Request("http://localhost/"),
-      );
-
-      expect(response.status).toBe(200);
-    });
-
-    it("does not require the header when the secret is the empty string", async () => {
-      const response = await handlerFor({ principles: [tdd], originSecret: "" })(
-        new Request("http://localhost/"),
-      );
-
-      expect(response.status).toBe(200);
-    });
-
-    it("enforces the secret on POST /analyze too, before the body is read", async () => {
-      const form = new FormData();
-      form.set("sourceCode", "class Foo {}");
-      form.set("language", "typescript");
-      const response = await handlerFor({ originSecret: secret })(
-        new Request("http://localhost/analyze", { method: "POST", body: form }),
-      );
-
-      expect(response.status).toBe(403);
-    });
-  });
 
   describe("GET /analyze", () => {
     it("serves the blank single-file analysis form", async () => {

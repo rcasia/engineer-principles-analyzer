@@ -165,6 +165,9 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
       - run: bun install --frozen-lockfile
       - run: bun run build:lambda
+      # The edge signer zip must exist before apply: the us-east-1 function
+      # reads it via filebase64sha256 (ADR-0019).
+      - run: bun run build:edge-signer
       # Remote state, so each run sees what the previous one created.
       # Provisioned once by infra/bootstrap - see its README.
       - name: Init with remote state

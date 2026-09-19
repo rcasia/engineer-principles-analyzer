@@ -20,8 +20,5 @@ export const handler = createLambdaHandler(
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
     analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog()),
     eventStore: new InMemoryEventStore(),
-    // Set only behind CloudFront (ADR-0017). Absent locally and on LocalStack,
-    // where the Function URL is deliberately open, so the check is skipped.
-    originSecret: process.env.ORIGIN_VERIFY_SECRET,
   }),
 );

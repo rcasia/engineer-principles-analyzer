@@ -47,13 +47,23 @@ if (missing.status !== 404) {
   fail(`expected 404 for an unknown path, got ${missing.status}`);
 }
 
-// NOT checked here: POST /analyze. It is a known, accepted regression on
-// real AWS (ADR-0018, AGENTS.md "Known gaps") - this account's AWS
-// Organization blocks unauthenticated Lambda Function URL invocation, which
-// ruled out ADR-0017's shared-secret origin, and origin access control
-// (restored here) cannot sign a POST body, so Lambda rejects it with a
-// SigV4 mismatch. A check asserting 200 here would fail every real deploy
-// until that is resolved.
+// #34's /analyze form POSTs to this origin. Through the CDN (real AWS) the
+// Lambda@Edge signer must SigV4-sign the body (ADR-0019) - OAC alone cannot,
+// which is exactly the 403 class this check guards against. A GET-only check
+// would miss it entirely, and `apply` exiting zero cannot catch it.
+const analyzeForm = new FormData();
+analyzeForm.set("sourceCode", "class Foo {}");
+analyzeForm.set("language", "typescript");
+const analyzePost = await fetch(new URL("/analyze", url), {
+  method: "POST",
+  body: analyzeForm,
+  signal: AbortSignal.timeout(60_000),
+});
+if (analyzePost.status !== 200) {
+  fail(
+    `expected 200 for POST /analyze, got ${analyzePost.status} (is the edge signer failing to sign the body?)`,
+  );
+}
 
 if (cdnEnabled) {
   // The whole point of origin access control: the Function URL is signed for,

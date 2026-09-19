@@ -21,7 +21,7 @@
     },
     "packages/cli": {
       "name": "principled",
-      "version": "1.9.0",
+      "version": "1.13.0",
       "bin": {
         "principled": "./dist/cli.mjs",
       },
@@ -33,9 +33,13 @@
       "name": "@principled/core",
       "version": "0.0.0",
     },
+    "packages/edge-signer": {
+      "name": "@principled/edge-signer",
+      "version": "0.0.0",
+    },
     "packages/web": {
       "name": "@principled/web",
-      "version": "0.0.0",
+      "version": "1.2.0",
       "dependencies": {
         "@principled/core": "*",
       },
@@ -236,6 +240,8 @@
     "@pnpm/npm-conf": ["@pnpm/npm-conf@3.0.3", "", { "dependencies": { "@pnpm/config.env-replace": "^1.1.0", "@pnpm/network.ca-file": "^1.0.1", "config-chain": "^1.1.11" } }, "sha512-//0sR/cow/s4ICQaYoAobOl4aU8cjU6x/V24V7XkKotb9+O+3zySIYp146vpaobYHnxa4pZX8NkV54Z5AwbDKA=="],
 
     "@principled/core": ["@principled/core@workspace:packages/core"],
+
+    "@principled/edge-signer": ["@principled/edge-signer@workspace:packages/edge-signer"],
 
     "@principled/web": ["@principled/web@workspace:packages/web"],
 

@@ -175,17 +175,13 @@ supersedes it.
 Honest list of what is not done, so nobody assumes otherwise:
 
 - The principles catalog is empty and the analysis rules do not exist.
-- `POST /analyze` does not work on real AWS (LocalStack is unaffected). This
-  account's AWS Organization has a Service Control Policy that blocks
-  unauthenticated Lambda Function URL invocation account-wide, regardless of
-  the function's own `AuthType` or resource policy — confirmed directly
-  against the Function URL and the Organizations API, not inferred. That
-  ruled out replacing origin access control (OAC) with a public origin
-  (ADR-0017), because OAC itself cannot sign a POST body, so a
-  `AWS_IAM`-protected Function URL (restored in ADR-0018) rejects every POST
-  with a SigV4 mismatch. Fixing this needs either the Organization's SCP
-  loosened from the management account, or a signing mechanism such as
-  Lambda@Edge in front of the origin.
+- `POST /analyze` on real AWS is signed at the edge (ADR-0019): a Lambda@Edge
+  origin-request function SigV4-signs every request, body included, because
+  origin access control cannot sign a POST body and this account's AWS
+  Organization blocks unauthenticated Lambda Function URL invocation
+  account-wide (ADR-0017/ADR-0018 for that history). LocalStack is
+  unaffected (no CDN, no signing). The edge signer lives in us-east-1 and
+  is outside the LocalStack gate, like all CDN configuration.
 - `infra/bootstrap` keeps its own state locally, so it is not reproducible
   from a clone; recovery is by `terraform import`.
 - No import-boundary lint rule enforces the dependency rule; it is convention

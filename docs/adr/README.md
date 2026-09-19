@@ -26,7 +26,8 @@ commit changes how the system is built, its ADR ships with it.
 | [0015](0015-single-file-web-analysis-workflow.md) | Analyze a single source file on the web without client JavaScript | Accepted | 2026-09-19 |
 | [0016](0016-separate-cli-and-web-release-trains.md) | Split the CLI and web release trains by commit scope | Accepted; routing superseded by [0019](0019-route-release-trains-by-changed-files.md), ordering by [0020](0020-run-release-trains-in-parallel.md) | 2026-09-19 |
 | [0017](0017-shared-secret-origin-instead-of-oac.md) | Protect the CloudFront origin with a shared secret header, not OAC | Superseded by [0018](0018-revert-to-oac-scp-blocks-public-function-urls.md) | 2026-09-19 |
-| [0018](0018-revert-to-oac-scp-blocks-public-function-urls.md) | Revert to origin access control — an Organization SCP blocks public Function URLs | Accepted | 2026-09-19 |
+| [0018](0018-revert-to-oac-scp-blocks-public-function-urls.md) | Revert to origin access control — an Organization SCP blocks public Function URLs | Accepted; POST gap resolved by [0019](0019-sign-post-with-lambda-at-edge.md) | 2026-09-19 |
+| [0019](0019-sign-post-with-lambda-at-edge.md) | Sign CloudFront origin requests with Lambda@Edge so POST works | Accepted | 2026-09-19 |
 | [0019](0019-route-release-trains-by-changed-files.md) | Route release trains by changed files, not commit scope | Accepted | 2026-09-19 |
 | [0020](0020-run-release-trains-in-parallel.md) | Run the release trains in parallel, retrying the push race | Accepted | 2026-09-19 |
 

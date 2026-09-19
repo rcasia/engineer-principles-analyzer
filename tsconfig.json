@@ -2,5 +2,10 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./tsconfig.base.json",
   "files": [],
-  "references": [{ "path": "./packages/core" }, { "path": "./packages/cli" }, { "path": "./packages/web" }]
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/web" },
+    { "path": "./packages/edge-signer" }
+  ]
 }

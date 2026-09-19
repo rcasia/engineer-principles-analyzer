@@ -8,11 +8,28 @@ locals {
   use_cdn        = var.localstack_endpoint == null
   name_prefix    = "principled-${var.environment}"
   lambda_package = coalesce(var.lambda_package_path, "${path.module}/build/handler.zip")
+  # Bundle produced by scripts/build-edge-signer.ts. Only ever deployed when
+  # a CDN is in front (LocalStack has no CloudFront and no Lambda@Edge).
+  edge_signer_package = "${path.module}/build/edge-signer.zip"
 
   tags = {
     Project     = "principled"
     Environment = var.environment
     ManagedBy   = "terraform"
+  }
+}
+
+# Lambda@Edge functions must live in us-east-1 - the only region CloudFront
+# replicates from - while everything else stays in var.aws_region (ADR-0019).
+# Plain configuration, no LocalStack endpoints: no edge resource is ever
+# created off real AWS (all of them are count-guarded by local.use_cdn), so
+# this provider is simply unused on local runs.
+provider "aws" {
+  alias  = "useast1"
+  region = "us-east-1"
+
+  default_tags {
+    tags = local.tags
   }
 }
 

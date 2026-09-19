@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 /**
- * Prepares the web app for a release: writes the version and verifies the
- * Lambda bundle still builds at that commit.
+ * Prepares the web app for a release: writes the version and verifies both
+ * Lambda bundles (the web origin and the edge signer) still build at that
+ * commit.
  *
  * Mirrors scripts/release-cli.ts: the version is written directly rather
  * than through `npm version`, for the same reason - it would reify the
@@ -28,3 +29,4 @@ await Bun.write(PACKAGE_JSON, `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`Set ${PACKAGE_JSON} version to ${version}`);
 
 await $`bun run build:lambda`;
+await $`bun run build:edge-signer`;
