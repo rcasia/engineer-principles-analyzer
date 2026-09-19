@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/rcasia/principled/compare/v1.9.0...v1.10.0) (2026-09-19)
+
+
+### Features
+
+* **core:** add analysis run read model for event replay ([4b49a6b](https://github.com/rcasia/principled/commit/4b49a6b39dd6b51edc11c49affe3e93b2674b8ec)), closes [#9](https://github.com/rcasia/principled/issues/9) [#34](https://github.com/rcasia/principled/issues/34)
+
 # [1.9.0](https://github.com/rcasia/principled/compare/v1.8.0...v1.9.0) (2026-09-19)
 
 
