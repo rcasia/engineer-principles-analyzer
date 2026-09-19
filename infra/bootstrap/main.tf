@@ -250,6 +250,10 @@ data "aws_iam_policy_document" "deploy" {
       # UpdateDistribution fails with AccessDenied (ADR-0019). Needed once
       # per function, kept permanently like the rest of this statement.
       "lambda:EnableReplication*",
+      # The edge signer is published versioned (associations require a
+      # version ARN), so every code change publishes - same failure shape
+      # as above if missing.
+      "lambda:PublishVersion",
     ]
     resources = ["arn:aws:lambda:*:*:function:${var.resource_prefix}-*"]
   }
