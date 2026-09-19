@@ -19,12 +19,15 @@ jobs:
   gates:
     uses: ./.github/workflows/gates.yml
 
-  # Two independent release trains, run in sequence rather than in parallel:
-  # each pushes its own commit and tag with @semantic-release/git, and two
-  # semantic-release processes pushing to main at the same time would race.
+  # Two independent release trains, run in parallel: each only releases the
+  # commits that touched its own files or core, so neither waits on the
+  # other. Both push a release commit and tag with @semantic-release/git,
+  # so on runs where both cut a release the two pushes race - each Release
+  # step below retries with a re-sync for exactly that case.
   # See ADR-0016 for why the trains are split, ADR-0019 for why routing is
-  # by changed files, and scripts/scoped-release-plugins.mjs for how each
-  # train only sees the commits that touched its own files or core.
+  # by changed files, ADR-0020 for why parallel is safe, and
+  # scripts/scoped-release-plugins.mjs for how each train only sees the
+  # commits that touched its own files or core.
   release-cli:
     name: release the cli
     needs: gates
@@ -35,8 +38,12 @@ jobs:
       pull-requests: write
       id-token: write # npm provenance when publishing is switched on.
     steps:
+      # `ref: main`: check out the branch's current tip, not the run's
+      # triggering SHA, so a direct push that landed while the gates ran
+      # doesn't start this job from a stale HEAD. Same as release-web.
       - uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
@@ -54,7 +61,24 @@ jobs:
         run: npm install -g npm@^11.5.1
       - run: bun install --frozen-lockfile
       - name: Release
-        run: ./node_modules/.bin/semantic-release --extends ./release.cli.config.mjs
+        run: |
+          # The sibling train may push its own release commit first; if this
+          # train's push is then rejected (non-fast-forward), re-sync and
+          # retry. The sibling's release commit touches only its own files,
+          # so this train's filter excludes it and the retry re-analyzes
+          # cleanly from the new tip. The workflow-level main-delivery
+          # concurrency group serializes runs, so the sibling is the only
+          # concurrent pusher - one retry always suffices, three attempts
+          # bound it.
+          for attempt in 1 2 3; do
+            if ./node_modules/.bin/semantic-release --extends ./release.cli.config.mjs; then
+              exit 0
+            fi
+            echo "Release attempt $attempt failed; re-syncing with main and retrying..."
+            git fetch origin main
+            git reset --hard origin/main
+          done
+          exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Publishing the CLI to npm is off until NPM_PUBLISH is "true".
@@ -68,19 +92,18 @@ jobs:
 
   release-web:
     name: release the web app
-    needs: release-cli
+    needs: gates
     runs-on: ubuntu-latest
     permissions:
       contents: write
       issues: write
       pull-requests: write
     steps:
-      # `ref: main` matters here: without it, checkout defaults to the SHA
-      # that triggered the whole workflow run, which is now one commit
-      # behind main if release-cli just pushed a release commit. semantic-
-      # release safely refuses to release from a stale HEAD ("local branch
-      # is behind the remote one"), so this fetches the branch's current tip
-      # instead of the run's original, now-stale, triggering commit.
+      # `ref: main` fetches the branch's current tip rather than the run's
+      # original triggering SHA, so a direct push that landed while the
+      # gates ran doesn't leave this job releasing from a stale HEAD
+      # (semantic-release refuses with "local branch is behind the remote
+      # one"). The retry below covers whatever moved after checkout.
       - uses: actions/checkout@v7
         with:
           ref: main
@@ -94,13 +117,26 @@ jobs:
           node-version: "22"
       - run: bun install --frozen-lockfile
       - name: Release
-        run: ./node_modules/.bin/semantic-release --extends ./release.web.config.mjs
+        run: |
+          # Same push race as release-cli, mirrored: the sibling train may
+          # win the push to main first. Re-sync and retry; the sibling's
+          # release commit is filtered out of this train, so the retry
+          # re-analyzes cleanly. See the comment on release-cli's step.
+          for attempt in 1 2 3; do
+            if ./node_modules/.bin/semantic-release --extends ./release.web.config.mjs; then
+              exit 0
+            fi
+            echo "Release attempt $attempt failed; re-syncing with main and retrying..."
+            git fetch origin main
+            git reset --hard origin/main
+          done
+          exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
     name: promote to production
-    needs: release-web
+    needs: [release-cli, release-web]
     # Inert until infra/bootstrap has been applied and AWS_DEPLOY_ROLE_ARN is
     # set, so the pipeline is green on a fork or before an AWS account exists.
     if: vars.AWS_DEPLOY_ROLE_ARN != ''
