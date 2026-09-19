@@ -1,3 +1,20 @@
+# [1.15.0](https://github.com/rcasia/principled/compare/v1.14.0...v1.15.0) (2026-09-19)
+
+
+### Features
+
+* **core:** detect Single Responsibility violations with SrpRule ([5277219](https://github.com/rcasia/principled/commit/5277219580fd2cbc200155a1f1b99accf06e34b0)), closes [#10](https://github.com/rcasia/principled/issues/10) [#8](https://github.com/rcasia/principled/issues/8) [#9](https://github.com/rcasia/principled/issues/9) [#28](https://github.com/rcasia/principled/issues/28) [#27](https://github.com/rcasia/principled/issues/27) [#30](https://github.com/rcasia/principled/issues/30) [#10](https://github.com/rcasia/principled/issues/10)
+
+
+### Performance Improvements
+
+* **ci:** reuse Stryker incremental results via the Actions cache ([8ad2516](https://github.com/rcasia/principled/commit/8ad25164e4dd76e3e963584557a5ce4c0c18b144))
+
+
+### Reverts
+
+* **ci:** restore blocking dependency audit gate ([e4e1839](https://github.com/rcasia/principled/commit/e4e1839632ceea80ff6cb032e41166fe21234284)), closes [#48](https://github.com/rcasia/principled/issues/48)
+
 # [1.14.0](https://github.com/rcasia/principled/compare/v1.13.0...v1.14.0) (2026-09-19)
 
 
