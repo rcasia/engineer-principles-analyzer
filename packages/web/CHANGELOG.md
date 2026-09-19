@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/rcasia/principled/compare/web-v1.3.1...web-v1.3.2) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** let the deploy role publish edge signer versions ([0701e84](https://github.com/rcasia/principled/commit/0701e841498150314fdcb64e0ede7a2e24f31270))
+
 ## [1.3.1](https://github.com/rcasia/principled/compare/web-v1.3.0...web-v1.3.1) (2026-09-19)
 
 
