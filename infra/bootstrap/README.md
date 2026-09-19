@@ -24,6 +24,41 @@ You need:
   accounts, so pick something with entropy: `epa-tfstate-a1b2c3`.
 - Terraform 1.10 or newer (`use_lockfile` requires it).
 
+## Before you apply: check your OIDC subject format
+
+GitHub started issuing **immutable subject claims** — the `sub` in the OIDC
+token references the repository owner and name by their numeric IDs, not
+their (renameable) names — as the automatic, non-optional default for every
+repository created on or after **2026-07-15**. Repositories created earlier
+keep the old name-based format unless they explicitly opt in.
+
+Check which one your repository actually uses:
+
+```sh
+gh api repos/OWNER/REPO/actions/oidc/customization/sub
+```
+
+If `use_immutable_subject` is `true`, the response includes the exact
+`sub_claim_prefix` your trust policy must match — this module builds it from
+`github_owner_id` and `github_repo_id`, defaulted for `rcasia/engineer-principles-analyzer`.
+**Override both on a fork**, since forking creates a new repository with new
+IDs. Look them up with:
+
+```sh
+gh api repos/OWNER/REPO -q '.owner.id, .id'
+```
+
+If `use_immutable_subject` is `false`, set `github_use_immutable_subject = false`
+to use the legacy `repo:owner/repo:environment:name` format instead.
+
+**Getting this wrong does not fail loudly.** AWS returns the same
+`Not authorized to perform sts:AssumeRoleWithWebIdentity` for a mismatched
+subject as it does for a trust policy that has not yet propagated — except a
+mismatch is deterministic and retrying never fixes it. If a deploy fails this
+way, re-run it once to rule out propagation delay; if it fails identically a
+second time, this is almost certainly the cause. Compare
+`terraform output trusted_subject` against the real `sub_claim_prefix` above.
+
 ## Steps
 
 ### 1. Apply this module

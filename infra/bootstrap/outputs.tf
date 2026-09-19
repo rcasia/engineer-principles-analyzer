@@ -8,6 +8,17 @@ output "deploy_role_arn" {
   value       = aws_iam_role.deploy.arn
 }
 
+output "trusted_subject" {
+  description = <<-EOT
+    The exact OIDC subject this role trusts. Compare it against reality
+    before relying on it:
+      gh api repos/OWNER/REPO/actions/oidc/customization/sub
+    A mismatch fails every deploy identically, with no propagation delay to
+    blame.
+  EOT
+  value       = local.github_subject
+}
+
 output "aws_region" {
   description = "Set this as the AWS_REGION repository variable."
   value       = var.aws_region

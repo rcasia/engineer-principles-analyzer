@@ -100,6 +100,42 @@ resource "aws_iam_openid_connect_provider" "github" {
   client_id_list = ["sts.amazonaws.com"]
 }
 
+locals {
+  github_repo_owner = split("/", var.github_repository)[0]
+  github_repo_name  = split("/", var.github_repository)[1]
+
+  # GitHub started issuing immutable subject claims - which embed the numeric
+  # owner and repository IDs instead of their (renameable) names - as the
+  # default for every repository created on or after 2026-07-15. This
+  # repository was created 2026-09-19, so it always gets the immutable
+  # format; there is no opt-out. A trust policy written against the old
+  # `repo:owner/repo:...` shape is a silent, permanent mismatch: AWS returns
+  # "Not authorized to perform sts:AssumeRoleWithWebIdentity" and every retry
+  # fails identically, because it is not a propagation delay, it is the wrong
+  # string. Confirm which format a repository uses with:
+  #   gh api repos/OWNER/REPO/actions/oidc/customization/sub
+  github_subject = var.github_use_immutable_subject ? (
+    "repo:${local.github_repo_owner}@${var.github_owner_id}/${local.github_repo_name}@${var.github_repo_id}:environment:${var.github_environment}"
+    ) : (
+    "repo:${var.github_repository}:environment:${var.github_environment}"
+  )
+}
+
+# Fails the plan with a clear message instead of a silent, permanent
+# authorization mismatch discovered later in a failed deploy.
+check "github_immutable_subject_ids" {
+  assert {
+    condition = !var.github_use_immutable_subject || (
+      var.github_owner_id != null && var.github_repo_id != null
+    )
+    error_message = <<-EOT
+      github_use_immutable_subject is true but github_owner_id or
+      github_repo_id is not set. Look them up with:
+        gh api repos/${var.github_repository} -q '.owner.id, .id'
+    EOT
+  }
+}
+
 data "aws_iam_policy_document" "deploy_assume_role" {
   statement {
     effect  = "Allow"
@@ -122,7 +158,7 @@ data "aws_iam_policy_document" "deploy_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:environment:${var.github_environment}"]
+      values   = [local.github_subject]
     }
   }
 }
