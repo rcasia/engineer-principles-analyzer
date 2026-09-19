@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/rcasia/principled/compare/v1.11.1...v1.12.0) (2026-09-19)
+
+
+### Features
+
+* **release:** split the cli and web release trains by commit scope ([9c2f4b9](https://github.com/rcasia/principled/commit/9c2f4b950ecb44bf7e2f9ec1a92581459eb59b23))
+
 ## [1.11.1](https://github.com/rcasia/principled/compare/v1.11.0...v1.11.1) (2026-09-19)
 
 
