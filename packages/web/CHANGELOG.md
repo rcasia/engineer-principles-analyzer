@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/rcasia/principled/compare/web-v1.3.3...web-v1.4.0) (2026-09-19)
+
+
+### Features
+
+* **web:** show the web version in page footers ([6251f77](https://github.com/rcasia/principled/commit/6251f773b0e9b9ab4a14e1069a0c691c3cb05f36))
+
 ## [1.3.3](https://github.com/rcasia/principled/compare/web-v1.3.2...web-v1.3.3) (2026-09-19)
 
 
