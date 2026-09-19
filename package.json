@@ -22,7 +22,15 @@
     "test": "bun test",
     "test:mutation": "bunx stryker run",
     "cli": "bun packages/cli/src/bin.ts",
-    "check": "bun run typecheck && bun run test"
+    "check": "bun run typecheck && bun run test",
+    "build:lambda": "bun scripts/build-lambda.ts",
+    "localstack:up": "docker compose -f infra/localstack/compose.yml up -d --wait",
+    "localstack:down": "docker compose -f infra/localstack/compose.yml down -v",
+    "infra:fmt": "terraform -chdir=infra fmt -recursive",
+    "infra:validate": "terraform -chdir=infra init -backend=false -input=false && terraform -chdir=infra validate",
+    "infra:plan": "bun run build:lambda && terraform -chdir=infra plan -input=false -var localstack_endpoint=http://localhost:4566 -var environment=local",
+    "infra:apply:local": "bun run build:lambda && terraform -chdir=infra init -input=false && terraform -chdir=infra apply -auto-approve -var localstack_endpoint=http://localhost:4566 -var environment=local",
+    "infra:destroy:local": "terraform -chdir=infra destroy -auto-approve -var localstack_endpoint=http://localhost:4566 -var environment=local"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
