@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/rcasia/principled/compare/web-v1.4.0...web-v1.5.0) (2026-09-19)
+
+
+### Features
+
+* **web:** redesign /analyze as a developer playground ([aea5ba5](https://github.com/rcasia/principled/commit/aea5ba5649d5f386a3aedd1c37c7d04337c0257d))
+
 # [1.4.0](https://github.com/rcasia/principled/compare/web-v1.3.3...web-v1.4.0) (2026-09-19)
 
 
