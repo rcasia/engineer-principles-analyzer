@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.4.0...v1.5.0) (2026-09-19)
+
+
+### Features
+
+* **web:** establish product design foundation ([085e11c](https://github.com/rcasia/engineer-principles-analyzer/commit/085e11cef7a4175fb1e5821e31052a9a7319dd47))
+
 # [1.4.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.3.2...v1.4.0) (2026-09-19)
 
 
