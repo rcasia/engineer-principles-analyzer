@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/rcasia/principled/compare/v1.6.1...v1.7.0) (2026-09-19)
+
+
+### Features
+
+* **core:** add event sourcing and CQRS foundation ([3402b44](https://github.com/rcasia/principled/commit/3402b4453f2bc0661b5bfe4b3246065262f1df53)), closes [#34](https://github.com/rcasia/principled/issues/34) [#34](https://github.com/rcasia/principled/issues/34) [#33](https://github.com/rcasia/principled/issues/33) [#34](https://github.com/rcasia/principled/issues/34)
+
 ## [1.6.1](https://github.com/rcasia/principled/compare/v1.6.0...v1.6.1) (2026-09-19)
 
 # [1.6.0](https://github.com/rcasia/principled/compare/v1.5.1...v1.6.0) (2026-09-19)
