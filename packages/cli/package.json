@@ -1,6 +1,6 @@
 {
   "name": "principled",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "type": "module",
   "description": "Analyze a codebase against engineering principles.",
   "keywords": [

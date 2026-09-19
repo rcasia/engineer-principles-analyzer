@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/rcasia/principled/compare/v1.10.0...v1.11.0) (2026-09-19)
+
+
+### Features
+
+* **web:** analyze a single source file on the web ([d3d9fc0](https://github.com/rcasia/principled/commit/d3d9fc0106c636a5fc58c473dca160e2cc52a60b)), closes [#34](https://github.com/rcasia/principled/issues/34) [10-#14](https://github.com/10-/issues/14)
+
 # [1.10.0](https://github.com/rcasia/principled/compare/v1.9.0...v1.10.0) (2026-09-19)
 
 
