@@ -21,6 +21,7 @@
     "typecheck": "tsc --build",
     "test": "bun test",
     "test:mutation": "bunx stryker run",
+    "cli": "bun packages/cli/src/bin.ts",
     "check": "bun run typecheck && bun run test"
   },
   "devDependencies": {

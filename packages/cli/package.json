@@ -1,0 +1,21 @@
+{
+  "name": "@epa/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Command line adapter for the engineer principles analyzer.",
+  "license": "Apache-2.0",
+  "bin": {
+    "epa": "./src/bin.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@epa/core": "workspace:*"
+  },
+  "scripts": {
+    "typecheck": "tsc --build",
+    "test": "bun test"
+  }
+}

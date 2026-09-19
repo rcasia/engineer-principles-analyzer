@@ -10,14 +10,19 @@
   "mutate": [
     "packages/*/src/**/*.ts",
     "!packages/*/src/**/*.test.ts",
-    "!packages/*/src/index.ts"
+    "!packages/*/src/index.ts",
+    "!packages/*/src/bin.ts"
   ],
   "thresholds": {
     "high": 100,
     "low": 95,
     "break": 95
   },
-  "reporters": ["clear-text", "progress", "html"],
+  "reporters": [
+    "clear-text",
+    "progress",
+    "html"
+  ],
   "htmlReporter": {
     "fileName": "reports/mutation/index.html"
   },
