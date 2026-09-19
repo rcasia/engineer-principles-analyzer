@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/rcasia/principled/compare/v1.7.0...v1.8.0) (2026-09-19)
+
+
+### Features
+
+* **core:** define analysis result contract ([08ef528](https://github.com/rcasia/principled/commit/08ef528428454c12cdc26bdd874b7abe51a812a4)), closes [#9](https://github.com/rcasia/principled/issues/9) [#8](https://github.com/rcasia/principled/issues/8)
+
 # [1.7.0](https://github.com/rcasia/principled/compare/v1.6.1...v1.7.0) (2026-09-19)
 
 
