@@ -23,6 +23,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0012](0012-event-sourcing-and-cqrs.md) | Use Event Sourcing and CQRS for application state | Accepted | 2026-09-19 |
 | [0013](0013-analysis-result-contract.md) | Define a single, validated `AnalysisResult` contract | Accepted | 2026-09-19 |
 | [0014](0014-rule-evaluation-engine.md) | Build a fault-isolating rule evaluation engine, seeded with a fake ruleset | Accepted | 2026-09-19 |
+| [0015](0015-single-file-web-analysis-workflow.md) | Analyze a single source file on the web without client JavaScript | Accepted | 2026-09-19 |
 
 ## Writing a new ADR
 

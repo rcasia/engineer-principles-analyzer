@@ -88,3 +88,16 @@ export {
   type IdGenerator,
 } from "./engine/application/analyze-subject.use-case.ts";
 export { InMemoryRuleCatalog } from "./engine/infrastructure/in-memory-rule-catalog.ts";
+
+// Analyze a single source file on the web (#34).
+export {
+  AnalysisRunProjection,
+  INITIAL_ANALYSIS_RUN_VIEW,
+} from "./engine/application/analysis-run.projection.ts";
+export type {
+  AnalysisRunStatus,
+  AnalysisRunView,
+  CompletedRuleOutcome,
+  FailedRuleOutcome,
+  RuleOutcomeView,
+} from "./engine/application/analysis-run.projection.ts";
