@@ -14,6 +14,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0003](0003-mutation-testing-gate.md) | Gate on mutation score, not line coverage | Accepted | 2026-09-19 |
 | [0004](0004-server-rendered-web-without-client-javascript.md) | Render the web UI on the server with no client-side JavaScript | Accepted | 2026-09-19 |
 | [0005](0005-aws-lambda-function-url.md) | Deploy to AWS Lambda behind a Function URL, verified on LocalStack | Accepted | 2026-09-19 |
+| [0006](0006-trunk-based-delivery.md) | Push to main, gate with CI, release and deploy automatically | Accepted | 2026-09-19 |
 
 ## Writing a new ADR
 

@@ -1,0 +1,114 @@
+# The gates that protect main. Everything here runs on every push and every
+# pull request, and nothing is allowed to land red.
+name: gates
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commits:
+    name: conventional commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.0"
+      - run: bun install --frozen-lockfile
+      # Pull requests: validate the range. Pushes: validate the head commit.
+      - name: Lint commit messages
+        run: |
+          if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+            bunx commitlint --from "${{ github.event.pull_request.base.sha }}" --to HEAD --verbose
+          else
+            bunx commitlint --last --verbose
+          fi
+
+  test:
+    name: typecheck and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.0"
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+
+  mutation:
+    name: mutation score
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.0"
+      # Stryker runs on Node even though the tests it drives run on Bun.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: bun install --frozen-lockfile
+      # Fails the build below the break threshold in stryker.config.json.
+      - run: bun run test:mutation
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation
+          retention-days: 7
+
+  lambda-bundle:
+    name: lambda bundle runs on node
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.0"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: bun install --frozen-lockfile
+      - run: bun run build:lambda
+      # Production runs Node while development runs Bun (ADR-0005). This keeps
+      # that gap honest by invoking the real bundle the way Lambda would.
+      - name: Smoke test the bundle
+        run: node scripts/smoke-lambda.mjs
+
+  infra:
+    name: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.0"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.3"
+      - run: bun install --frozen-lockfile
+      - run: terraform -chdir=infra fmt -check -recursive
+      - run: terraform -chdir=infra init -backend=false -input=false
+      - run: terraform -chdir=infra validate
+      # LocalStack means the plan needs no AWS credentials, so this gate works
+      # on a public repository with no secrets at all.
+      - name: Start LocalStack
+        run: bun run localstack:up
+      - name: Apply against LocalStack
+        run: bun run infra:apply:local
+      - name: Check the deployed function serves the page
+        run: bun scripts/check-deployed.ts
+      - name: Destroy
+        if: always()
+        run: bun run infra:destroy:local
