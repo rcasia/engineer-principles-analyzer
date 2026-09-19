@@ -22,6 +22,13 @@ If `bun run check` is red, nothing else matters. Fix that first.
    If the subject needs an "and", it is two commits. `commitlint` enforces the
    format; only you can enforce the atomicity.
 
+   Atomic means the **smallest commit that is safe to push to `main` on its
+   own** — it leaves the trunk green (`bun run check` passes) and does not
+   break production. Split work down to that boundary, but never below it: a
+   commit that would break the build or prod on its own is too small, even if
+   it is "one reason". If a change only makes sense together with another to
+   keep the trunk deployable, they are one commit.
+
    Allowed scopes: `core`, `cli`, `web`, `infra`, `ci`, `deps`, `adr`,
    `release`.
 
