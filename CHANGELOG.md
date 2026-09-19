@@ -1,3 +1,11 @@
+## [1.5.1](https://github.com/rcasia/principled/compare/v1.5.0...v1.5.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **cli:** point repository links at the renamed github repo ([8d85dcc](https://github.com/rcasia/principled/commit/8d85dcc0eaacedad7659907c84fa6cf8cf7e3db3))
+* **web:** show Principled in the page title and heading ([c7d2dac](https://github.com/rcasia/principled/commit/c7d2dacd41932f00eafc32d9ce1563c280291e4c))
+
 # [1.5.0](https://github.com/rcasia/engineer-principles-analyzer/compare/v1.4.0...v1.5.0) (2026-09-19)
 
 
