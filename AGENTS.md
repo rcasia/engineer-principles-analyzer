@@ -93,6 +93,11 @@ bun run infra:destroy:local
 `terraform plan` needs no credentials. Run `terraform -chdir=infra fmt` before
 committing; CI checks formatting.
 
+Do not run `terraform` directly inside `infra/`: the backend declared there is
+**production**. Use the `infra:*:local` scripts, which select a local backend
+via a generated override file (ADR-0007). Production setup is a one-time
+manual step documented in `infra/bootstrap/README.md`.
+
 ## Decisions
 
 Anything that constrains future work gets an ADR in `docs/adr/`, using
@@ -107,9 +112,10 @@ supersedes it.
 Honest list of what is not done, so nobody assumes otherwise:
 
 - The principles catalog is empty and the analysis rules do not exist.
-- Terraform state is local; a remote backend is needed before more than one
-  actor deploys.
-- Deployment has never run against real AWS — only LocalStack.
+- Deployment has never run against real AWS — only LocalStack. `infra/bootstrap`
+  is validated but has never been applied.
+- `infra/bootstrap` keeps its own state locally, so it is not reproducible
+  from a clone; recovery is by `terraform import`.
 - No import-boundary lint rule enforces the dependency rule; it is convention
   today.
 - No budget alarm or reserved concurrency on the public Function URL.

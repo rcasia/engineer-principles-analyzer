@@ -32,14 +32,35 @@ bun run localstack:down
 
 ## Deploy to AWS
 
+Deployment is automatic: every green commit on main is promoted to
+production. Before that can work, run the one-time setup in
+[`bootstrap/`](bootstrap/README.md), which creates the state bucket, the
+GitHub OIDC provider and the deploy role.
+
+Until `AWS_DEPLOY_ROLE_ARN` is set as a repository variable the deploy job is
+skipped, so the pipeline stays green without an AWS account.
+
+To apply by hand against real AWS:
+
 ```sh
 bun run build:lambda
-terraform -chdir=infra init
+terraform -chdir=infra init \
+  -backend-config=backend.prod.hcl \
+  -backend-config="bucket=$TF_STATE_BUCKET" \
+  -backend-config="region=$AWS_REGION"
 terraform -chdir=infra apply -var environment=prod
 ```
 
-State is local for now. A remote backend is needed before more than one actor
-deploys — see the negative consequences in ADR-0005.
+## State
+
+Production state lives in S3 with native locking ([ADR-0007](../docs/adr/0007-remote-terraform-state.md)).
+`versions.tf` declares a **partial** backend; `backend.prod.hcl` holds the
+invariant settings and the bucket and region are passed at `init`.
+
+LocalStack runs must not touch that bucket, so `scripts/tf-local.ts` writes a
+gitignored `backend_override.tf` selecting the local backend. Use the
+`infra:*:local` scripts rather than calling `terraform` directly in this
+directory — a bare `terraform apply` here targets **production**.
 
 ## Layout
 
@@ -50,4 +71,6 @@ deploys — see the negative consequences in ADR-0005.
 | `variables.tf`        | Inputs, with validation                             |
 | `main.tf`             | IAM role, log group, Lambda, Function URL           |
 | `outputs.tf`          | Public URL, function name, log group                |
+| `backend.prod.hcl`    | Invariant half of the production backend config     |
 | `localstack/compose.yml` | LocalStack service definition                    |
+| `bootstrap/`          | One-time account setup: state bucket, OIDC, deploy role |

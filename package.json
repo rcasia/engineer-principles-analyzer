@@ -28,9 +28,9 @@
     "localstack:down": "docker compose -f infra/localstack/compose.yml down -v",
     "infra:fmt": "terraform -chdir=infra fmt -recursive",
     "infra:validate": "terraform -chdir=infra init -backend=false -input=false && terraform -chdir=infra validate",
-    "infra:plan": "bun run build:lambda && terraform -chdir=infra plan -input=false -var localstack_endpoint=http://localhost:4566 -var environment=local",
-    "infra:apply:local": "bun run build:lambda && terraform -chdir=infra init -input=false && terraform -chdir=infra apply -auto-approve -var localstack_endpoint=http://localhost:4566 -var environment=local",
-    "infra:destroy:local": "terraform -chdir=infra destroy -auto-approve -var localstack_endpoint=http://localhost:4566 -var environment=local"
+    "infra:plan": "bun run build:lambda && bun scripts/tf-local.ts plan",
+    "infra:apply:local": "bun run build:lambda && bun scripts/tf-local.ts apply",
+    "infra:destroy:local": "bun scripts/tf-local.ts destroy"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

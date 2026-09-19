@@ -80,7 +80,10 @@ version from the commit messages, tags it and writes the changelog; the commit
 is then deployed. There is no review step — the gates are the safety net.
 
 Deployment is skipped until `AWS_DEPLOY_ROLE_ARN` is set as a repository
-variable, so the pipeline is green without an AWS account.
+variable, so the pipeline is green without an AWS account. Turning it on is a
+one-time setup documented in [`infra/bootstrap`](infra/bootstrap/README.md):
+it creates the Terraform state bucket, the GitHub OIDC provider and the
+deploy role.
 
 ## Cost
 

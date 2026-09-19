@@ -49,8 +49,8 @@ jobs:
   deploy:
     name: promote to production
     needs: release
-    # Inert until an OIDC deploy role is configured, so the pipeline is green
-    # on a fork or before an AWS account exists.
+    # Inert until infra/bootstrap has been applied and AWS_DEPLOY_ROLE_ARN is
+    # set, so the pipeline is green on a fork or before an AWS account exists.
     if: vars.AWS_DEPLOY_ROLE_ARN != ''
     runs-on: ubuntu-latest
     environment: production
@@ -71,7 +71,14 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
       - run: bun install --frozen-lockfile
       - run: bun run build:lambda
-      - run: terraform -chdir=infra init -input=false
+      # Remote state, so each run sees what the previous one created.
+      # Provisioned once by infra/bootstrap - see its README.
+      - name: Init with remote state
+        run: |
+          terraform -chdir=infra init -input=false \
+            -backend-config=backend.prod.hcl \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="region=${{ vars.AWS_REGION || 'eu-west-1' }}"
       - run: terraform -chdir=infra apply -auto-approve -input=false -var environment=prod
       - name: Check production serves the page
         run: bun scripts/check-deployed.ts
