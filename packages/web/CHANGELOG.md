@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/rcasia/principled/compare/web-v1.0.1...web-v1.0.2) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** revert to OAC after finding an org SCP blocks public Function URLs ([6067832](https://github.com/rcasia/principled/commit/606783274829cac5191238a3d0e56f6b2e4a5036))
+
 ## [1.0.1](https://github.com/rcasia/principled/compare/web-v1.0.0...web-v1.0.1) (2026-09-19)
 
 
