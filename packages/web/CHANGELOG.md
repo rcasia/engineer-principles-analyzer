@@ -1,3 +1,16 @@
+# [1.3.0](https://github.com/rcasia/principled/compare/web-v1.2.0...web-v1.3.0) (2026-09-19)
+
+
+### Bug Fixes
+
+* **infra:** defer edge signer zip hashing until built ([ac757b3](https://github.com/rcasia/principled/commit/ac757b3db472c69f41486394c851c904e3ffea77))
+* **infra:** give the us-east-1 provider LocalStack credentials ([2fed090](https://github.com/rcasia/principled/commit/2fed090e920349d0660790c81076dcd377ec600c))
+
+
+### Features
+
+* **infra:** sign CloudFront origin requests with Lambda@Edge so POST works ([8ab1c22](https://github.com/rcasia/principled/commit/8ab1c22d3426a02734d83dee4c9aa17964c4d8ef))
+
 # [1.2.0](https://github.com/rcasia/principled/compare/web-v1.1.0...web-v1.2.0) (2026-09-19)
 
 
