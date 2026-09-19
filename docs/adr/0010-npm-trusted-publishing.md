@@ -84,7 +84,7 @@ before the release step.
    nothing to attach to yet).
 2. A maintainer registers a trusted publisher on npmjs.com — package
    `principled` → Settings → Trusted publishing → GitHub Actions → repository
-   `rcasia/engineer-principles-analyzer`, workflow file `main.yml` (the
+   `rcasia/principled`, workflow file `main.yml` (the
    release job lives directly in that file, not behind `workflow_call`) —
    and, per npm's migration guidance, sets "Require two-factor authentication
    and disallow tokens" once it is verified to work.
