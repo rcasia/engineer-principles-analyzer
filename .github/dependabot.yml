@@ -1,0 +1,48 @@
+# Dependabot keeps the three ecosystems in this repo current: npm (Bun
+# workspace lockfile), Terraform, and GitHub Actions. Commit prefixes use
+# scopes from the scope-enum in commitlint.config.mjs so the gates job stays
+# green on dependency PRs.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore(deps)
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: terraform
+    directories:
+      - /infra
+      - /infra/bootstrap
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore(infra)
+    groups:
+      terraform-minor-and-patch:
+        update-types:
+          - minor
+          - patch
