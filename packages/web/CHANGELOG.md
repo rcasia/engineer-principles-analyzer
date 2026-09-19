@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/rcasia/principled/compare/web-v1.6.0...web-v1.7.0) (2026-09-19)
+
+
+### Features
+
+* **core:** probe SRP with a Jev-backed Rule adapter to validate the core ([e4790f5](https://github.com/rcasia/principled/commit/e4790f525478cafd9718f95381de98413e72d985))
+
 # [1.6.0](https://github.com/rcasia/principled/compare/web-v1.5.1...web-v1.6.0) (2026-09-19)
 
 
