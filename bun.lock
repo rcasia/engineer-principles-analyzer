@@ -26,6 +26,13 @@
       "name": "@epa/core",
       "version": "0.0.0",
     },
+    "packages/web": {
+      "name": "@epa/web",
+      "version": "0.0.0",
+      "dependencies": {
+        "@epa/core": "workspace:*",
+      },
+    },
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@8.0.6", "", { "dependencies": { "@babel/helper-validator-identifier": "^8.0.6", "js-tokens": "^10.0.0" } }, "sha512-uMHhvmDmwFiLuiozaoRYTZHqMFuu3fem/X9JY78lohAuLoh8LSGGC8JqUzo2cVuBsBxkjMZNk56CE7ock8Xxkw=="],
@@ -143,6 +150,8 @@
     "@epa/cli": ["@epa/cli@workspace:packages/cli"],
 
     "@epa/core": ["@epa/core@workspace:packages/core"],
+
+    "@epa/web": ["@epa/web@workspace:packages/web"],
 
     "@inquirer/ansi": ["@inquirer/ansi@2.0.8", "", {}, "sha512-WpQM+Ti6Z40EFwwt+uL2p4UabT+W179zHp6HhLVOzfbwnVn05IPO/eXIZXGNqcT1jbQ15SujNLzQ39k4QPPxBQ=="],
 

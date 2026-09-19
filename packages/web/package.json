@@ -1,0 +1,19 @@
+{
+  "name": "@epa/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Web adapter for the engineer principles analyzer.",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@epa/core": "workspace:*"
+  },
+  "scripts": {
+    "typecheck": "tsc --build",
+    "test": "bun test",
+    "dev": "bun --hot src/bin.ts"
+  }
+}
