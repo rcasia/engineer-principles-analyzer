@@ -40,6 +40,11 @@ Search uses a `search` landmark, a descriptive label and a clear action when
 text is present. Results state what scope was searched. Keyboard shortcuts may
 focus search but are documented near the control.
 
+Multi-line source or free text uses a monospace textarea (`.textarea`), sized
+for its content (source code gets a tall default, not a two-line box) and
+resizable vertically only. It follows the same label, help and
+`aria-invalid` conventions as single-line fields.
+
 ### Forms
 
 Group related fields with `fieldset` and `legend`. Align labels and controls in
@@ -63,6 +68,17 @@ sticky only when rows exceed the viewport. Numeric columns align right and use
 tabular numerals. On narrow screens, keep the table and allow labelled
 horizontal scrolling; do not silently hide columns. Put secondary row actions
 at the end and reveal them on focus as well as hover.
+
+### Analysis findings
+
+A finding is a `panel` inside an ordered list (`.findings-list`): order is a
+fact (rules ran in request order), so it is a list, not an unordered card
+grid. Each finding leads with its status badge, method and confidence as
+`status-row` badges, followed by the rule id, its explanation, then evidence
+(location and a minimal excerpt) when the rule provided any. Suggested fixes
+and limitations are plain text below evidence, never hidden behind a toggle.
+A run with no findings is an empty state, not a blank list — it says what
+that means (e.g. no rules were available yet) rather than nothing at all.
 
 ### Badges
 

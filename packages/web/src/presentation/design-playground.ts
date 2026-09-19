@@ -20,6 +20,7 @@ export function renderDesignPlayground(): string {
     <a class="brand" href="/"><span class="brand__mark" aria-hidden="true">P/</span><span>Principled</span></a>
     <nav class="topnav" aria-label="Primary">
       <a href="/">Principles</a>
+      <a href="/analyze">Analyze</a>
       <a href="/design" aria-current="page">Design system</a>
     </nav>
     <div class="topbar__meta" aria-label="Command palette shortcut"><kbd>⌘</kbd><kbd>K</kbd></div>

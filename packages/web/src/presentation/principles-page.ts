@@ -54,6 +54,7 @@ export function renderPrinciplesPage(principles: readonly Principle[]): string {
     <a class="brand" href="/"><span class="brand__mark" aria-hidden="true">P/</span><span>Principled</span></a>
     <nav class="topnav" aria-label="Primary">
       <a href="/" aria-current="page">Principles</a>
+      <a href="/analyze">Analyze</a>
       <a href="/design">Design system</a>
     </nav>
   </div>
