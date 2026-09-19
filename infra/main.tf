@@ -198,9 +198,15 @@ resource "aws_cloudfront_distribution" "web" {
   default_cache_behavior {
     target_origin_id       = local.origin_id
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD"]
-    compress               = true
+    # CloudFront only accepts three fixed AllowedMethods sets - GET/HEAD,
+    # GET/HEAD/OPTIONS, or this full set - there is no "GET/HEAD/OPTIONS/POST"
+    # in between. #34 added POST /analyze (a same-origin HTML form submit,
+    # not a REST API), so the full set is required even though this origin
+    # never needs PUT/PATCH/DELETE; CloudFront returns 403 "not configured to
+    # allow the HTTP request method" for any method outside AllowedMethods.
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods  = ["GET", "HEAD"]
+    compress        = true
 
     cache_policy_id            = aws_cloudfront_cache_policy.web[0].id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host[0].id

@@ -46,6 +46,24 @@ if (missing.status !== 404) {
   fail(`expected 404 for an unknown path, got ${missing.status}`);
 }
 
+// #34's /analyze form POSTs directly to this origin. A CDN in front (real
+// AWS) rejects any method outside its AllowedMethods with its own 403,
+// before the request ever reaches the Lambda - a class of failure `apply`
+// exiting zero cannot catch, and a GET-only check would miss entirely.
+const analyzeForm = new FormData();
+analyzeForm.set("sourceCode", "class Foo {}");
+analyzeForm.set("language", "typescript");
+const analyzePost = await fetch(new URL("/analyze", url), {
+  method: "POST",
+  body: analyzeForm,
+  signal: AbortSignal.timeout(60_000),
+});
+if (analyzePost.status !== 200) {
+  fail(
+    `expected 200 for POST /analyze, got ${analyzePost.status} (is the CDN's allowed_methods missing POST?)`,
+  );
+}
+
 if (cdnEnabled) {
   // The whole point of origin access control: the Function URL is signed for,
   // so an unsigned request straight to the origin must be refused. If this
