@@ -1,23 +1,39 @@
 # LocalStack stands in for AWS so the Terraform in infra/ can be applied for
 # real - locally and in CI - without an AWS account or any credentials.
 #
-#   docker compose -f infra/localstack/compose.yml up -d
+#   bun run localstack:up
 #   bun run infra:apply:local
+name: localstack
+
 services:
   localstack:
     image: localstack/localstack:4
+    container_name: localstack
     ports:
       - "4566:4566"
     environment:
       SERVICES: "lambda,iam,logs,s3,sts"
-      DEBUG: "0"
+      DEBUG: "1"
       LAMBDA_RUNTIME_EXECUTOR: "docker"
+      # LocalStack starts Lambda containers on the host daemon. Without an
+      # explicit network they land on the default bridge and cannot reach
+      # LocalStack's runtime API, so every invocation fails with a 500.
+      LAMBDA_DOCKER_NETWORK: "localstack-net"
+      # Keep invocations warm-ish and fail fast rather than hanging in CI.
+      LAMBDA_KEEPALIVE_MS: "300000"
     volumes:
-      # Lets LocalStack start Lambda containers on the host daemon.
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:4566/_localstack/health"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:4566/_localstack/health | grep -q '\"lambda\": \"available\"'",
+        ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 40
       start_period: 20s
+
+networks:
+  default:
+    name: localstack-net

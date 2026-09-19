@@ -109,6 +109,9 @@ jobs:
         run: bun run infra:apply:local
       - name: Check the deployed function serves the page
         run: bun scripts/check-deployed.ts
+      - name: LocalStack logs
+        if: failure()
+        run: docker logs localstack --tail 200
       - name: Destroy
         if: always()
         run: bun run infra:destroy:local
