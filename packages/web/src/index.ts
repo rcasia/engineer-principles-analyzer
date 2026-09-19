@@ -1,9 +1,11 @@
 export {
   ANALYSIS_CACHE_CONTROL,
   createRequestHandler,
+  FORBIDDEN_BODY,
   HTML_CONTENT_TYPE,
   NOT_FOUND_BODY,
   NOT_FOUND_CACHE_CONTROL,
+  ORIGIN_VERIFY_HEADER,
   PAGE_CACHE_CONTROL,
 } from "./server.ts";
 export type { RequestHandlerDependencies } from "./server.ts";

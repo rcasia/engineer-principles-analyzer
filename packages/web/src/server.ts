@@ -6,6 +6,15 @@ import { renderPrinciplesPage } from "./presentation/principles-page.ts";
 
 export const HTML_CONTENT_TYPE = "text/html; charset=utf-8";
 export const NOT_FOUND_BODY = "Not found";
+export const FORBIDDEN_BODY = "Forbidden";
+
+/**
+ * The header CloudFront injects on every origin request, carrying the shared
+ * secret only it knows (ADR-0017). The adapter refuses any request whose
+ * value does not match the configured secret, which is what keeps the public
+ * Function URL from being used to bypass the CDN.
+ */
+export const ORIGIN_VERIFY_HEADER = "x-origin-verify";
 
 /**
  * Cache directives are the whole reason the CDN in front of this is free and
@@ -35,6 +44,14 @@ export interface RequestHandlerDependencies {
    * of which concrete `EventStore` is wired in here.
    */
   readonly eventStore: EventStore;
+  /**
+   * The secret CloudFront sends in `ORIGIN_VERIFY_HEADER`. When set, every
+   * request must carry a matching header or it is refused with 403, so the
+   * public Function URL cannot be used to bypass the CDN (ADR-0017). Left
+   * `undefined` (or empty) in environments with no CDN in front — LocalStack
+   * and local development — where the origin is deliberately open.
+   */
+  readonly originSecret?: string | undefined;
 }
 
 function htmlResponse(
@@ -115,6 +132,18 @@ export function createRequestHandler(
   deps: RequestHandlerDependencies,
 ): (request: Request) => Promise<Response> {
   return async (request: Request): Promise<Response> => {
+    if (deps.originSecret) {
+      if (request.headers.get(ORIGIN_VERIFY_HEADER) !== deps.originSecret) {
+        return new Response(FORBIDDEN_BODY, {
+          status: 403,
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "cache-control": "no-store",
+          },
+        });
+      }
+    }
+
     const { pathname } = new URL(request.url);
 
     if (pathname === "/design") {

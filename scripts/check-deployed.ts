@@ -5,7 +5,8 @@
  *
  * When CloudFront is in front (real AWS) this also verifies the two
  * properties the CDN exists for: that responses are cacheable, and that the
- * origin cannot be reached directly to bypass the cache.
+ * origin cannot be reached directly to bypass the cache (the shared-secret
+ * header, ADR-0017).
  */
 import { $ } from "bun";
 
@@ -46,10 +47,11 @@ if (missing.status !== 404) {
   fail(`expected 404 for an unknown path, got ${missing.status}`);
 }
 
-// #34's /analyze form POSTs directly to this origin. A CDN in front (real
-// AWS) rejects any method outside its AllowedMethods with its own 403,
-// before the request ever reaches the Lambda - a class of failure `apply`
-// exiting zero cannot catch, and a GET-only check would miss entirely.
+// #34's /analyze form POSTs to this origin. A CDN in front (real AWS) must
+// both allow the POST method and pass the x-origin-verify secret through to
+// the Lambda (ADR-0017); a 403 here means either AllowedMethods is missing
+// POST or the shared-secret path is broken. Neither is a failure `apply`
+// exiting zero can catch, and a GET-only check would miss both.
 const analyzeForm = new FormData();
 analyzeForm.set("sourceCode", "class Foo {}");
 analyzeForm.set("language", "typescript");
@@ -65,14 +67,15 @@ if (analyzePost.status !== 200) {
 }
 
 if (cdnEnabled) {
-  // The whole point of origin access control: the Function URL is signed for,
-  // so an unsigned request straight to the origin must be refused. If this
-  // passes, the cache and its cost protection can be bypassed.
+  // The whole point of the shared-secret header (ADR-0017): a request that
+  // does not come through CloudFront lacks x-origin-verify, so the adapter
+  // must refuse it. If this passes, the cache and its cost protection can be
+  // bypassed by hitting the public Function URL directly.
   const direct = await fetch(originUrl, { signal: AbortSignal.timeout(60_000) });
 
   if (direct.status !== 403) {
     fail(
-      `origin ${originUrl} answered ${direct.status} directly; it must return 403 behind OAC`,
+      `origin ${originUrl} answered ${direct.status} directly; it must return 403 without the x-origin-verify secret`,
     );
   }
 
