@@ -5,6 +5,7 @@ import {
   InMemoryPrincipleCatalog,
   InMemoryRuleCatalog,
   ListPrinciples,
+  SrpRule,
 } from "@principled/core";
 import { createRequestHandler } from "./server.ts";
 
@@ -14,8 +15,8 @@ const server = Bun.serve({
   port: Number(Bun.env["PORT"] ?? 3000),
   fetch: createRequestHandler({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
-    // Empty until #10-#14 register real SOLID rules here.
-    analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog()),
+    // Seeded with the real SOLID rules as they land (#10 SRP first).
+    analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog([new SrpRule()])),
     eventStore: new InMemoryEventStore(),
   }),
 });

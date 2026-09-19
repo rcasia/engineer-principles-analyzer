@@ -4,6 +4,7 @@ import {
   InMemoryPrincipleCatalog,
   InMemoryRuleCatalog,
   ListPrinciples,
+  SrpRule,
 } from "@principled/core";
 import { createLambdaHandler } from "./lambda.ts";
 import { createRequestHandler } from "./server.ts";
@@ -18,7 +19,7 @@ import { createRequestHandler } from "./server.ts";
 export const handler = createLambdaHandler(
   createRequestHandler({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
-    analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog()),
+    analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog([new SrpRule()])),
     eventStore: new InMemoryEventStore(),
   }),
 );

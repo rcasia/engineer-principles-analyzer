@@ -89,6 +89,9 @@ export {
 } from "./engine/application/analyze-subject.use-case.ts";
 export { InMemoryRuleCatalog } from "./engine/infrastructure/in-memory-rule-catalog.ts";
 
+// Single Responsibility Principle rule (#10, ADR-0022).
+export { SRP_RULE_ID, SrpRule } from "./principles/srp/infrastructure/srp-rule.ts";
+
 // Analyze a single source file on the web (#34).
 export {
   AnalysisRunProjection,
