@@ -30,6 +30,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0019](0019-sign-post-with-lambda-at-edge.md) | Sign CloudFront origin requests with Lambda@Edge so POST works | Accepted | 2026-09-19 |
 | [0019](0019-route-release-trains-by-changed-files.md) | Route release trains by changed files, not commit scope | Accepted | 2026-09-19 |
 | [0020](0020-run-release-trains-in-parallel.md) | Run the release trains in parallel, retrying the push race | Accepted | 2026-09-19 |
+| [0021](0021-incremental-mutation-testing-with-cache.md) | Cache Stryker incremental reports, forcing full runs on test changes | Accepted | 2026-09-20 |
 
 ## Writing a new ADR
 
