@@ -47,6 +47,15 @@ const GENERIC_REMEDIATION =
   "Consider splitting responsibilities: name each distinct responsibility in the subject, then extract each one into its own collaborator, one at a time.";
 
 /**
+ * Hedged counterpart of {@link GENERIC_REMEDIATION} for `uncertain`
+ * verdicts (#21, #37): the suggestion must preserve the model's own
+ * uncertainty rather than directing a split — review first, extract only
+ * what the review confirms.
+ */
+const UNCERTAIN_REMEDIATION =
+  "Consider whether the subject mixes more than one responsibility; if a review confirms they are truly distinct, extract each one into its own collaborator, one at a time.";
+
+/**
  * AI-assisted probe for Single Responsibility violations (#10), built to
  * validate the core engine and result contract against an external judgment
  * source (ADR-0024) — the deferred Option 3 of ADR-0022, scoped to
@@ -136,6 +145,7 @@ function build(
       evidence,
       explanation,
       ...(status === "violation" ? { remediation: GENERIC_REMEDIATION } : {}),
+      ...(status === "uncertain" ? { remediation: UNCERTAIN_REMEDIATION } : {}),
       language: subject.language,
       analyzer: ANALYZER,
       limitations: LIMITATIONS,

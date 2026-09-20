@@ -143,6 +143,12 @@ function build(
   confidence: Confidence,
   highlighted: readonly ClassAssessment[],
 ): AnalysisResult {
+  const remediation = remediationForVerdict(
+    verdict,
+    highlighted,
+    subject.language,
+  );
+
   return unwrap(
     AnalysisResult.of({
       ruleId: SRP_RULE_ID,
@@ -153,9 +159,7 @@ function build(
         toEvidence(assessment, subject.language),
       ),
       explanation: explanationFor(verdict, highlighted),
-      ...(verdict === "violation"
-        ? { remediation: remediationFor(highlighted, subject.language) }
-        : {}),
+      ...(remediation === undefined ? {} : { remediation }),
       language: subject.language,
       analyzer: ANALYZER,
       limitations: LIMITATIONS,
@@ -246,6 +250,22 @@ function explanationFor(
   return `No class showed method-name evidence of more than one responsibility domain. ${details}.`;
 }
 
+function remediationForVerdict(
+  verdict: Verdict,
+  highlighted: readonly ClassAssessment[],
+  language: string,
+): string | undefined {
+  if (verdict === "violation") {
+    return remediationFor(highlighted, language);
+  }
+
+  if (verdict === "uncertain") {
+    return uncertainRemediationFor(highlighted, language);
+  }
+
+  return undefined;
+}
+
 function remediationFor(
   assessments: readonly ClassAssessment[],
   language: string,
@@ -258,4 +278,40 @@ function remediationFor(
   });
 
   return `Consider splitting responsibilities: ${suggestions.join("; ")}.`;
+}
+
+/**
+ * Hedged remediation for ambiguous findings (#21, #37): an `uncertain`
+ * verdict must preserve its uncertainty in the suggestion itself — "may
+ * mix … if so" rather than a directive to split. Only classes with actual
+ * domain evidence qualify; a `too_few_methods` assessment has no signal to
+ * act on, so a subject with nothing but tiny classes carries no
+ * remediation at all ("attached when available").
+ */
+function uncertainRemediationFor(
+  assessments: readonly ClassAssessment[],
+  language: string,
+): string | undefined {
+  const noun = collaboratorNoun(language);
+  const suggestions = assessments
+    .filter(
+      (assessment) =>
+        assessment.reason === "domain_count" && assessment.domains.length > 0,
+    )
+    .map((assessment) => {
+      const domainNames = assessment.domains
+        .map((domain) => domain.domain)
+        .join("/");
+
+      return (
+        `"${assessment.declaration.name}" may mix ${domainNames} — if a review ` +
+        `confirms the responsibilities are truly distinct, extract the secondary one into its own ${noun}`
+      );
+    });
+
+  if (suggestions.length === 0) {
+    return undefined;
+  }
+
+  return `Consider whether a split is warranted: ${suggestions.join("; ")}.`;
 }

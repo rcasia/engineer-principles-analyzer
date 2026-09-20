@@ -77,7 +77,7 @@ describe("JevSrpRule", () => {
     expect(result.evaluationMetadata).toEqual({ jevModel: "jev-1.13.0" });
   });
 
-  test("reports uncertain for a middle Noul, without evidence or remediation", async () => {
+  test("reports uncertain for a middle Noul, without evidence but with hedged remediation", async () => {
     const result = await ruleFor(0.5).evaluate(subjectOf("class Foo {}"));
 
     expect(result.status).toBe("uncertain");
@@ -87,7 +87,9 @@ describe("JevSrpRule", () => {
     expect(result.explanation).toBe(
       "Jev could not confidently confirm or rule out a single-responsibility violation (noul=0.5). The model's probability fell between the violation and compliant cutoffs.",
     );
-    expect(result.remediation).toBeUndefined();
+    expect(result.remediation).toBe(
+      "Consider whether the subject mixes more than one responsibility; if a review confirms they are truly distinct, extract each one into its own collaborator, one at a time.",
+    );
     expect(result.evidence).toEqual([]);
     expect(result.limitations).toEqual(LIMITATIONS);
     expect(result.evaluationMetadata).toEqual({ jevModel: "jev-1.13.0" });

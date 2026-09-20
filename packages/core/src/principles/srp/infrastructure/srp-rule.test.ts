@@ -78,11 +78,75 @@ describe("SrpRule", () => {
     expect(result.status).toBe("uncertain");
     expect(result.confidence.value).toBe(0.4);
     expect(result.humanReviewRecommended).toBe(true);
-    expect(result.remediation).toBeUndefined();
+    expect(result.remediation).toBe(
+      "Consider whether a split is warranted: " +
+        '"UserService" may mix persistence/communication — if a review confirms the responsibilities are truly distinct, extract the secondary one into its own collaborator(s).',
+    );
     expect(result.explanation).toBe(
       "Could not confidently confirm or rule out a single-responsibility violation. " +
         '"UserService" touches 2 responsibility domains: persistence (save, load); communication (send, notify).',
     );
+  });
+
+  test("hedges each uncertain class separately, joining with '; '", async () => {
+    const source = `
+      class A {
+        save(user) {}
+        load(id) {}
+        send(email) {}
+        notify(user) {}
+      }
+      class B {
+        validate(x) {}
+        check(x) {}
+        calculate(x) {}
+        compute(x) {}
+      }
+    `;
+    const result = await rule.evaluate(subjectOf(source));
+
+    expect(result.status).toBe("uncertain");
+    expect(result.remediation).toBe(
+      "Consider whether a split is warranted: " +
+        '"A" may mix persistence/communication — if a review confirms the responsibilities are truly distinct, extract the secondary one into its own collaborator(s); ' +
+        '"B" may mix validation/calculation — if a review confirms the responsibilities are truly distinct, extract the secondary one into its own collaborator(s).',
+    );
+  });
+
+  test("suggests a module, not a collaborator, for an uncertain python class", async () => {
+    const source = [
+      "class UserService:",
+      "    def save_user(self, user):",
+      "        pass",
+      "    def load_user(self, user_id):",
+      "        pass",
+      "    def send_email(self, email):",
+      "        pass",
+      "    def notify_user(self, user):",
+      "        pass",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "python"));
+
+    expect(result.status).toBe("uncertain");
+    expect(result.remediation).toBe(
+      "Consider whether a split is warranted: " +
+        '"UserService" may mix persistence/communication — if a review confirms the responsibilities are truly distinct, extract the secondary one into its own module(s).',
+    );
+  });
+
+  test("carries no remediation when every uncertain class is too small to assess", async () => {
+    const source = `
+      class Tiny {
+        getX() {}
+      }
+      class Small {
+        getY() {}
+      }
+    `;
+    const result = await rule.evaluate(subjectOf(source));
+
+    expect(result.status).toBe("uncertain");
+    expect(result.remediation).toBeUndefined();
   });
 
   test("reports a violation for a class touching three or more responsibility domains", async () => {
