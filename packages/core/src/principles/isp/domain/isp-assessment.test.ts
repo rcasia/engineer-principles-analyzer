@@ -35,6 +35,7 @@ describe("assessIsp", () => {
     const assessment = assessIsp(`interface Service {\n${members(5)}\n}`);
 
     expect(assessment.verdict).toBe("uncertain");
+    expect(assessment.reason).toBe("member_count");
     expect(assessment.highlighted).toHaveLength(1);
     expect(assessment.highlighted[0]?.memberCount).toBe(5);
   });
@@ -43,6 +44,7 @@ describe("assessIsp", () => {
     const assessment = assessIsp(`interface God {\n${members(7)}\n}`);
 
     expect(assessment.verdict).toBe("violation");
+    expect(assessment.reason).toBe("member_count");
     expect(assessment.highlighted).toHaveLength(1);
     expect(assessment.highlighted[0]?.name).toBe("God");
   });
