@@ -76,15 +76,20 @@ function fromAssessment(
   subject: Subject,
   assessment: OcpAssessment,
 ): AnalysisResult {
-  const { signals, verdict } = assessment;
+  const { verdict } = assessment;
   const confidence =
     verdict === "violation"
       ? VIOLATION_CONFIDENCE
       : verdict === "uncertain"
         ? UNCERTAIN_CONFIDENCE
         : COMPLIANT_CONFIDENCE;
-  const firstSignal: SignalLocation | undefined =
-    signals.total > 0 ? locateFirstSignal(subject.sourceCode) : undefined;
+  // No `total > 0` guard here on purpose: when the count is zero the locator
+  // necessarily finds nothing (it tests each stripped line with the same
+  // patterns the count is built from), so a guard would only add equivalent,
+  // untestable mutants without changing the evidence.
+  const firstSignal: SignalLocation | undefined = locateFirstSignal(
+    subject.sourceCode,
+  );
 
   return unwrap(
     AnalysisResult.of({
