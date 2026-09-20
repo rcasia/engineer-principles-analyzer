@@ -35,7 +35,9 @@ const PYTHON_CLASS_LINE = /^([ \t]*)class\s+([A-Za-z_]\w*)\s*(?:\(([^)]*)\))?\s*
 function findClassBodyStart(code: string, fromIndex: number): number {
   let i = fromIndex;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     if (code[i] === "{") {
       return i;
     }
@@ -67,19 +69,35 @@ export function extractClasses(sourceCode: string): readonly ClassDeclaration[] 
     const headerStart = match.index;
     const name = match[1] as string;
     const braceIndex = findClassBodyStart(sourceCode, CLASS_KEYWORD.lastIndex);
-    const bodyEnd = braceIndex === -1 ? -1 : findMatchingBrace(sourceCode, braceIndex);
 
-    if (braceIndex !== -1 && bodyEnd !== -1) {
-      declarations.push({
-        name,
-        startLine: lineOf(sourceCode, headerStart),
-        endLine: lineOf(sourceCode, bodyEnd),
-        headerExcerpt: sourceCode.slice(headerStart, braceIndex).trim(),
-        body: sourceCode.slice(braceIndex + 1, bodyEnd),
-      });
-
-      CLASS_KEYWORD.lastIndex = bodyEnd + 1;
+    // Each guard below stands on its own: an ambient declaration must not
+    // reach brace matching, and an unclosed body must not be reported, so
+    // weakening either check observably misattributes a later class's body.
+    if (braceIndex === -1) {
+      match = CLASS_KEYWORD.exec(sourceCode);
+      continue;
     }
+
+    const bodyEnd = findMatchingBrace(sourceCode, braceIndex);
+
+    if (bodyEnd === -1) {
+      match = CLASS_KEYWORD.exec(sourceCode);
+      continue;
+    }
+
+    declarations.push({
+      name,
+      startLine: lineOf(sourceCode, headerStart),
+      endLine: lineOf(sourceCode, bodyEnd),
+      headerExcerpt: sourceCode.slice(headerStart, braceIndex).trim(),
+      body: sourceCode.slice(braceIndex + 1, bodyEnd),
+    });
+
+    // Stryker disable next-line ArithmeticOperator: resuming one character
+    // earlier cannot match anything new — no `class` keyword can start on
+    // the consumed body's closing brace — so the search finds the same
+    // next match either way.
+    CLASS_KEYWORD.lastIndex = bodyEnd + 1;
 
     match = CLASS_KEYWORD.exec(sourceCode);
   }
@@ -113,7 +131,11 @@ export function extractClasses(sourceCode: string): readonly ClassDeclaration[] 
 export function extractPythonClasses(
   sourceCode: string,
 ): readonly ClassDeclaration[] {
-  const lines = withoutTrailingNewline(sourceCode.split("\n"));
+  // No trailing-newline stripping on purpose: the split's phantom final
+  // element never matches the class pattern, and blank lines never move a
+  // body boundary, so stripping it would only add equivalent, untestable
+  // mutants without changing any declaration.
+  const lines = sourceCode.split("\n");
   const declarations: ClassDeclaration[] = [];
 
   for (let index = 0; index < lines.length; index += 1) {
@@ -156,19 +178,6 @@ export function extractPythonClasses(
   return declarations;
 }
 
-/**
- * `sourceCode.split("\n")` without the phantom final element: a trailing
- * newline terminates the last real line, it is not an extra blank line, and
- * line numbers reported as evidence must not point at it.
- */
-function withoutTrailingNewline(lines: string[]): string[] {
-  if (lines.length > 0 && lines[lines.length - 1] === "") {
-    return lines.slice(0, -1);
-  }
-
-  return lines;
-}
-
 /** The index of a `#` comment starter, or the line length when there is none. */
 function hashIndexOf(line: string): number {
   const hash = line.indexOf("#");
@@ -178,7 +187,12 @@ function hashIndexOf(line: string): number {
 
 /** The count of leading space/tab characters on `line`. */
 function leadingWhitespaceOf(line: string): number {
-  const match = /^[ \t]*/.exec(line);
+  const firstContent = line.search(/[^ \t]/);
 
-  return match === null ? 0 : match[0].length;
+  // Stryker disable next-line ConditionalExpression: the miss branch never
+  // runs — the sole caller only passes lines with non-blank content, which
+  // always contain a non-space/tab character — so no test can observe the
+  // `false` direction. The hit direction stays pinned by the indented-body
+  // tests below.
+  return firstContent === -1 ? line.length : firstContent;
 }

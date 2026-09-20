@@ -65,7 +65,6 @@ describe("extractClasses", () => {
 
     expect(declarations.map((d) => d.name)).toEqual(["Foo"]);
   });
-
   test("reports nothing when a class has neither a body nor a terminator, even if a later brace exists", () => {
     // No body and no ";" after "Foo": the class must be reported as skipped
     // rather than accidentally absorbing the unrelated trailing "}".
@@ -150,5 +149,89 @@ describe("extractPythonClasses", () => {
     expect(declarations.map((d) => d.name)).toEqual(["Outer", "Inner"]);
     expect(declarations[0]?.endLine).toBe(6);
     expect(declarations[1]?.startLine).toBe(4);
+  });
+
+  test("tolerates more than one space between the class keyword and its name", () => {
+    const source = "class  Foo:\n    pass\n";
+    const declarations = extractPythonClasses(source);
+
+    expect(declarations.map((d) => d.name)).toEqual(["Foo"]);
+  });
+
+  test("tolerates a space between the name and its bases list", () => {
+    const source = "class Foo (Bar, Baz):\n    pass\n";
+    const [declaration] = extractPythonClasses(source);
+
+    expect(declaration?.name).toBe("Foo");
+    expect(declaration?.headerExcerpt).toBe("class Foo(Bar, Baz)");
+  });
+
+  test("tolerates a space before the trailing colon", () => {
+    const source = "class Foo :\n    pass\n";
+    const declarations = extractPythonClasses(source);
+
+    expect(declarations.map((d) => d.name)).toEqual(["Foo"]);
+  });
+
+  test("tolerates a space between the bases list and the trailing colon", () => {
+    const source = "class Foo(Bar) :\n    pass\n";
+    const [declaration] = extractPythonClasses(source);
+
+    expect(declaration?.name).toBe("Foo");
+    expect(declaration?.headerExcerpt).toBe("class Foo(Bar)");
+  });
+
+  test("ignores a comment inside the bases list when matching", () => {
+    const source = "class Foo(Bar # baz):\n    pass\n";
+
+    expect(extractPythonClasses(source)).toEqual([]);
+  });
+
+  test("skips a blank line inside the body without ending it", () => {
+    const source = "class Foo:\n    x = 1\n\n    y = 2\n";
+    const [declaration] = extractPythonClasses(source);
+
+    expect(declaration?.endLine).toBe(4);
+    expect(declaration?.body).toBe("    x = 1\n\n    y = 2");
+  });
+
+  test("skips a whitespace-only line inside the body without ending it", () => {
+    const source = "class Foo:\n    x = 1\n   \n    y = 2\n";
+    const [declaration] = extractPythonClasses(source);
+
+    expect(declaration?.endLine).toBe(4);
+    expect(declaration?.body).toBe("    x = 1\n   \n    y = 2");
+  });
+
+  test("trims padding inside the bases list in the header excerpt", () => {
+    const source = "class Foo( Bar ):\n    pass\n";
+    const [declaration] = extractPythonClasses(source);
+
+    expect(declaration?.headerExcerpt).toBe("class Foo(Bar)");
+  });
+
+  test("measures a nested class body against its own indent", () => {
+    const source = "  class Foo:\n    x = 1\n    y = 2\n";
+    const [declaration] = extractPythonClasses(source);
+
+    expect(declaration?.name).toBe("Foo");
+    expect(declaration?.endLine).toBe(3);
+    expect(declaration?.body).toBe("    x = 1\n    y = 2");
+  });
+
+  test("skips a short blank line inside a nested class body", () => {
+    const source = "  class Foo:\n    x = 1\n \n    y = 2\n";
+    const [declaration] = extractPythonClasses(source);
+
+    expect(declaration?.endLine).toBe(4);
+    expect(declaration?.body).toBe("    x = 1\n \n    y = 2");
+  });
+
+  test("ends a nested class body at a line dedented to its own indent", () => {
+    const source = "  class Foo:\n    x = 1\n y = 2\n";
+    const [declaration] = extractPythonClasses(source);
+
+    expect(declaration?.endLine).toBe(2);
+    expect(declaration?.body).toBe("    x = 1");
   });
 });
