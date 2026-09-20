@@ -106,4 +106,17 @@ describe("renderPrinciplesPage", () => {
       '<footer class="footer">Principled · evidence before opinion · v0.0.0-dev</footer>',
     );
   });
+
+  it("ships no client script, so scripting-disabled output is the output", () => {
+    expect(renderPrinciplesPage([tdd])).not.toContain("<script");
+    expect(renderPrinciplesPage([])).not.toContain("<script");
+  });
+
+  it("encodes apostrophes through the component's stricter escaping", () => {
+    const html = renderPrinciplesPage([
+      { id: "obrien", title: "O'Brien's rule" },
+    ]);
+
+    expect(html).toContain("O&#x27;Brien&#x27;s rule");
+  });
 });

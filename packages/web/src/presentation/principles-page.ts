@@ -1,9 +1,10 @@
 import type { Principle } from "@principled/core";
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
 import { VERSION } from "../version.ts";
+import { renderPrinciplesList } from "./principles-list.tsx";
 
 export const PAGE_TITLE = "Principled";
-export const EMPTY_STATE = "No principles are defined yet.";
+export { EMPTY_STATE } from "./principles-list.tsx";
 
 /**
  * Escapes text before it reaches HTML. Principles will eventually come from
@@ -17,19 +18,14 @@ export function escapeHtml(text: string): string {
     .replaceAll('"', "&quot;");
 }
 
+/**
+ * Renders the list fragment through the SSR-only component. The page shell
+ * stays a string template in Phase 1; only the list migrates, and no
+ * `<script>` tag is added, so scripting-disabled output is unchanged apart
+ * from React's stricter escaping (`'` becomes `&#x27;`).
+ */
 function renderPrinciples(principles: readonly Principle[]): string {
-  if (principles.length === 0) {
-    return `<div class="empty-state"><strong>Catalog is empty</strong><p>${EMPTY_STATE}</p></div>`;
-  }
-
-  const items = principles
-    .map(
-      (principle) =>
-        `<li class="principle"><h2>${escapeHtml(principle.title)}</h2><p>${escapeHtml(principle.id)}</p></li>`,
-    )
-    .join("");
-
-  return `<ul aria-label="Engineering principles" class="principles-list">${items}</ul>`;
+  return renderPrinciplesList(principles);
 }
 
 /**
