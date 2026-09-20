@@ -1,5 +1,16 @@
 import { describe, expect, it } from "bun:test";
-import { EXIT_FINDINGS, EXIT_OK, EXIT_USAGE, main } from "./main.ts";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { Readable } from "node:stream";
+import {
+  EXIT_FINDINGS,
+  EXIT_OK,
+  EXIT_USAGE,
+  defaultReadFile,
+  defaultReadStdin,
+  main,
+} from "./main.ts";
 import type { MainDependencies } from "./main.ts";
 
 function capture() {
@@ -368,5 +379,330 @@ describe("main", () => {
         (result: { ruleId: string }) => result.ruleId,
       ),
     ).toEqual(["solid.srp"]);
+  });
+
+  it("reads the default file reader from disk as UTF-8", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "principled-test-"));
+    const path = join(dir, "sample.ts");
+    await writeFile(path, "class Café {}\n", "utf8");
+
+    await expect(defaultReadFile(path)).resolves.toBe("class Café {}\n");
+  });
+
+  it("reads the default stdin reader from a byte stream", async () => {
+    const text = await defaultReadStdin(
+      Readable.from([Buffer.from("he"), Buffer.from("llo")]),
+    );
+
+    expect(text).toBe("hello");
+  });
+
+  it("reads an empty default stdin stream as an empty string", async () => {
+    await expect(defaultReadStdin(Readable.from([]))).resolves.toBe("");
+  });
+
+  it("reads piped source for --stdin without touching files", async () => {
+    const io = capture();
+
+    const code = await main(["analyze", "--stdin", "--language", "typescript"], io.console, {
+      stdinIsTTY: true,
+      readStdin: async () => VIOLATING_TS,
+      readFile: async () => {
+        throw new Error("must not read files for stdin input");
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(io.out[0]).toContain("violation solid.srp");
+  });
+
+  it("reads piped source for a bare dash without touching files", async () => {
+    const io = capture();
+
+    const code = await main(["analyze", "-", "--language", "typescript"], io.console, {
+      stdinIsTTY: true,
+      readStdin: async () => VIOLATING_TS,
+      readFile: async () => {
+        throw new Error("must not read files for stdin input");
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(io.out[0]).toContain("violation solid.srp");
+  });
+
+  it("rejects a file and --stdin together", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "user-manager.ts", "--stdin"],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(2);
+    expect(io.out).toEqual([]);
+    expect(io.err).toEqual([
+      "Cannot use both a file and --stdin. Provide one input.",
+    ]);
+  });
+
+  it("reads stdin when no terminal flag is injected and stdin is piped", async () => {
+    const io = capture();
+
+    const code = await main(["analyze", "--language", "typescript"], io.console, {
+      readStdin: async () => VIOLATING_TS,
+      readFile: async () => {
+        throw new Error("must not read files for stdin input");
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(io.out[0]).toContain("violation solid.srp");
+  });
+
+  it("analyzes with equals-form flags", async () => {
+    const io = capture();
+
+    const code = await main(
+      [
+        "analyze",
+        "--format=json",
+        "--language=typescript",
+        "--rule=solid.srp",
+        "user-manager.ts",
+      ],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(1);
+    const output = JSON.parse(io.out[0] as string);
+    expect(output.subject).toEqual({
+      language: "typescript",
+      filePath: "user-manager.ts",
+    });
+    expect(output.resultCounts).toEqual({ violation: 1 });
+  });
+
+  it("analyzes an explicit human format", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "--format", "human", "user-manager.ts"],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(1);
+    expect(io.out[0]).toContain("violation solid.srp");
+    expect(io.err).toEqual([]);
+  });
+
+  it("rejects --format with no value", async () => {
+    const io = capture();
+
+    const code = await main(["analyze", "--format"], io.console, filesOf({}));
+
+    expect(code).toBe(2);
+    expect(io.out).toEqual([]);
+    expect(io.err).toEqual([
+      "Missing value for --format. Expected human, json, or sarif.",
+    ]);
+  });
+
+  it("rejects --language with no value", async () => {
+    const io = capture();
+
+    const code = await main(["analyze", "--language"], io.console, filesOf({}));
+
+    expect(code).toBe(2);
+    expect(io.out).toEqual([]);
+    expect(io.err).toEqual([
+      "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java.",
+    ]);
+  });
+
+  it("rejects --rule with no value", async () => {
+    const io = capture();
+
+    const code = await main(["analyze", "--rule"], io.console, filesOf({}));
+
+    expect(code).toBe(2);
+    expect(io.out).toEqual([]);
+    expect(io.err).toEqual([
+      "Missing value for --rule. Expected a rule id such as solid.srp.",
+    ]);
+  });
+
+  it("rejects a --rule value that is only commas", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "--rule", " , ", "user-manager.ts"],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(2);
+    expect(io.out).toEqual([]);
+    expect(io.err).toEqual([
+      "Missing value for --rule. Expected a rule id such as solid.srp.",
+    ]);
+  });
+
+  it("rejects a second positional file", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "a.ts", "b.ts"],
+      io.console,
+      filesOf({ "a.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(2);
+    expect(io.out).toEqual([]);
+    expect(io.err).toEqual([
+      "Unexpected argument: b.ts\nRun 'principled analyze --help' to see the available options.",
+    ]);
+  });
+
+  it("labels piped input as stdin in JSON output", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "--language", "typescript", "--format", "json"],
+      io.console,
+      {
+        stdinIsTTY: false,
+        readStdin: async () => VIOLATING_TS,
+        readFile: async () => {
+          throw new Error("must not read files for stdin input");
+        },
+      },
+    );
+
+    expect(code).toBe(1);
+    expect(JSON.parse(io.out[0] as string).subject).toEqual({
+      language: "typescript",
+      filePath: "stdin",
+    });
+  });
+
+  it("keeps JSON output deterministic without --timing", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "user-manager.ts", "--format", "json"],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(1);
+    const output = JSON.parse(io.out[0] as string);
+    expect("durationMs" in output).toBe(false);
+  });
+
+  it("bounds the JSON duration with --timing", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "user-manager.ts", "--format", "json", "--timing"],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(1);
+    const durationMs = JSON.parse(io.out[0] as string).durationMs;
+    expect(typeof durationMs).toBe("number");
+    expect(durationMs).toBeGreaterThanOrEqual(0);
+    expect(durationMs).toBeLessThan(60_000);
+  });
+
+  it("points SARIF results at the analyzed file", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "user-manager.ts", "--format", "sarif"],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(1);
+    const sarif = JSON.parse(io.out[0] as string);
+    expect(sarif.version).toBe("2.1.0");
+    expect(
+      sarif.runs[0].results[0].locations[0].physicalLocation.artifactLocation,
+    ).toEqual({ uri: "user-manager.ts" });
+    expect(
+      "principled/durationMs" in sarif.runs[0].properties,
+    ).toBe(false);
+  });
+
+  it("adds a bounded duration to SARIF with --timing", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "user-manager.ts", "--format", "sarif", "--timing"],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(1);
+    const sarif = JSON.parse(io.out[0] as string);
+    expect(sarif.version).toBe("2.1.0");
+    expect(sarif.runs[0].properties["principled/schemaVersion"]).toBe("1");
+    const durationMs = sarif.runs[0].properties["principled/durationMs"];
+    expect(typeof durationMs).toBe("number");
+    expect(durationMs).toBeGreaterThanOrEqual(0);
+    expect(durationMs).toBeLessThan(60_000);
+    expect(sarif.runs[0].results[0].ruleId).toBe("solid.srp");
+    expect(
+      sarif.runs[0].results[0].locations[0].physicalLocation.artifactLocation,
+    ).toEqual({ uri: "user-manager.ts" });
+  });
+
+  it("reports timing on stderr for human output with --timing", async () => {
+    const io = capture();
+
+    const code = await main(
+      ["analyze", "calculator.ts", "--timing"],
+      io.console,
+      filesOf({ "calculator.ts": COMPLIANT_TS }),
+    );
+
+    expect(code).toBe(0);
+    expect(io.out[0]).toContain("compliant solid.srp");
+    expect(io.err).toHaveLength(1);
+    const match = /^analyzed in (\d+)ms$/.exec(io.err[0] as string);
+    expect(match).not.toBeNull();
+    expect(Number(match?.[1])).toBeLessThan(60_000);
+  });
+
+  it("exits 1 when any result is a violation, even beside other statuses", async () => {
+    const io = capture();
+
+    const code = await main(
+      [
+        "analyze",
+        "user-manager.ts",
+        "--rule",
+        "solid.srp,nope.missing",
+        "--format",
+        "json",
+      ],
+      io.console,
+      filesOf({ "user-manager.ts": VIOLATING_TS }),
+    );
+
+    expect(code).toBe(1);
+    const output = JSON.parse(io.out[0] as string);
+    expect(output.resultCounts).toEqual({
+      violation: 1,
+      unable_to_analyze: 1,
+    });
+    expect(
+      output.results.map((result: { ruleId: string }) => result.ruleId),
+    ).toEqual(["solid.srp", "nope.missing"]);
   });
 });

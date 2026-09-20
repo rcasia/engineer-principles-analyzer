@@ -10,9 +10,14 @@ describe("languageForFilename", () => {
   test.each([
     ["server.ts", "typescript"],
     ["component.tsx", "typescript"],
+    ["module.mts", "typescript"],
+    ["module.cts", "typescript"],
     ["app.js", "javascript"],
+    ["view.jsx", "javascript"],
     ["app.mjs", "javascript"],
+    ["app.cjs", "javascript"],
     ["main.py", "python"],
+    ["tool.pyw", "python"],
     ["main.go", "go"],
     ["lib.rs", "rust"],
     ["Main.java", "java"],
@@ -31,6 +36,11 @@ describe("languageForFilename", () => {
     expect(languageForFilename(".gitignore")).toBeUndefined();
     expect(languageForFilename("archive.tar.gz")).toBeUndefined();
   });
+
+  test("treats a leading-dot name as extensionless even for a known word", () => {
+    expect(languageForFilename(".ts")).toBeUndefined();
+    expect(languageForFilename(".py")).toBeUndefined();
+  });
 });
 
 describe("resolveLanguage", () => {
@@ -44,6 +54,27 @@ describe("resolveLanguage", () => {
     expect(resolveLanguage({ language: "TypeScript" })).toEqual({
       ok: true,
       language: "typescript",
+    });
+  });
+
+  test("trims surrounding whitespace from an explicit language", () => {
+    expect(resolveLanguage({ language: "  typescript  " })).toEqual({
+      ok: true,
+      language: "typescript",
+    });
+  });
+
+  test("falls back to the filename when the explicit language is blank", () => {
+    expect(
+      resolveLanguage({ language: "   ", filename: "main.py" }),
+    ).toEqual({ ok: true, language: "python" });
+  });
+
+  test("asks for a language when the explicit language is blank and alone", () => {
+    expect(resolveLanguage({ language: "" })).toEqual({
+      ok: false,
+      message:
+        "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.",
     });
   });
 

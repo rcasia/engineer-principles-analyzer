@@ -2,6 +2,7 @@ import { InMemoryPrincipleCatalog, ListPrinciples } from "@principled/core";
 import { readFile } from "node:fs/promises";
 import { toJsonOutput } from "./analysis/format-json.ts";
 import { toSarifOutput } from "./analysis/format-sarif.ts";
+import { parseAnalyzeArgs } from "./analysis/parse-analyze-args.ts";
 import { runAnalysis } from "./analysis/run-analysis.ts";
 import { renderFindings } from "./presentation/render-analysis.ts";
 import { renderPrinciples } from "./presentation/render-principles.ts";
@@ -46,106 +47,27 @@ export const EXIT_USAGE = 2;
 
 const HELP_FLAGS: ReadonlySet<string> = new Set(["--help", "-h"]);
 const VERSION_FLAGS: ReadonlySet<string> = new Set(["--version", "-v"]);
-const FORMATS: ReadonlySet<string> = new Set(["human", "json", "sarif"]);
 
-async function defaultReadFile(path: string): Promise<string> {
+/** Default file reader used when the caller injects none. Exported for tests. */
+export async function defaultReadFile(path: string): Promise<string> {
   return readFile(path, "utf8");
 }
 
-async function defaultReadStdin(): Promise<string> {
+/**
+ * Default stdin reader used when the caller injects none. The stream is a
+ * parameter (defaulting to fd 0) so tests can feed bytes without blocking
+ * on a real terminal. Exported for tests.
+ */
+export async function defaultReadStdin(
+  stream: AsyncIterable<Uint8Array> = process.stdin,
+): Promise<string> {
   const chunks: Uint8Array[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk as Uint8Array);
+  for await (const chunk of stream) {
+    chunks.push(chunk);
   }
-  return Buffer.concat(chunks).toString("utf8");
-}
-
-interface AnalyzeOptions {
-  filePath: string | undefined;
-  fromStdin: boolean;
-  format: string;
-  language: string | undefined;
-  ruleIds: string[] | undefined;
-  timing: boolean;
-}
-
-function parseAnalyzeArgs(args: readonly string[]):
-  | { readonly ok: true; readonly options: AnalyzeOptions }
-  | { readonly ok: false; readonly message: string } {
-  const options: AnalyzeOptions = { filePath: undefined, fromStdin: false, format: "human", language: undefined, ruleIds: undefined, timing: false };
-
-  let index = 0;
-  while (index < args.length) {
-    const arg = args[index] as string;
-
-    if (arg === "--stdin") {
-      options.fromStdin = true;
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--timing") {
-      options.timing = true;
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--format" || arg.startsWith("--format=")) {
-      const value =
-        arg === "--format" ? args[index + 1] : arg.slice("--format=".length);
-      if (value === undefined || value.startsWith("--")) {
-        return { ok: false, message: "Missing value for --format. Expected human, json, or sarif." };
-      }
-      if (!FORMATS.has(value)) {
-        return { ok: false, message: `Unknown format: ${value}. Expected human, json, or sarif.` };
-      }
-      options.format = value;
-      index += arg === "--format" ? 2 : 1;
-      continue;
-    }
-
-    if (arg === "--language" || arg.startsWith("--language=")) {
-      const value =
-        arg === "--language" ? args[index + 1] : arg.slice("--language=".length);
-      if (value === undefined || value.startsWith("--")) {
-        return { ok: false, message: "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java." };
-      }
-      options.language = value;
-      index += arg === "--language" ? 2 : 1;
-      continue;
-    }
-
-    if (arg === "--rule" || arg.startsWith("--rule=")) {      const value =
-        arg === "--rule" ? args[index + 1] : arg.slice("--rule=".length);
-      if (value === undefined || value.startsWith("--")) {
-        return { ok: false, message: "Missing value for --rule. Expected a rule id such as solid.srp." };
-      }
-      const ids = value.split(",").map((id) => id.trim()).filter((id) => id.length > 0);
-      if (ids.length === 0) {
-        return { ok: false, message: "Missing value for --rule. Expected a rule id such as solid.srp." };
-      }
-      options.ruleIds = [...(options.ruleIds ?? []), ...ids];
-      index += arg === "--rule" ? 2 : 1;
-      continue;
-    }
-
-    if (arg.startsWith("--")) {
-      return { ok: false, message: `Unknown option: ${arg}\nRun 'principled analyze --help' to see the available options.` };
-    }
-
-    if (options.filePath !== undefined) {
-      return { ok: false, message: `Unexpected argument: ${arg}\nRun 'principled analyze --help' to see the available options.` };
-    }
-
-    if (arg === "-") {
-      options.fromStdin = true;
-    } else {
-      options.filePath = arg;
-    }
-    index += 1;
-  }
-
-  return { ok: true, options };
+  // Buffer.toString defaults to UTF-8; spelling the literal out would leave
+  // an unkillable mutant (Bun decodes "" leniently), so rely on the default.
+  return Buffer.concat(chunks).toString();
 }
 
 /**
@@ -237,12 +159,12 @@ async function runAnalyzeCommand(
     filename = undefined;
   }
 
-  const startedAt = timing ? Date.now() : undefined;
+  const startedAt = Date.now();
   const outcome = await runAnalysis({
     sourceCode,
-    ...(requestedLanguage === undefined ? {} : { language: requestedLanguage }),
-    ...(filename === undefined ? {} : { filename }),
-    ...(ruleIds === undefined ? {} : { ruleIds }),
+    language: requestedLanguage,
+    filename,
+    ruleIds,
   });
 
   if (!outcome.ok) {
@@ -258,13 +180,13 @@ async function runAnalyzeCommand(
       JSON.stringify(
         toJsonOutput(run, language, {
           filePath: label,
-          ...(startedAt === undefined ? {} : { durationMs: Date.now() - startedAt }),
+          ...(timing ? { durationMs: Date.now() - startedAt } : {}),
         }),
       ),
     );
   } else if (format === "sarif") {
     const sarif = toSarifOutput(run, { filePath: label });
-    if (timing && startedAt !== undefined) {
+    if (timing) {
       const durationMs = Date.now() - startedAt;
       console.out(
         JSON.stringify({
@@ -280,7 +202,7 @@ async function runAnalyzeCommand(
     }
   } else {
     console.out(renderFindings(run.results));
-    if (timing && startedAt !== undefined) {
+    if (timing) {
       console.err(`analyzed in ${Date.now() - startedAt}ms`);
     }
   }

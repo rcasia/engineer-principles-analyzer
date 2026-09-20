@@ -44,7 +44,9 @@ const EXTENSION_TO_LANGUAGE: Readonly<Record<string, string>> = {
  * of the base name counts.
  */
 export function languageForFilename(filename: string): string | undefined {
-  const base = filename.split("/").pop()?.split("\\").pop() ?? "";
+  // String.split never returns an empty array, so both pops are always
+  // defined; the assertions only narrow the type, they cannot fail.
+  const base = filename.split("/").pop()!.split("\\").pop()!;
   const dot = base.lastIndexOf(".");
 
   if (dot <= 0) {

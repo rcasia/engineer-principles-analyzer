@@ -45,9 +45,22 @@ describe("toJsonOutput", () => {
     const run = await violatingRun();
 
     expect(toJsonOutput(run, "typescript").durationMs).toBeUndefined();
+    expect("durationMs" in toJsonOutput(run, "typescript")).toBe(false);
     expect(
       toJsonOutput(run, "typescript", { durationMs: 12 }).durationMs,
     ).toBe(12);
+  });
+
+  test("omits the file path label unless one is given", async () => {
+    const run = await violatingRun();
+
+    expect(toJsonOutput(run, "typescript").subject).toEqual({
+      language: "typescript",
+    });
+    expect("filePath" in toJsonOutput(run, "typescript").subject).toBe(false);
+    expect(
+      toJsonOutput(run, "typescript", { filePath: "user-manager.ts" }).subject,
+    ).toEqual({ language: "typescript", filePath: "user-manager.ts" });
   });
 
   test("emits no telemetry or user-tracking fields", async () => {

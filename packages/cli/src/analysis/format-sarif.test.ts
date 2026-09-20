@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { AnalyzeSubject, InMemoryRuleCatalog, SrpRule } from "@principled/core";
+import { AnalysisResult } from "@principled/core";
+import { Confidence } from "@principled/core";
 import { unwrap } from "@principled/core";
 import { Subject } from "@principled/core";
 import { toSarifOutput } from "./format-sarif.ts";
@@ -79,6 +81,67 @@ describe("toSarifOutput", () => {
     ).toEqual({ uri: "input" });
   });
 
+  test("maps unable_to_analyze to error and uncertain to warning", () => {
+    const sarif = toSarifOutput(
+      {
+        analysisId: "test-run",
+        results: [
+          unableToAnalyzeResult(),
+          uncertainResult(),
+          compliantResult(),
+          notApplicableResult(),
+        ],
+        events: [],
+      },
+      { filePath: "user-manager.ts" },
+    );
+
+    const levels = sarif.runs[0]?.results.map((result) => result.level);
+    expect(levels).toEqual(["error", "warning", "note", "note"]);
+  });
+
+  test("keeps the first explanation when one rule reports twice", () => {
+    const first = unableToAnalyzeResult();
+    const second = unwrap(
+      AnalysisResult.of({
+        ruleId: "solid.srp",
+        status: "unable_to_analyze",
+        confidence: unwrap(Confidence.of(0.1)),
+        method: "heuristic",
+        evidence: [],
+        explanation: "A later, different explanation.",
+        language: "typescript",
+        analyzer: { name: "principled-test", version: "1.0.0" },
+        humanReviewRecommended: true,
+      }),
+    );
+    const sarif = toSarifOutput(
+      { analysisId: "test-run", results: [first, second], events: [] },
+      { filePath: "user-manager.ts" },
+    );
+
+    expect(sarif.runs[0]?.tool.driver.rules).toHaveLength(1);
+    expect(sarif.runs[0]?.tool.driver.rules[0]?.fullDescription).toEqual({
+      text: "The engine failed before a verdict was possible.",
+    });
+  });
+
+  test("points a result with no evidence at line one with no snippet", () => {
+    const sarif = toSarifOutput(
+      {
+        analysisId: "test-run",
+        results: [compliantResult()],
+        events: [],
+      },
+      { filePath: "user-manager.ts" },
+    );
+
+    const region =
+      sarif.runs[0]?.results[0]?.locations[0]?.physicalLocation.region;
+    expect(region).toEqual({ startLine: 1, endLine: 1 });
+    expect(region !== undefined && "snippet" in region).toBe(false);
+  });
+
   test("emits no telemetry or user-tracking fields", async () => {
     const raw = JSON.stringify(toSarifOutput(await violatingRun()));
 
@@ -95,3 +158,67 @@ describe("toSarifOutput", () => {
     }
   });
 });
+
+function unableToAnalyzeResult() {
+  return unwrap(
+    AnalysisResult.of({
+      ruleId: "solid.srp",
+      status: "unable_to_analyze",
+      confidence: unwrap(Confidence.of(0.1)),
+      method: "heuristic",
+      evidence: [],
+      explanation: "The engine failed before a verdict was possible.",
+      language: "typescript",
+      analyzer: { name: "principled-test", version: "1.0.0" },
+      humanReviewRecommended: true,
+    }),
+  );
+}
+
+function uncertainResult() {
+  return unwrap(
+    AnalysisResult.of({
+      ruleId: "solid.srp",
+      status: "uncertain",
+      confidence: unwrap(Confidence.of(0.4)),
+      method: "heuristic",
+      evidence: [],
+      explanation: "The evidence points both ways.",
+      language: "typescript",
+      analyzer: { name: "principled-test", version: "1.0.0" },
+      humanReviewRecommended: true,
+    }),
+  );
+}
+
+function compliantResult() {
+  return unwrap(
+    AnalysisResult.of({
+      ruleId: "solid.srp",
+      status: "compliant",
+      confidence: unwrap(Confidence.of(0.9)),
+      method: "heuristic",
+      evidence: [],
+      explanation: "The class has a single responsibility.",
+      language: "typescript",
+      analyzer: { name: "principled-test", version: "1.0.0" },
+      humanReviewRecommended: false,
+    }),
+  );
+}
+
+function notApplicableResult() {
+  return unwrap(
+    AnalysisResult.of({
+      ruleId: "solid.srp",
+      status: "not_applicable",
+      confidence: unwrap(Confidence.of(0.9)),
+      method: "heuristic",
+      evidence: [],
+      explanation: "The rule does not apply to this subject.",
+      language: "typescript",
+      analyzer: { name: "principled-test", version: "1.0.0" },
+      humanReviewRecommended: false,
+    }),
+  );
+}

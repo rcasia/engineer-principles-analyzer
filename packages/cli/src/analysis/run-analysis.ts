@@ -46,8 +46,8 @@ export async function runAnalysis(
   input: AnalysisInput,
 ): Promise<AnalysisOutcome> {
   const resolved = resolveLanguage({
-    ...(input.language === undefined ? {} : { language: input.language }),
-    ...(input.filename === undefined ? {} : { filename: input.filename }),
+    language: input.language,
+    filename: input.filename,
   });
 
   if (!resolved.ok) {
@@ -72,10 +72,16 @@ export async function runAnalysis(
   }
 
   const analyze = new AnalyzeSubject(createRuleCatalog());
-  const run = await analyze.execute({
-    subject: subject.value,
-    ...(input.ruleIds === undefined ? {} : { ruleIds: input.ruleIds }),
-  });
+  // The copy keeps the caller's array from being observable downstream:
+  // without it, omitting `ruleIds` and passing it as `undefined` would be
+  // indistinguishable, and the branch below would be untestable.
+  const run =
+    input.ruleIds === undefined
+      ? await analyze.execute({ subject: subject.value })
+      : await analyze.execute({
+          subject: subject.value,
+          ruleIds: [...input.ruleIds],
+        });
 
   return { ok: true, run, language: resolved.language };
 }
