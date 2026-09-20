@@ -1,3 +1,18 @@
+# [1.8.0](https://github.com/rcasia/principled/compare/web-v1.7.0...web-v1.8.0) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** remove duplicated then in mutation guard ([57fc1c4](https://github.com/rcasia/principled/commit/57fc1c4c3f62336f76a9884355799ad92d64da28))
+
+
+### Features
+
+* **core:** detect programming language from filename and content ([775f520](https://github.com/rcasia/principled/commit/775f520f49d7d6bb83461a89609c7ec7785a4378))
+* **web:** add hashed client asset pipeline and gutter spike ([9393985](https://github.com/rcasia/principled/commit/939398557d68575c70afcdda2307f312d181cd2c)), closes [#49](https://github.com/rcasia/principled/issues/49)
+* **web:** fall back to detected language on POST /analyze ([efaaaa6](https://github.com/rcasia/principled/commit/efaaaa6191cc6767a0a1b2473a4261b565067e2b))
+* **web:** render principles list from SSR-only components ([919bbed](https://github.com/rcasia/principled/commit/919bbed443e791b757bdda1dd1fa8fd4f00f892d)), closes [#49](https://github.com/rcasia/principled/issues/49)
+
 # [1.7.0](https://github.com/rcasia/principled/compare/web-v1.6.0...web-v1.7.0) (2026-09-19)
 
 
