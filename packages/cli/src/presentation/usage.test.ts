@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   COMMAND_NAME,
+  renderAnalyzeUsage,
   renderUnknownOption,
   renderUsage,
   renderVersion,
@@ -27,8 +28,12 @@ describe("usage", () => {
       "principled - analyze a codebase against engineering principles",
     );
     expect(usage).toContain("principled              List the known principles");
+    expect(usage).toContain(
+      "principled analyze [file] [--language <id>] [--format human|json|sarif] [--rule <id>] [--timing] [--stdin]",
+    );
     expect(usage).toContain("principled --help       Show this help");
     expect(usage).toContain("principled --version    Show the version");
+    expect(usage).toContain("no telemetry");
   });
 
   it("tells the user the catalog is empty on purpose", () => {
@@ -47,5 +52,20 @@ describe("usage", () => {
     expect(renderUnknownOption("--wat")).toBe(
       "Unknown option: --wat\nRun 'principled --help' to see the available options.",
     );
+  });
+
+  it("documents the analyze invocation with formats and exit status", () => {
+    const usage = renderAnalyzeUsage();
+
+    expect(usage).toContain(
+      "principled analyze - analyze one source file locally",
+    );
+    expect(usage).toContain("--language <id>");
+    expect(usage).toContain("--rule <id>");
+    expect(usage).toContain("human (default), json, or sarif");
+    expect(usage).toContain('schema version "1"');
+    expect(usage).toContain("0  analysis completed, no violations");
+    expect(usage).toContain("1  analysis completed, at least one violation");
+    expect(usage).toContain("2  no analysis happened");
   });
 });

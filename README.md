@@ -22,6 +22,7 @@ Once published, the CLI needs only Node 20+:
 ```sh
 npx principled             # list the known principles
 npx principled --help
+npx principled analyze src/server.ts --format json   # local analysis, no telemetry
 ```
 
 It is not on npm yet — see [ADR-0008](docs/adr/0008-publish-the-cli-to-npm.md)
