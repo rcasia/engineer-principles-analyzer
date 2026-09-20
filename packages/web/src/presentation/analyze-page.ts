@@ -5,14 +5,12 @@ import type {
   SourceLocation,
 } from "@principled/core";
 import { CODE_EXAMPLES, exampleFor } from "./code-examples.ts";
-import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
+import { escapeHtml, renderPage } from "./layout.ts";
 import {
   AUTO_DETECT_LABEL,
   extensionFor,
   languageLabel,
 } from "./language-display.ts";
-import { escapeHtml } from "./principles-page.ts";
-import { VERSION } from "../version.ts";
 
 export const ANALYZE_PAGE_TITLE = "Analyze | Principled";
 export { AUTO_DETECT_LABEL };
@@ -411,38 +409,16 @@ export function renderAnalyzePage(
   view: AnalyzeView,
   options?: { readonly scriptSrc?: string | undefined },
 ): string {
-  const mainClass = view.kind === "completed" ? "page" : "playground";
   const script =
     options?.scriptSrc === undefined
-      ? ""
+      ? undefined
       : `<script type="module" src="${options.scriptSrc}"></script>\n`;
 
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<link rel="icon" href="data:,">
-<title>${ANALYZE_PAGE_TITLE}</title>
-<style>${DESIGN_SYSTEM_CSS}</style>
-${script}</head>
-<body>
-<a class="skip-link" href="#main">Skip to content</a>
-<header class="topbar">
-  <div class="topbar__inner">
-    <a class="brand" href="/"><span class="brand__mark" aria-hidden="true">P/</span><span>Principled</span></a>
-    <nav class="topnav" aria-label="Primary">
-      <a href="/">Principles</a>
-      <a href="/analyze" aria-current="page">Analyze</a>
-      <a href="/design">Design system</a>
-    </nav>
-  </div>
-</header>
-<main class="${mainClass}" id="main">
-${renderMain(view)}
-</main>
-<footer class="footer">Principled · evidence before opinion · v${VERSION}</footer>
-</body>
-</html>`;
+  return renderPage({
+    title: ANALYZE_PAGE_TITLE,
+    path: "/analyze",
+    mainClass: view.kind === "completed" ? "page" : "playground",
+    body: renderMain(view),
+    script,
+  });
 }
