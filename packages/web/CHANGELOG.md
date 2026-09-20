@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/rcasia/principled/compare/web-v1.10.3...web-v1.11.0) (2026-09-20)
+
+
+### Features
+
+* **web:** serve a landing page at / and the catalog from /principles ([97f04ba](https://github.com/rcasia/principled/commit/97f04ba3b84299d56e86f39aa224247aee101933)), closes [#52](https://github.com/rcasia/principled/issues/52) [#52](https://github.com/rcasia/principled/issues/52)
+
 ## [1.10.3](https://github.com/rcasia/principled/compare/web-v1.10.2...web-v1.10.3) (2026-09-20)
 
 
