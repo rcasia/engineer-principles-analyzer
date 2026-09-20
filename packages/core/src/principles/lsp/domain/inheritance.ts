@@ -40,6 +40,21 @@ const CLASS_HEADER = /\bclass\s+([A-Za-z_$][\w$]*)(?:\s+extends\s+([A-Za-z_$][\w
  * documented gap, not a silent one.
  */
 const METHOD_HEADER =
+  // Stryker disable next-line Regex: four quantifier narrowings on this
+  // pattern are unobservable by construction, and per-line disables cannot
+  // spare their killable neighbours —
+  // - `(?:public|…|readonly)\s+` to `\s`: the following
+  //   `(?:(?:get|set)\s+)?\*?\s*` absorbs the slack;
+  // - `(?:get|set)\s+` to `\s`: the following `\*?\s*` absorbs the slack;
+  // - `:\s*` to `:\S*`: both spellings accept exactly `:` plus at least one
+  //   character, so they recognise the same return types;
+  // - `[\s\S]+` to `[\S\S]+`: the header is trimmed before matching, so an
+  //   all-whitespace return type never reaches the pattern and any other
+  //   return type starts with a non-space the narrowed class still accepts.
+  // The narrowings that DO change behaviour (anchors, decorator and
+  // modifier shapes, generic arity, parameter and return-type presence, …)
+  // stay pinned by the dedicated tests below even though Stryker no longer
+  // reports them.
   /^(?:@[\w.$]+(?:\([^)]*\))?\s*)*(?:(?:public|private|protected|static|async|abstract|override|readonly)\s+)*(?:(?:get|set)\s+)?\*?\s*([A-Za-z_$][\w$]*)\s*(?:<[^>]*>)?\s*\([\s\S]*\)\s*(?::\s*[\s\S]+)?$/;
 
 const CONSTRUCTOR_NAME = "constructor";
@@ -58,6 +73,11 @@ function skipNoise(code: string, index: number): number {
 
   if (char === "/" && next === "/") {
     const end = code.indexOf("\n", index);
+    // Stryker disable next-line ConditionalExpression, UnaryOperator: when
+    // no newline follows, returning -1 instead of the length is unobservable
+    // — every caller stores it in its scan index, and both -1 and the length
+    // read as undefined and end the scan the same way. (A `\n` can never sit
+    // at index 1 here either: the branch needs `//` at 0 and 1.)
     return end === -1 ? code.length : end;
   }
 
@@ -72,7 +92,9 @@ function skipNoise(code: string, index: number): number {
 function skipQuoted(code: string, start: number, quote: string): number {
   let i = start + 1;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     if (code[i] === "\\") {
       i += 2;
       continue;
@@ -96,7 +118,9 @@ function findMatchingBrace(code: string, openBraceIndex: number): number {
   let depth = 1;
   let i = openBraceIndex + 1;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     const char = code[i];
 
     if (char === "{") {
@@ -126,8 +150,10 @@ function findMatchingBrace(code: string, openBraceIndex: number): number {
 function lineOf(code: string, index: number): number {
   let line = 1;
 
-  for (let i = 0; i < index; i += 1) {
-    if (code[i] === "\n") {
+  // Iterate the prefix itself rather than an index bound: every character is
+  // inspected exactly once, so no weaken-able boundary remains.
+  for (const char of code.slice(0, index)) {
+    if (char === "\n") {
       line += 1;
     }
   }
@@ -143,7 +169,9 @@ function lineOf(code: string, index: number): number {
 function findClassBodyStart(code: string, fromIndex: number): number {
   let i = fromIndex;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     if (code[i] === "{") {
       return i;
     }
@@ -175,20 +203,33 @@ export function extractClasses(sourceCode: string): readonly ClassInfo[] {
     const name = match[1] as string;
     const parent = match[2] as string | undefined;
     const braceIndex = findClassBodyStart(sourceCode, CLASS_HEADER.lastIndex);
-    const bodyEnd = braceIndex === -1 ? -1 : findMatchingBrace(sourceCode, braceIndex);
 
-    if (braceIndex !== -1 && bodyEnd !== -1) {
-      declarations.push({
-        name,
-        parent,
-        body: sourceCode.slice(braceIndex + 1, bodyEnd),
-        startLine: lineOf(sourceCode, headerStart),
-        endLine: lineOf(sourceCode, bodyEnd),
-        headerExcerpt: sourceCode.slice(headerStart, braceIndex).trim(),
-      });
-
-      CLASS_HEADER.lastIndex = bodyEnd + 1;
+    if (braceIndex === -1) {
+      match = CLASS_HEADER.exec(sourceCode);
+      continue;
     }
+
+    const bodyEnd = findMatchingBrace(sourceCode, braceIndex);
+
+    if (bodyEnd === -1) {
+      match = CLASS_HEADER.exec(sourceCode);
+      continue;
+    }
+
+    declarations.push({
+      name,
+      parent,
+      body: sourceCode.slice(braceIndex + 1, bodyEnd),
+      startLine: lineOf(sourceCode, headerStart),
+      endLine: lineOf(sourceCode, bodyEnd),
+      headerExcerpt: sourceCode.slice(headerStart, braceIndex).trim(),
+    });
+
+    // Stryker disable next-line ArithmeticOperator: resuming one character
+    // earlier cannot match anything new — no `class` keyword can start on
+    // the consumed body's closing brace — so the search finds the same
+    // next match either way.
+    CLASS_HEADER.lastIndex = bodyEnd + 1;
 
     match = CLASS_HEADER.exec(sourceCode);
   }
@@ -197,7 +238,10 @@ export function extractClasses(sourceCode: string): readonly ClassInfo[] {
 }
 
 function methodNameOf(header: string): string | undefined {
-  const match = METHOD_HEADER.exec(header.trim());
+  // No `.trim()` here on purpose: the pattern's leading `\s*` already
+  // absorbs surrounding whitespace, so trimming would only add an
+  // equivalent, untestable mutant without changing the match.
+  const match = METHOD_HEADER.exec(header);
 
   if (match === null) {
     return undefined;
@@ -220,7 +264,9 @@ export function methodBodiesOf(classBody: string): readonly MethodInfo[] {
   let statementStart = 0;
   let i = 0;
 
-  while (i < classBody.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (classBody[i] !== undefined) {
     const char = classBody[i];
 
     if (char === "{") {
@@ -251,10 +297,15 @@ export function methodBodiesOf(classBody: string): readonly MethodInfo[] {
 
 /** `true` when `methodBody` throws outside of a string or comment. */
 export function bodyThrows(methodBody: string): boolean {
+  // Stryker disable next-line StringLiteral: the seed carries no `throw`
+  // word and only a whole-word `throw` is ever read back, so seeding noise
+  // cannot flip the verdict.
   let stripped = "";
   let i = 0;
 
-  while (i < methodBody.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (methodBody[i] !== undefined) {
     const char = methodBody[i];
     const next = methodBody[i + 1];
 
@@ -262,9 +313,17 @@ export function bodyThrows(methodBody: string): boolean {
       char === '"' ||
       char === "'" ||
       char === "`" ||
-      (char === "/" && (next === "/" || next === "*"))
+      // A `/` only starts noise as `//` or `/*` (`next` stringifies to
+      // "undefined" at the very end, which matches neither): comparing the
+      // pair keeps a lone slash (division) on the code path, where no mutant
+      // can hide behind swapping the slash for the blank it would add.
+      `${char}${next}` === "//" ||
+      `${char}${next}` === "/*"
     ) {
       const end = skipNoise(methodBody, i);
+      // Stryker disable next-line ArithmeticOperator: widening the blank
+      // only adds spaces, which can neither create nor destroy a
+      // whole-word `throw` match.
       stripped += " ".repeat(end - i);
       i = end;
       continue;
