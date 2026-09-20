@@ -103,7 +103,7 @@ jobs:
           else
             BASE="HEAD~1"
           fi
-          if git diff --name-only "$BASE" HEAD -- '*.test.ts' '*.test.tsx' package.json bun.lock stryker.config.json | grep -q .; then then
+          if git diff --name-only "$BASE" HEAD -- '*.test.ts' '*.test.tsx' package.json bun.lock stryker.config.json | grep -q .; then
             echo "Test, dependency or config changes detected since $BASE; forcing a full mutation run."
             bunx stryker run --incremental --force
           else
