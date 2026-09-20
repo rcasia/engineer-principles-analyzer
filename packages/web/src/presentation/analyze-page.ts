@@ -284,7 +284,7 @@ function renderPlayground(options: {
         <span class="editor__actions">
           <label class="button" for="sourceFile" title="If a file is chosen it is used instead of the pasted text">Upload</label>
           <input class="visually-hidden" id="sourceFile" name="sourceFile" type="file">
-          <span class="editor__language" id="editorLanguage" aria-label="Language is detected automatically">Auto-detect</span>
+          <span class="editor__language" id="editorLanguage" data-language="${escapeHtml(options.language)}" aria-label="Language is detected automatically">Auto-detect</span>
         </span>
       </div>
       <div class="editor__body">

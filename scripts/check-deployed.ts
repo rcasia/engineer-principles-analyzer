@@ -51,8 +51,8 @@ if (missing.status !== 404) {
 // Lambda@Edge signer must SigV4-sign the body (ADR-0019) - OAC alone cannot,
 // which is exactly the 403 class this check guards against. A GET-only check
 // would miss it entirely, and `apply` exiting zero cannot catch it.
-// The language is fully auto-detected (ADR-0026), so the snippet must carry
-// a distinctive signal and no `language` field is sent.
+// The language is fully auto-detected (ADR-0028: Jev judges the snippet,
+// so it must be recognizable as TypeScript) and no `language` field is sent.
 const analyzeForm = new FormData();
 analyzeForm.set("sourceCode", "interface Foo { readonly name: string }");
 const analyzePost = await fetch(new URL("/analyze", url), {

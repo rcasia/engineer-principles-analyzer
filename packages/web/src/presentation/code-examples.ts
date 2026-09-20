@@ -4,7 +4,7 @@
  * /analyze?example=<id>` navigation (ADR-0004 ships no client-side
  * JavaScript, so there is no script to fill the editor), and submitting
  * still posts exactly `sourceCode` + `sourceFile`, which is all the backend
- * reads — the language is always auto-detected (ADR-0026). Small on purpose:
+ * reads — the language is always auto-detected (ADR-0028). Small on purpose:
  * each one fits the editor without scrolling and names the tension it
  * invites the visitor to test.
  */

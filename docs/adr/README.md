@@ -35,9 +35,10 @@ commit changes how the system is built, its ADR ships with it.
 | [0023](0023-react-hydration-frontend.md) | Migrate the web UI to React with selective hydration | Proposed | 2026-09-20 |
 | [0024](0024-jev-backed-srp-rule-adapter.md) | Judge SRP with a Jev-backed Rule adapter to validate the core | Accepted | 2026-09-20 |
 | [0025](0025-language-detection.md) | Detect the submission language from filename and content | Superseded by [0026](0026-auto-detect-language-only.md) | 2026-09-20 |
-| [0026](0026-auto-detect-language-only.md) | Auto-detect the submission language with no manual override | Accepted | 2026-09-20 |
+| [0026](0026-auto-detect-language-only.md) | Auto-detect the submission language with no manual override | Superseded by [0028](0028-jev-language-detection.md) | 2026-09-20 |
 | [0027](0027-live-highlighting-analyze-editor.md) | Live language detection and syntax highlighting on /analyze | Accepted | 2026-09-20 |
 | [0027](0027-detect-secrets-commit-hook.md) | Block new secrets with detect-secrets, at commit time and in CI | Accepted | 2026-09-20 |
+| [0028](0028-jev-language-detection.md) | Detect the submission language with Jev Choice | Accepted | 2026-09-20 |
 
 ## Writing a new ADR
 

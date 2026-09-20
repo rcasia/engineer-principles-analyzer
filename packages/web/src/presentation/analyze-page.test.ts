@@ -150,7 +150,7 @@ describe("renderAnalyzePage", () => {
         '<textarea class="editor__input" id="sourceCode" name="sourceCode" rows="16" spellcheck="false" placeholder="Paste exactly one source file"></textarea>',
       );
       expect(html).toContain(
-        '<span class="editor__language" id="editorLanguage" aria-label="Language is detected automatically">Auto-detect</span>',
+        '<span class="editor__language" id="editorLanguage" data-language="" aria-label="Language is detected automatically">Auto-detect</span>',
       );
       expect(html).not.toContain('name="language"');
       expect(AUTO_DETECT_LABEL).toBe("Auto-detect");

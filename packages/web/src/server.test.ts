@@ -4,12 +4,19 @@ import {
   AnalyzeSubject,
   Confidence,
   InMemoryEventStore,
+  InMemoryJevClient,
   InMemoryPrincipleCatalog,
   InMemoryRuleCatalog,
+  JevLanguageDetector,
   ListPrinciples,
   unwrap,
 } from "@principled/core";
-import type { EventStore, Principle, Rule } from "@principled/core";
+import type {
+  EventStore,
+  LanguageDetector,
+  Principle,
+  Rule,
+} from "@principled/core";
 import {
   ANALYSIS_CACHE_CONTROL,
   CLIENT_ASSET_CACHE_CONTROL,
@@ -18,6 +25,7 @@ import {
   type RequestHandlerDependencies,
 } from "./server.ts";
 import type { ClientAssets } from "./client-assets.ts";
+import { InvalidJevResponseError } from "@principled/core";
 
 const tdd: Principle = { id: "tdd", title: "Test Driven Development" };
 
@@ -45,6 +53,15 @@ function handlerFor(overrides?: {
   readonly rules?: readonly Rule[];
   readonly eventStore?: EventStore;
   readonly clientAssets?: ClientAssets | undefined;
+  /**
+   * Scripted Jev language verdicts, one per detection. Defaults to a single
+   * `typescript`: most posts carry TypeScript evidence and only assert the
+   * echo. An empty array exhausts the script, so detection fails like a Jev
+   * outage; `["other"]` scripts the no-match verdict. A full detector
+   * replaces the script entirely, for failures the script cannot produce.
+   */
+  readonly jevChoices?: readonly string[];
+  readonly languageDetector?: LanguageDetector;
 }): (request: Request) => Promise<Response> {
   const deps: RequestHandlerDependencies = {
     listPrinciples: new ListPrinciples(
@@ -53,6 +70,19 @@ function handlerFor(overrides?: {
     analyzeSubject: new AnalyzeSubject(
       new InMemoryRuleCatalog(overrides?.rules ?? []),
     ),
+    languageDetector:
+      overrides?.languageDetector ??
+      new JevLanguageDetector(
+        new InMemoryJevClient(
+          [],
+          (overrides?.jevChoices ?? ["typescript"]).map((choice) => ({
+            choice,
+            probabilities: { [choice]: 1 },
+            confidence: 1,
+            model: "in-memory",
+          })),
+        ),
+      ),
     eventStore: overrides?.eventStore ?? new InMemoryEventStore(),
     ...(overrides?.clientAssets !== undefined
       ? { clientAssets: overrides.clientAssets }
@@ -262,6 +292,7 @@ describe("createRequestHandler", () => {
         '<a class="button" href="/analyze?example=single-responsibility" aria-current="true">',
       );
       expect(body).toContain("TypeScript · 7 lines");
+      expect(body).toContain('id="editorLanguage" data-language="typescript"');
     });
 
     it("never caches a prefilled example, as the cdn cache key ignores the query", async () => {
@@ -282,7 +313,7 @@ describe("createRequestHandler", () => {
       expect(response.status).toBe(200);
       const body = await response.text();
       expect(body).toContain(
-        '<span class="editor__language" id="editorLanguage" aria-label="Language is detected automatically">Auto-detect</span>',
+        '<span class="editor__language" id="editorLanguage" data-language="" aria-label="Language is detected automatically">Auto-detect</span>',
       );
       expect(body).toContain('<span class="editor__filename" id="editorFilename">snippet.txt</span>');
       expect(body).toContain("Auto-detect · 0 lines");
@@ -383,7 +414,7 @@ describe("createRequestHandler", () => {
     });
 
     it("rejects a submission it cannot detect", async () => {
-      const response = await handlerFor()(
+      const response = await handlerFor({ jevChoices: ["other"] })(
         postAnalyze({ sourceCode: "class Foo {}" }),
       );
 
@@ -391,6 +422,48 @@ describe("createRequestHandler", () => {
       await expect(response.text()).resolves.toContain(
         "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
       );
+    });
+
+    it("renders the detection guidance when Jev itself fails", async () => {
+      const response = await handlerFor({ jevChoices: [] })(
+        postAnalyze({ sourceCode: "package main" }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toContain(
+        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
+      );
+    });
+
+    it("renders the detection guidance for an invalid Jev wire shape", async () => {
+      const languageDetector: LanguageDetector = {
+        detectLanguage: () =>
+          Promise.reject(
+            new InvalidJevResponseError(
+              'Jev answer choice for question "choice" must be one of: go.',
+            ),
+          ),
+      };
+      const response = await handlerFor({ languageDetector })(
+        postAnalyze({ sourceCode: "package main" }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toContain(
+        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
+      );
+    });
+
+    it("lets an unexpected detector failure escape instead of masking it", async () => {
+      const languageDetector: LanguageDetector = {
+        detectLanguage: () => Promise.reject(new Error("boom")),
+      };
+
+      await expect(
+        handlerFor({ languageDetector })(
+          postAnalyze({ sourceCode: "package main" }),
+        ),
+      ).rejects.toThrow("boom");
     });
 
     it("reports the empty source rather than a detection failure for whitespace", async () => {
@@ -423,9 +496,11 @@ describe("createRequestHandler", () => {
 
     it("detects the language from pasted content", async () => {
       const eventStore = new InMemoryEventStore();
-      const response = await handlerFor({ rules: [echoRule], eventStore })(
-        postAnalyze({ sourceCode: "def greet(name):\n    print(name)" }),
-      );
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        jevChoices: ["python"],
+      })(postAnalyze({ sourceCode: "def greet(name):\n    print(name)" }));
 
       expect(response.status).toBe(200);
       const history = await eventStore.readAll();
@@ -435,14 +510,18 @@ describe("createRequestHandler", () => {
       ).toBe("python");
     });
 
-    it("detects the language from the uploaded filename", async () => {
+    it("detects the language from the uploaded file via Jev", async () => {
       const eventStore = new InMemoryEventStore();
       const file = new File(["hello world"], "main.py", {
         type: "text/plain",
       });
       const form = new FormData();
       form.set("sourceFile", file);
-      const response = await handlerFor({ rules: [echoRule], eventStore })(
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        jevChoices: ["python"],
+      })(
         new Request("http://localhost/analyze", {
           method: "POST",
           body: form,
@@ -464,7 +543,7 @@ describe("createRequestHandler", () => {
       const form = new FormData();
       form.set("sourceFile", file);
       form.set("language", "go");
-      await handlerFor({ rules: [echoRule], eventStore })(
+      await handlerFor({ rules: [echoRule], eventStore, jevChoices: ["python"] })(
         new Request("http://localhost/analyze", {
           method: "POST",
           body: form,
@@ -479,9 +558,11 @@ describe("createRequestHandler", () => {
 
     it("detects go from content without a language field", async () => {
       const eventStore = new InMemoryEventStore();
-      const response = await handlerFor({ rules: [echoRule], eventStore })(
-        postAnalyze({ sourceCode: "package main" }),
-      );
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        jevChoices: ["go"],
+      })(postAnalyze({ sourceCode: "package main" }));
 
       expect(response.status).toBe(200);
       const history = await eventStore.readAll();
@@ -491,7 +572,7 @@ describe("createRequestHandler", () => {
     });
 
     it("reports an undetectable snippet without a language field", async () => {
-      const response = await handlerFor()(
+      const response = await handlerFor({ jevChoices: ["other"] })(
         postAnalyze({ sourceCode: "hello world" }),
       );
 
@@ -567,6 +648,164 @@ describe("createRequestHandler", () => {
       await handlerFor({ eventStore })(postAnalyze({ sourceCode: "" }));
 
       await expect(eventStore.readAll()).resolves.toEqual([]);
+    });
+  });
+
+  describe("POST /detect", () => {
+    function postDetect(payload: unknown): Request {
+      return new Request("http://localhost/detect", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    function postRawDetect(body: string): Request {
+      return new Request("http://localhost/detect", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body,
+      });
+    }
+
+    function detectorWith(
+      ...choices: readonly string[]
+    ): {
+      detector: LanguageDetector;
+      client: InMemoryJevClient;
+    } {
+      const client = new InMemoryJevClient(
+        [],
+        choices.map((choice) => ({
+          choice,
+          probabilities: { [choice]: 1 },
+          confidence: 1,
+          model: "in-memory",
+        })),
+      );
+      return { detector: new JevLanguageDetector(client), client };
+    }
+
+    it("answers the Jev verdict as JSON for the live island", async () => {
+      const { detector, client } = detectorWith("python");
+      const response = await handlerFor({ languageDetector: detector })(
+        postDetect({ sourceCode: "def greet(name):", filename: "main.py" }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      await expect(response.json()).resolves.toEqual({ language: "python" });
+      expect(client.choiceCalls).toHaveLength(1);
+      expect(client.choiceCalls[0]?.state).toEqual({
+        sourceCode: "def greet(name):",
+        filename: "main.py",
+      });
+    });
+
+    it("never caches a lookup", async () => {
+      const response = await handlerFor({ jevChoices: ["python"] })(
+        postDetect({ sourceCode: "def greet(name):" }),
+      );
+
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(ANALYSIS_CACHE_CONTROL).toBe("no-store");
+    });
+
+    it("answers empty when Jev reports unknown", async () => {
+      const response = await handlerFor({ jevChoices: ["other"] })(
+        postDetect({ sourceCode: "hello world" }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ language: "" });
+    });
+
+    it("answers empty when Jev itself fails", async () => {
+      const response = await handlerFor({ jevChoices: [] })(
+        postDetect({ sourceCode: "package main" }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ language: "" });
+    });
+
+    it("answers empty for a blank buffer without asking Jev", async () => {
+      const { detector, client } = detectorWith("go");
+      const response = await handlerFor({ languageDetector: detector })(
+        postDetect({ sourceCode: "   " }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ language: "" });
+      expect(client.choiceCalls).toEqual([]);
+    });
+
+    it("treats a non-string source as a blank buffer", async () => {
+      const { detector, client } = detectorWith("go");
+      const response = await handlerFor({ languageDetector: detector })(
+        postDetect({ sourceCode: 7 }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ language: "" });
+      expect(client.choiceCalls).toEqual([]);
+    });
+
+    it("treats a non-string filename as no hint", async () => {
+      const { detector, client } = detectorWith("go");
+      const response = await handlerFor({ languageDetector: detector })(
+        postDetect({ sourceCode: "package main", filename: 7 }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ language: "go" });
+      expect(client.choiceCalls).toHaveLength(1);
+      expect(client.choiceCalls[0]?.state).toEqual({
+        sourceCode: "package main",
+        filename: "",
+      });
+    });
+
+    it("treats a null body as a blank buffer", async () => {
+      const { detector, client } = detectorWith("go");
+      const response = await handlerFor({ languageDetector: detector })(
+        postDetect(null),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ language: "" });
+      expect(client.choiceCalls).toEqual([]);
+    });
+
+    it("treats a non-object body as a blank buffer", async () => {
+      const response = await handlerFor({ jevChoices: ["go"] })(
+        postDetect("just a string"),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ language: "" });
+    });
+
+    it("rejects a body that is not JSON", async () => {
+      const response = await handlerFor({ jevChoices: ["go"] })(
+        postRawDetect("this is not json"),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "expected a JSON body with sourceCode",
+      });
+      expect(response.headers.get("cache-control")).toBe("no-store");
+    });
+
+    it("404s a GET lookup", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/detect"),
+      );
+
+      expect(response.status).toBe(404);
     });
   });
 });

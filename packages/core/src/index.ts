@@ -68,10 +68,9 @@ export type { Result } from "./shared/result.ts";
 export { InvalidSubjectError, Subject } from "./engine/domain/subject.ts";
 export type { SubjectProps } from "./engine/domain/subject.ts";
 export {
-  detectLanguage,
-  languageForFilename,
-  languageForSource,
-} from "./engine/domain/language-detection.ts";
+  JevLanguageDetector,
+  type LanguageDetector,
+} from "./engine/application/language-detector.ts";
 export {
   ANALYSIS_COMPLETED_EVENT,
   ANALYSIS_FAILED_EVENT,

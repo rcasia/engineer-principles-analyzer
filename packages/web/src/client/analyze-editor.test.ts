@@ -1,40 +1,124 @@
 import { describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import {
-  editorLanguageOf,
   enhanceAnalyzeEditor,
+  fetchLanguage,
   highlightedHtml,
   selectedFilename,
   toolbarFilename,
+  type DetectLanguage,
 } from "./analyze-editor.ts";
 
-describe("editorLanguageOf", () => {
-  it("detects python from pasted content", () => {
-    expect(editorLanguageOf("def greet(name):\n    print(name)", undefined)).toBe(
-      "python",
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+function stubFetch(
+  respond: () => Response | Promise<Response>,
+): {
+  readonly fetchFn: typeof fetch;
+  readonly calls: { readonly url: unknown; readonly init: unknown }[];
+} {
+  const calls: { readonly url: unknown; readonly init: unknown }[] = [];
+  const fetchFn = (async (url: unknown, init: unknown) => {
+    calls.push({ url, init });
+    return respond();
+  }) as unknown as typeof fetch;
+  return { fetchFn, calls };
+}
+
+describe("fetchLanguage", () => {
+  it("posts the buffer as JSON and returns the detected language", async () => {
+    const { fetchFn, calls } = stubFetch(() =>
+      jsonResponse({ language: "python" }),
+    );
+
+    const language = await fetchLanguage(
+      "def greet(name):",
+      "main.py",
+      fetchFn,
+    );
+
+    expect(language).toBe("python");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toBe("/detect");
+    expect(calls[0]?.init).toEqual({
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sourceCode: "def greet(name):", filename: "main.py" }),
+    });
+  });
+
+  it("sends an empty filename when none is given", async () => {
+    const { fetchFn, calls } = stubFetch(() => jsonResponse({ language: "go" }));
+
+    await fetchLanguage("package main", undefined, fetchFn);
+
+    expect((calls[0]?.init as { body?: string }).body).toBe(
+      JSON.stringify({ sourceCode: "package main", filename: "" }),
     );
   });
 
-  it("detects go from pasted content", () => {
-    expect(editorLanguageOf("package main", undefined)).toBe("go");
+  it("passes an unknown verdict through as empty", async () => {
+    const { fetchFn } = stubFetch(() => jsonResponse({ language: "" }));
+
+    await expect(
+      fetchLanguage("hello world", undefined, fetchFn),
+    ).resolves.toBe("");
   });
 
-  it("detects typescript from content signals", () => {
-    expect(
-      editorLanguageOf("interface Foo { readonly name: string }", undefined),
-    ).toBe("typescript");
+  it("resolves empty on a non-ok status", async () => {
+    const { fetchFn } = stubFetch(() => jsonResponse({ language: "go" }, 500));
+
+    await expect(
+      fetchLanguage("package main", undefined, fetchFn),
+    ).resolves.toBe("");
   });
 
-  it("prefers the uploaded filename over content", () => {
-    expect(editorLanguageOf("hello world", "main.py")).toBe("python");
+  it("resolves empty when the request fails", async () => {
+    const fetchFn = (() =>
+      Promise.reject(new Error("connection reset"))) as unknown as typeof fetch;
+
+    await expect(
+      fetchLanguage("package main", undefined, fetchFn),
+    ).resolves.toBe("");
   });
 
-  it("returns empty for an ambiguous snippet", () => {
-    expect(editorLanguageOf("class Foo {}", undefined)).toBe("");
+  it("resolves empty when the body is not JSON", async () => {
+    const { fetchFn } = stubFetch(
+      () => new Response("not json", { status: 200 }),
+    );
+
+    await expect(
+      fetchLanguage("package main", undefined, fetchFn),
+    ).resolves.toBe("");
   });
 
-  it("returns empty for an empty buffer", () => {
-    expect(editorLanguageOf("", undefined)).toBe("");
+  it("resolves empty for a null body", async () => {
+    const { fetchFn } = stubFetch(() => jsonResponse(null));
+
+    await expect(
+      fetchLanguage("package main", undefined, fetchFn),
+    ).resolves.toBe("");
+  });
+
+  it("resolves empty for a non-object body", async () => {
+    const { fetchFn } = stubFetch(() => jsonResponse("go"));
+
+    await expect(
+      fetchLanguage("package main", undefined, fetchFn),
+    ).resolves.toBe("");
+  });
+
+  it("resolves empty for a non-string language", async () => {
+    const { fetchFn } = stubFetch(() => jsonResponse({ language: 7 }));
+
+    await expect(
+      fetchLanguage("package main", undefined, fetchFn),
+    ).resolves.toBe("");
   });
 });
 
@@ -127,6 +211,10 @@ function inputEvent(window: InstanceType<typeof Window>): Event {
   return new window.Event("input", { bubbles: true }) as unknown as Event;
 }
 
+function pasteEvent(window: InstanceType<typeof Window>): Event {
+  return new window.Event("paste", { bubbles: true }) as unknown as Event;
+}
+
 function scrollEvent(window: InstanceType<typeof Window>): Event {
   return new window.Event("scroll", { bubbles: true }) as unknown as Event;
 }
@@ -135,7 +223,10 @@ function changeEvent(window: InstanceType<typeof Window>): Event {
   return new window.Event("change", { bubbles: true }) as unknown as Event;
 }
 
-function editorDom(sourceCode: string): {
+function editorDom(
+  sourceCode: string,
+  initialLanguage = "",
+): {
   window: InstanceType<typeof Window>;
   document: Document;
   textarea: HTMLTextAreaElement;
@@ -146,11 +237,11 @@ function editorDom(sourceCode: string): {
   host.innerHTML =
     `<form id="analyzeForm" data-example-filename="UserService.ts">` +
     `<span id="editorFilename">UserService.ts</span>` +
-    `<span id="editorLanguage">Auto-detect</span>` +
+    `<span id="editorLanguage" data-language="${initialLanguage}">Auto-detect</span>` +
     `<div class="editor__stage">` +
     `<pre class="editor__backdrop" aria-hidden="true"><code id="sourceHighlight"></code></pre>` +
     `<textarea id="sourceCode" name="sourceCode"></textarea>` +
-    `</div>` +    `<p id="editorMeta"></p>` +
+    `</div>` + `<p id="editorMeta"></p>` +
     `<div class="editor__gutter" aria-hidden="true"></div>` +
     `<input id="sourceFile" name="sourceFile" type="file">` +
     `</form>`;
@@ -163,14 +254,45 @@ function editorDom(sourceCode: string): {
   return { window, document, textarea };
 }
 
+function awaitTick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 10));
+}
+
+interface RecordedCall {
+  readonly sourceCode: string;
+  readonly filename: string | undefined;
+}
+
+function scriptedDetect(
+  language: string,
+  calls: RecordedCall[],
+): DetectLanguage {
+  return async (sourceCode, filename) => {
+    calls.push({ sourceCode, filename });
+    return language;
+  };
+}
+
+/** A lookup that must never run: no-op paths return before detection. */
+function neverDetect(): DetectLanguage {
+  return () => Promise.reject(new Error("detect must not run"));
+}
+
 describe("enhanceAnalyzeEditor", () => {
-  it("detects and highlights the loaded buffer on init", () => {
+  it("renders the server language on init without detecting", async () => {
     const { window, document } = editorDom(
       "def greet(name):\n    print(name)",
+      "python",
     );
+    const calls: RecordedCall[] = [];
 
     try {
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("go", calls)),
+      ).toBe(true);
+      await awaitTick();
+
+      expect(calls).toEqual([]);
       expect(
         document.querySelector("#editorLanguage")?.textContent,
       ).toBe("Python");
@@ -188,57 +310,33 @@ describe("enhanceAnalyzeEditor", () => {
     }
   });
 
-  it("re-detects on every keystroke", () => {
-    const { window, document, textarea } = editorDom("class Foo {}");
+  it("detects once when a buffer loads unknown", async () => {
+    const { window, document } = editorDom("def greet(name):\n    print(name)");
+    const calls: RecordedCall[] = [];
 
     try {
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("python", calls)),
+      ).toBe(true);
+      await awaitTick();
+
+      expect(calls).toEqual([
+        { sourceCode: "def greet(name):\n    print(name)", filename: undefined },
+      ]);
       expect(
         document.querySelector("#editorLanguage")?.textContent,
-      ).toBe("Auto-detect");
-
-      textarea.value = "package main";
-      textarea.dispatchEvent(inputEvent(window));
-
-      expect(
-        document.querySelector("#editorLanguage")?.textContent,
-      ).toBe("Go");
-      expect(
-        document.querySelector("#sourceHighlight")?.innerHTML,
-      ).toContain("hljs-");
+      ).toBe("Python");
       expect(document.querySelector("#editorMeta")?.textContent).toBe(
-        "Go · 1 line",
+        "Python · 2 lines",
       );
     } finally {
       void window.close();
     }
   });
 
-  it("derives the snippet filename once the example no longer applies", () => {
-    const { window, document, textarea } = editorDom(
-      "def greet(name):\n    print(name)",
-    );
-
-    try {
-      document
-        .querySelector("#analyzeForm")
-        ?.removeAttribute("data-example-filename");
-
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
-
-      textarea.value = "class Foo {}";
-      textarea.dispatchEvent(inputEvent(window));
-
-      expect(document.querySelector("#editorFilename")?.textContent).toBe(
-        "snippet.txt",
-      );
-    } finally {
-      void window.close();
-    }
-  });
-
-  it("detects from the uploaded filename when content is ambiguous", () => {
+  it("sends the uploaded filename with a load-time lookup", async () => {
     const { window, document } = editorDom("hello world");
+    const calls: RecordedCall[] = [];
 
     try {
       const fileInput = document.querySelector("#sourceFile");
@@ -250,65 +348,33 @@ describe("enhanceAnalyzeEditor", () => {
         configurable: true,
       });
 
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("python", calls)),
+      ).toBe(true);
+      await awaitTick();
+
+      expect(calls).toEqual([
+        { sourceCode: "hello world", filename: "main.py" },
+      ]);
       expect(
         document.querySelector("#editorLanguage")?.textContent,
       ).toBe("Python");
-      expect(document.querySelector("#editorFilename")?.textContent).toBe(
-        "UserService.ts",
-      );
     } finally {
       void window.close();
     }
   });
 
-  it("re-detects when the visitor picks a file", () => {
-    const { window, document } = editorDom("hello world");
-
-    try {
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
-      expect(
-        document.querySelector("#editorLanguage")?.textContent,
-      ).toBe("Auto-detect");
-
-      const fileInput = document.querySelector("#sourceFile");
-      const file = new window.File(["hello world"], "main.go", {
-        type: "text/plain",
-      });
-      Object.defineProperty(fileInput, "files", {
-        value: [file],
-        configurable: true,
-      });
-      fileInput?.dispatchEvent(changeEvent(window));
-
-      expect(
-        document.querySelector("#editorLanguage")?.textContent,
-      ).toBe("Go");
-    } finally {
-      void window.close();
-    }
-  });
-
-  it("marks the stage live so the overlay styles apply", () => {
-    const { window, document } = editorDom("package main");
-
-    try {
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
-      expect(
-        document.querySelector(".editor__stage")?.classList.contains(
-          "editor--live",
-        ),
-      ).toBe(true);
-    } finally {
-      void window.close();
-    }
-  });
-
-  it("keeps the backdrop tall for an empty buffer", () => {
+  it("makes no lookup for an empty buffer", async () => {
     const { window, document } = editorDom("");
+    const calls: RecordedCall[] = [];
 
     try {
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("go", calls)),
+      ).toBe(true);
+      await awaitTick();
+
+      expect(calls).toEqual([]);
       expect(
         document.querySelector("#sourceHighlight")?.innerHTML,
       ).toBe("\n");
@@ -320,28 +386,238 @@ describe("enhanceAnalyzeEditor", () => {
     }
   });
 
-  it("enhances without a gutter element", () => {
-    const { window, document } = editorDom("package main");
+  it("makes no lookup for a whitespace-only buffer", async () => {
+    const { window, document } = editorDom("   ");
+    const calls: RecordedCall[] = [];
 
     try {
-      document.querySelector(".editor__gutter")?.remove();
-
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
       expect(
-        document.querySelector("#editorLanguage")?.textContent,
-      ).toBe("Go");
+        enhanceAnalyzeEditor(document, scriptedDetect("go", calls)),
+      ).toBe(true);
+      await awaitTick();
+
+      expect(calls).toEqual([]);
     } finally {
       void window.close();
     }
   });
 
-  it("enhances without a file input", () => {
+  it("starts unknown without a data-language attribute", async () => {
+    const { window, document } = editorDom("");
+    const calls: RecordedCall[] = [];
+
+    try {
+      document
+        .querySelector("#editorLanguage")
+        ?.removeAttribute("data-language");
+
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("go", calls)),
+      ).toBe(true);
+      await awaitTick();
+
+      expect(calls).toEqual([]);
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Auto-detect · 0 lines",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("detects on paste and reads the pasted buffer", async () => {
+    const { window, document, textarea } = editorDom(
+      "interface Foo {}",
+      "typescript",
+    );
+    const calls: RecordedCall[] = [];
+
+    try {
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("python", calls)),
+      ).toBe(true);
+      await awaitTick();
+      expect(calls).toEqual([]);
+
+      // Browser order: the paste event fires before the value lands.
+      textarea.dispatchEvent(pasteEvent(window));
+      textarea.value = "def greet(name):";
+      await awaitTick();
+
+      expect(calls).toEqual([
+        { sourceCode: "def greet(name):", filename: undefined },
+      ]);
+      expect(
+        document.querySelector("#editorLanguage")?.textContent,
+      ).toBe("Python");
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Python · 1 line",
+      );
+      expect(
+        document.querySelector("#sourceHighlight")?.innerHTML,
+      ).toContain("hljs-");
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("does not detect on keystroke input", async () => {
+    const { window, document, textarea } = editorDom(
+      "package main",
+      "go",
+    );
+    const calls: RecordedCall[] = [];
+
+    try {
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("python", calls)),
+      ).toBe(true);
+
+      textarea.value = "package main\n// typed";
+      textarea.dispatchEvent(inputEvent(window));
+      await awaitTick();
+
+      expect(calls).toEqual([]);
+      expect(
+        document.querySelector("#editorLanguage")?.textContent,
+      ).toBe("Go");
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Go · 2 lines",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("does not detect when the visitor picks a file", async () => {
+    const { window, document, textarea } = editorDom("hello world", "go");
+    const calls: RecordedCall[] = [];
+
+    try {
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("python", calls)),
+      ).toBe(true);
+
+      const fileInput = document.querySelector("#sourceFile");
+      const file = new window.File(["hello world"], "main.go", {
+        type: "text/plain",
+      });
+      Object.defineProperty(fileInput, "files", {
+        value: [file],
+        configurable: true,
+      });
+      textarea.value = "hello\nworld\nagain";
+      fileInput?.dispatchEvent(changeEvent(window));
+      await awaitTick();
+
+      expect(calls).toEqual([]);
+      expect(
+        document.querySelector("#editorLanguage")?.textContent,
+      ).toBe("Go");
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Go · 3 lines",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("keeps auto-detect when the lookup rejects", async () => {
     const { window, document } = editorDom("package main");
+    const calls: RecordedCall[] = [];
+    const failing: DetectLanguage = async (sourceCode, filename) => {
+      calls.push({ sourceCode, filename });
+      throw new Error("boom");
+    };
+
+    try {
+      expect(enhanceAnalyzeEditor(document, failing)).toBe(true);
+      await awaitTick();
+
+      expect(calls).toHaveLength(1);
+      expect(
+        document.querySelector("#editorLanguage")?.textContent,
+      ).toBe("Auto-detect");
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("resets to auto-detect when a later lookup rejects", async () => {
+    const { window, document, textarea } = editorDom("package main", "go");
+    const failing: DetectLanguage = async () => {
+      throw new Error("boom");
+    };
+
+    try {
+      expect(enhanceAnalyzeEditor(document, failing)).toBe(true);
+      expect(
+        document.querySelector("#editorLanguage")?.textContent,
+      ).toBe("Go");
+
+      textarea.dispatchEvent(pasteEvent(window));
+      textarea.value = "def greet(name):";
+      await awaitTick();
+
+      expect(
+        document.querySelector("#editorLanguage")?.textContent,
+      ).toBe("Auto-detect");
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Auto-detect · 1 line",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("derives the snippet filename once the example no longer applies", async () => {
+    const { window, document } = editorDom("def greet(name):\n    print(name)");
+    const calls: RecordedCall[] = [];
+
+    try {
+      document
+        .querySelector("#analyzeForm")
+        ?.removeAttribute("data-example-filename");
+
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("python", calls)),
+      ).toBe(true);
+      await awaitTick();
+
+      expect(document.querySelector("#editorFilename")?.textContent).toBe(
+        "snippet.py",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("marks the stage live so the overlay styles apply", async () => {
+    const { window, document } = editorDom("package main", "go");
+
+    try {
+      expect(enhanceAnalyzeEditor(document, scriptedDetect("go", []))).toBe(
+        true,
+      );
+      expect(
+        document.querySelector(".editor__stage")?.classList.contains(
+          "editor--live",
+        ),
+      ).toBe(true);
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("enhances without a file input", async () => {
+    const { window, document } = editorDom("package main", "go");
 
     try {
       document.querySelector("#sourceFile")?.remove();
 
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
+      expect(enhanceAnalyzeEditor(document, scriptedDetect("python", []))).toBe(
+        true,
+      );
       expect(
         document.querySelector("#editorLanguage")?.textContent,
       ).toBe("Go");
@@ -350,8 +626,8 @@ describe("enhanceAnalyzeEditor", () => {
     }
   });
 
-  it("enhances without a stage wrapper", () => {
-    const { window, document } = editorDom("package main");
+  it("enhances without a stage wrapper", async () => {
+    const { window, document } = editorDom("package main", "go");
 
     try {
       const stage = document.querySelector(".editor__stage");
@@ -365,7 +641,9 @@ describe("enhanceAnalyzeEditor", () => {
         stage.remove();
       }
 
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
+      expect(enhanceAnalyzeEditor(document, scriptedDetect("python", []))).toBe(
+        true,
+      );
       expect(
         document.querySelector("#editorLanguage")?.textContent,
       ).toBe("Go");
@@ -374,11 +652,11 @@ describe("enhanceAnalyzeEditor", () => {
     }
   });
 
-  it("keeps the backdrop scroll in sync with the textarea", () => {
-    const { window, document, textarea } = editorDom("package main");
+  it("keeps the backdrop scroll in sync with the textarea", async () => {
+    const { window, document, textarea } = editorDom("package main", "go");
 
     try {
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
+      expect(enhanceAnalyzeEditor(document, scriptedDetect("go", []))).toBe(true);
       const backdrop = document.querySelector(
         "#sourceHighlight",
       ) as unknown as HTMLElement;
@@ -394,32 +672,37 @@ describe("enhanceAnalyzeEditor", () => {
     }
   });
 
-  it("updates the gutter line numbers with the buffer", () => {
-    const { window, document } = editorDom("a\nb\nc");
+  it("updates the gutter line numbers with the buffer", async () => {
+    const { window, document, textarea } = editorDom("a\nb\nc", "go");
 
     try {
-      expect(enhanceAnalyzeEditor(document)).toBe(true);
+      expect(enhanceAnalyzeEditor(document, scriptedDetect("go", []))).toBe(true);
+      await awaitTick();
+
+      textarea.value = "a\nb";
+      textarea.dispatchEvent(inputEvent(window));
+
       expect(
         document.querySelector(".editor__gutter")?.innerHTML,
-      ).toBe("<span>1</span><span>2</span><span>3</span>");
+      ).toBe("<span>1</span><span>2</span>");
     } finally {
       void window.close();
     }
   });
 
-  it("is a no-op without an analyze form", () => {
+  it("is a no-op without an analyze form", async () => {
     const window = new Window();
 
     try {
       expect(
-        enhanceAnalyzeEditor(window.document as unknown as Document),
+        enhanceAnalyzeEditor(window.document as unknown as Document, neverDetect()),
       ).toBe(false);
     } finally {
       void window.close();
     }
   });
 
-  it("is a no-op when the backdrop is missing", () => {
+  it("is a no-op when the backdrop is missing", async () => {
     const window = new Window();
 
     try {
@@ -431,7 +714,7 @@ describe("enhanceAnalyzeEditor", () => {
         `</form>`;
       document.body.appendChild(host);
 
-      expect(enhanceAnalyzeEditor(document)).toBe(false);
+      expect(enhanceAnalyzeEditor(document, neverDetect())).toBe(false);
     } finally {
       void window.close();
     }
@@ -460,13 +743,13 @@ describe("enhanceAnalyzeEditor", () => {
       document.body.appendChild(host);
       host.querySelector(`#${id}`)?.remove();
 
-      expect(enhanceAnalyzeEditor(document)).toBe(false);
+      expect(enhanceAnalyzeEditor(document, neverDetect())).toBe(false);
     } finally {
       void window.close();
     }
   });
 
-  it("is a no-op when the source field is not a textarea", () => {
+  it("is a no-op when the source field is not a textarea", async () => {
     const window = new Window();
 
     try {
@@ -482,7 +765,7 @@ describe("enhanceAnalyzeEditor", () => {
         `</form>`;
       document.body.appendChild(host);
 
-      expect(enhanceAnalyzeEditor(document)).toBe(false);
+      expect(enhanceAnalyzeEditor(document, neverDetect())).toBe(false);
     } finally {
       void window.close();
     }

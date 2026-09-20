@@ -1,8 +1,10 @@
 import {
   AnalyzeSubject,
+  HttpJevClient,
   InMemoryEventStore,
   InMemoryPrincipleCatalog,
   InMemoryRuleCatalog,
+  JevLanguageDetector,
   ListPrinciples,
   SrpRule,
 } from "@principled/core";
@@ -21,6 +23,16 @@ import { loadClientAssets } from "./client-assets.ts";
 // real, the durable adapter is not built yet, the same gap already accepted
 // for InMemoryPrincipleCatalog and InMemoryRuleCatalog below.
 //
+// Language detection asks Jev (ADR-0028): TYPESAFE_API_KEY must reach the
+// function as an environment variable (infra follow-up), or the cold start
+// fails fast instead of 400ing every submission.
+const apiKey = process.env["TYPESAFE_API_KEY"];
+if (apiKey === undefined || apiKey.trim().length === 0) {
+  throw new Error(
+    "TYPESAFE_API_KEY must be set: language detection asks Jev (ADR-0028).",
+  );
+}
+
 // Client bundles ship beside the handler in the zip (build-lambda.ts) and
 // are read once per cold start; absent without a client build, in which
 // case the form renders with no script tag.
@@ -33,6 +45,9 @@ export const handler = createLambdaHandler(
   createRequestHandler({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
     analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog([new SrpRule()])),
+    languageDetector: new JevLanguageDetector(
+      new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),
+    ),
     eventStore: new InMemoryEventStore(),
     clientAssets,
   }),

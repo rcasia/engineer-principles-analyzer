@@ -1,9 +1,11 @@
 #!/usr/bin/env bun
 import {
   AnalyzeSubject,
+  HttpJevClient,
   InMemoryEventStore,
   InMemoryPrincipleCatalog,
   InMemoryRuleCatalog,
+  JevLanguageDetector,
   ListPrinciples,
   SrpRule,
 } from "@principled/core";
@@ -12,6 +14,13 @@ import { loadClientAssets } from "./client-assets.ts";
 
 // Executable shim only. All behaviour lives in createRequestHandler, which is
 // why this file is excluded from mutation testing in stryker.config.json.
+const apiKey = Bun.env["TYPESAFE_API_KEY"];
+if (apiKey === undefined || apiKey.trim().length === 0) {
+  throw new Error(
+    "TYPESAFE_API_KEY must be set to run the web server: language detection asks Jev (ADR-0028).",
+  );
+}
+
 const clientDir = new URL("../../../infra/build/client", import.meta.url);
 const clientAssets = await loadClientAssets(
   async () => {
@@ -30,6 +39,9 @@ const server = Bun.serve({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
     // Seeded with the real SOLID rules as they land (#10 SRP first).
     analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog([new SrpRule()])),
+    languageDetector: new JevLanguageDetector(
+      new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),
+    ),
     eventStore: new InMemoryEventStore(),
     // Absent without a client build: the form renders with no script tag.
     clientAssets,

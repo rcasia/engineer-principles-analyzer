@@ -1,17 +1,18 @@
 /**
  * Live language detection and syntax highlighting for the `/analyze`
- * playground (ADR-0027).
+ * playground (ADR-0027, detection via POST /detect per ADR-0028).
  *
  * Progressive enhancement only: the form submits and the server detects
- * without any of this running. When the bundle loads, the island detects
- * the buffer on every keystroke with the same core `detectLanguage` the
- * server uses — so the badge never disagrees with the analysis — and
- * colours the code with highlight.js behind a transparent textarea.
+ * without any of this running. When the bundle loads, the island
+ * highlights with the server-rendered language (`data-language` on the
+ * badge) and asks POST /detect — the same Jev judgment the server uses on
+ * submit — on paste and when a buffer loads unknown. Never per keystroke:
+ * typing only re-highlights and re-counts locally, so the credential stays
+ * server-side and one paste costs one call.
  *
  * Everything DOM-touching degrades to `false` when its elements are absent
  * (SSR output, scripting disabled, other pages).
  */
-import { detectLanguage } from "@principled/core";
 import hljs from "highlight.js/lib/core";
 import go from "highlight.js/lib/languages/go";
 import java from "highlight.js/lib/languages/java";
@@ -40,12 +41,43 @@ for (const [name, definition] of Object.entries(HIGHLIGHT_LANGUAGES)) {
   hljs.registerLanguage(name, definition);
 }
 
-/** Detector-produced language for a buffer, "" when nothing recognisable. */
-export function editorLanguageOf(
+/** One language lookup: buffer plus optional filename hint. */
+export type DetectLanguage = (
   sourceCode: string,
   filename: string | undefined,
-): string {
-  return detectLanguage(sourceCode, filename) ?? "";
+) => Promise<string>;
+
+/**
+ * Asks the server for one buffer's language. Never throws: any failure —
+ * network, status, or shape — resolves to `""`, so the badge keeps showing
+ * auto-detect instead of breaking the island.
+ */
+export async function fetchLanguage(
+  sourceCode: string,
+  filename: string | undefined,
+  fetchFn: typeof fetch,
+): Promise<string> {
+  try {
+    const response = await fetchFn("/detect", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sourceCode, filename: filename ?? "" }),
+    });
+
+    if (!response.ok) {
+      return "";
+    }
+
+    const payload: unknown = await response.json();
+    const language =
+      typeof payload === "object" && payload !== null
+        ? (payload as { readonly language?: unknown }).language
+        : undefined;
+
+    return typeof language === "string" ? language : "";
+  } catch {
+    return "";
+  }
 }
 
 function escapeHtml(text: string): string {
@@ -106,6 +138,11 @@ interface EditorElements {
   readonly exampleFilename: string | undefined;
 }
 
+/** Mutable island state: the language the badge currently shows. */
+interface EditorState {
+  language: string;
+}
+
 /**
  * Looks up one element by tag: `querySelector` alone cannot tell a
  * `<div id="sourceCode">` from the real textarea, and the island must not
@@ -134,12 +171,8 @@ export function selectedFilename(
   return fileInput?.files?.[0]?.name;
 }
 
-function render(elements: EditorElements): void {
+function render(elements: EditorElements, language: string): void {
   const sourceCode = elements.textarea.value;
-  const language = editorLanguageOf(
-    sourceCode,
-    selectedFilename(elements.fileInput),
-  );
 
   elements.backdrop.innerHTML = `${highlightedHtml(sourceCode, language)}\n`;
   elements.badge.textContent = languageLabel(language);
@@ -156,10 +189,38 @@ function render(elements: EditorElements): void {
 }
 
 /**
+ * Re-asks the server for the buffer's language, then re-renders. A
+ * rejecting lookup resolves to auto-detect rather than breaking the
+ * island — the badge is a preview, the submit verdict is authoritative.
+ */
+async function refreshLanguage(
+  elements: EditorElements,
+  state: EditorState,
+  detect: DetectLanguage,
+): Promise<void> {
+  try {
+    state.language = await detect(
+      elements.textarea.value,
+      selectedFilename(elements.fileInput),
+    );
+  } catch {
+    state.language = "";
+  }
+
+  render(elements, state.language);
+}
+
+/**
  * Enhances the server-rendered playground in place. Returns `true` when an
  * editor was found and wired, `false` without touching anything otherwise.
+ *
+ * `detect` is injected so tests script the lookup: production passes a
+ * `fetchLanguage` call, keeping the credential server-side.
  */
-export function enhanceAnalyzeEditor(root: Document | Element): boolean {
+export function enhanceAnalyzeEditor(
+  root: Document | Element,
+  detect: DetectLanguage,
+): boolean {
   const form = byTag<HTMLElement>(root, "form#analyzeForm", "FORM");
 
   if (form === null) {
@@ -182,6 +243,7 @@ export function enhanceAnalyzeEditor(root: Document | Element): boolean {
     return false;
   }
 
+  const state: EditorState = { language: badge.dataset["language"] ?? "" };
   const elements: EditorElements = {
     textarea,
     backdrop,
@@ -193,18 +255,36 @@ export function enhanceAnalyzeEditor(root: Document | Element): boolean {
     exampleFilename: form.dataset["exampleFilename"],
   };
 
-  render(elements);
+  render(elements, state.language);
   backdrop.closest(".editor__stage")?.classList.add("editor--live");
-  textarea.addEventListener("input", () => render(elements));
+
+  if (elements.textarea.value.trim().length > 0 && state.language === "") {
+    void refreshLanguage(elements, state, detect);
+  }
+
+  textarea.addEventListener("input", () => render(elements, state.language));
+  textarea.addEventListener("paste", () => {
+    // The paste lands after this event: defer the lookup a task so it
+    // reads the pasted buffer, not the pre-paste one.
+    globalThis.setTimeout(() => {
+      void refreshLanguage(elements, state, detect);
+    }, 0);
+  });
   textarea.addEventListener("scroll", () => {
     backdrop.scrollTop = textarea.scrollTop;
     backdrop.scrollLeft = textarea.scrollLeft;
   });
-  elements.fileInput?.addEventListener("change", () => render(elements));
+  elements.fileInput?.addEventListener("change", () =>
+    render(elements, state.language),
+  );
 
   return true;
 }
 
 if (typeof document !== "undefined") {
-  enhanceAnalyzeEditor(document);
+  enhanceAnalyzeEditor(
+    document,
+    (sourceCode, filename) =>
+      fetchLanguage(sourceCode, filename, globalThis.fetch),
+  );
 }

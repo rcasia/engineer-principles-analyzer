@@ -1,5 +1,14 @@
-import type { AnalyzeSubject, EventStore, ListPrinciples } from "@principled/core";
-import { detectLanguage, Subject } from "@principled/core";
+import type {
+  AnalyzeSubject,
+  EventStore,
+  LanguageDetector,
+  ListPrinciples,
+} from "@principled/core";
+import {
+  InvalidJevResponseError,
+  JevTransportError,
+  Subject,
+} from "@principled/core";
 import type { ClientAssets } from "./client-assets.ts";
 import { renderAnalyzePage } from "./presentation/analyze-page.ts";
 import { exampleFor } from "./presentation/code-examples.ts";
@@ -70,6 +79,12 @@ export interface RequestHandlerDependencies {
   /** Runs every registered rule against a submitted `Subject` (#9, #34). */
   readonly analyzeSubject: AnalyzeSubject;
   /**
+   * Resolves a submission's language with Jev (ADR-0028) before the
+   * `Subject` is built. Injected so tests script the judgment and the
+   * composition roots (bin, lambda-entry) supply the HTTP client.
+   */
+  readonly languageDetector: LanguageDetector;
+  /**
    * Where an analysis run's events are appended after `analyzeSubject`
    * returns (ADR-0015) — facts about the run only, never the submitted
    * source, so the "not persisted by default" requirement holds regardless
@@ -129,18 +144,49 @@ async function sourceCodeOf(form: FormData): Promise<SubmittedSource> {
   };
 }
 
+/**
+ * Asks Jev for one submission's language. Only Jev's own failures (the
+ * network, the service, or the wire shape) resolve to `undefined` here —
+ * anything else is a bug and still throws, so it cannot masquerade as an
+ * ambiguous snippet.
+ */
+async function detectedLanguage(
+  detector: LanguageDetector,
+  sourceCode: string,
+  filename: string | undefined,
+): Promise<string | undefined> {
+  try {
+    return await detector.detectLanguage(sourceCode, filename);
+  } catch (error) {
+    if (
+      error instanceof JevTransportError ||
+      error instanceof InvalidJevResponseError
+    ) {
+      return undefined;
+    }
+
+    throw error;
+  }
+}
+
 async function handleAnalyzeSubmission(
   request: Request,
   deps: Pick<
     RequestHandlerDependencies,
-    "analyzeSubject" | "eventStore" | "clientAssets"
+    "analyzeSubject" | "eventStore" | "languageDetector" | "clientAssets"
   >,
 ): Promise<Response> {
   const form = await request.formData();
   const { sourceCode, filename } = await sourceCodeOf(form);
   // Fully automatic: any `language` field in the form is ignored and the
-  // effective language always comes from the filename and content.
-  const language = detectLanguage(sourceCode, filename) ?? "";
+  // effective language always comes from Jev over the source and filename.
+  // A Jev failure degrades to "undetected" rather than a 500: the visitor
+  // gets the same guidance as for an ambiguous snippet.
+  const language = (await detectedLanguage(
+    deps.languageDetector,
+    sourceCode,
+    filename,
+  )) ?? "";
 
   const subject = Subject.of({ sourceCode, language });
 
@@ -179,6 +225,51 @@ async function handleAnalyzeSubmission(
 }
 
 /**
+ * Answers the live island's language lookup (`POST /detect`): the same Jev
+ * judgment `POST /analyze` uses, but as JSON for the badge instead of a
+ * verdict. The island calls it on paste and when a buffer loads unknown —
+ * never per keystroke — so typing stays free and the credential never
+ * leaves the server. Unknown and Jev failures both answer `""` with 200:
+ * a preview that cannot tell simply keeps showing auto-detect.
+ */
+async function handleDetectRequest(
+  request: Request,
+  deps: Pick<RequestHandlerDependencies, "languageDetector">,
+): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return Response.json(
+      { error: "expected a JSON body with sourceCode" },
+      {
+        status: 400,
+        headers: { "cache-control": ANALYSIS_CACHE_CONTROL },
+      },
+    );
+  }
+
+  const fields =
+    typeof payload === "object" && payload !== null
+      ? (payload as Record<string, unknown>)
+      : {};
+  const sourceCode =
+    typeof fields["sourceCode"] === "string" ? fields["sourceCode"] : "";
+  const filenameRaw = fields["filename"];
+  const filename =
+    typeof filenameRaw === "string" ? filenameRaw : undefined;
+
+  const language =
+    (await detectedLanguage(deps.languageDetector, sourceCode, filename)) ??
+    "";
+
+  return Response.json(
+    { language },
+    { headers: { "cache-control": ANALYSIS_CACHE_CONTROL } },
+  );
+}
+
+/**
  * Driving adapter as a plain `Request -> Response` function. Keeping the
  * handler separate from `Bun.serve` means the whole web surface is tested
  * without binding a port.
@@ -197,6 +288,10 @@ export function createRequestHandler(
 
     if (asset !== undefined) {
       return asset;
+    }
+
+    if (pathname === "/detect" && request.method === "POST") {
+      return handleDetectRequest(request, deps);
     }
 
     if (pathname === "/analyze") {
@@ -225,12 +320,16 @@ export function createRequestHandler(
 
       // Prefilled by query, which the CDN cache key ignores: this response
       // must not be stored, or one visitor's example would be served to all.
+      // The example's language is curated display content, not a judgment —
+      // the live island re-detects through POST /detect on paste and when
+      // the buffer loads unknown, so rendering an example never waits on
+      // (or pays for) a Jev call.
       return htmlResponse(
         renderAnalyzePage(
           {
             kind: "form",
             sourceCode: example.source,
-            language: detectLanguage(example.source, example.filename) ?? "",
+            language: example.language,
             exampleId: example.id,
           },
           { scriptSrc },
