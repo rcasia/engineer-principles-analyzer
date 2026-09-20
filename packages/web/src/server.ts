@@ -33,9 +33,11 @@ export const NOT_FOUND_CACHE_CONTROL = "public, max-age=300";
 /**
  * A submitted analysis is per-visitor and is not persisted server side
  * (#34, #28); the CDN and every intermediate cache must not store or reuse
- * either the form echo or the findings from one visitor's request.
+ * either the form echo or the findings from one visitor's request. `private`
+ * keeps a shared cache from serving one visitor's analysis to another even
+ * where the CDN behavior for user-specific responses is misconfigured.
  */
-export const ANALYSIS_CACHE_CONTROL = "no-store";
+export const ANALYSIS_CACHE_CONTROL = "no-store, private";
 /**
  * Content-hashed client bundles from `scripts/build-client.ts` are immutable
  * by construction: a new build is a new file name, so caches never need to

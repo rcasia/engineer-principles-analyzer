@@ -365,8 +365,8 @@ describe("createRequestHandler", () => {
         postAnalyze({ sourceCode: "interface Foo { readonly name: string }" }),
       );
 
-      expect(response.headers.get("cache-control")).toBe("no-store");
-      expect(ANALYSIS_CACHE_CONTROL).toBe("no-store");
+      expect(response.headers.get("cache-control")).toBe("no-store, private");
+      expect(ANALYSIS_CACHE_CONTROL).toBe("no-store, private");
     });
 
     it("prefers an uploaded file over pasted text", async () => {
