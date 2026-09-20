@@ -45,6 +45,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0033](0033-quality-views-as-projections.md) | Treat quality metrics, snapshots and exemplars as projections | Accepted | 2026-09-20 |
 | [0034](0034-isp-heuristic-rule.md) | Detect Interface Segregation violations with a dependency-free member-count heuristic | Accepted | 2026-09-20 |
 | [0035](0035-dip-heuristic-rule.md) | Detect Dependency Inversion violations with a dependency-free import-and-instantiation heuristic | Accepted | 2026-09-20 |
+| [0036](0036-solid-judgment-corpus.md) | Judge the SOLID rules against a versioned synthetic corpus | Accepted | 2026-09-20 |
 
 ## Writing a new ADR
 

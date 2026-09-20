@@ -1,0 +1,303 @@
+import type { CorpusEntry } from "../domain/corpus-entry.ts";
+
+/**
+ * Version of this corpus. Bumped — with a dated note in the file history —
+ * whenever a fixture is added, removed, or re-labelled, or a rule change
+ * moves a fixture across the violation/compliant line: evaluation numbers
+ * are meaningless without the exact fixtures behind them (#30).
+ */
+export const SOLID_CORPUS_VERSION = "1";
+
+/**
+ * The v1 SOLID judgment corpus (#27): twenty synthetic TypeScript
+ * fixtures, four per SOLID rule (two violations, two compliant), each a
+ * clear-cut case the named rule version must get right.
+ *
+ * Synthetic by construction — every fixture below is hand-written for
+ * this file, never copied from customer code — so the corpus can back
+ * public quality claims without touching private submissions (#28).
+ * TypeScript-only for v1; per-language growth is later versions' job,
+ * tracked by the sample sizes in each snapshot (#30).
+ */
+export const SOLID_CORPUS: readonly CorpusEntry[] = [
+  {
+    id: "solid.srp.violation.god-class",
+    ruleId: "solid.srp",
+    language: "typescript",
+    sourceCode: [
+      "class UserManager {",
+      "  save(user) {}",
+      "  load(id) {}",
+      "  send(email) {}",
+      "  notify(user) {}",
+      "  render(user) {}",
+      "  display(user) {}",
+      "}",
+    ].join("\n"),
+    expected: "violation",
+    note: "Six methods across persistence, communication and presentation.",
+  },
+  {
+    id: "solid.srp.violation.mixed-duties",
+    ruleId: "solid.srp",
+    language: "typescript",
+    sourceCode: [
+      "class AccountService {",
+      "  validate(account) {}",
+      "  check(account) {}",
+      "  calculate(interest) {}",
+      "  compute(fees) {}",
+      "  authenticate(user) {}",
+      "  authorize(user) {}",
+      "}",
+    ].join("\n"),
+    expected: "violation",
+    note: "Six methods across validation, calculation and authentication.",
+  },
+  {
+    id: "solid.srp.compliant.cohesive",
+    ruleId: "solid.srp",
+    language: "typescript",
+    sourceCode: [
+      "class Calculator {",
+      "  add(a, b) {}",
+      "  subtract(a, b) {}",
+      "  multiply(a, b) {}",
+      "}",
+    ].join("\n"),
+    expected: "compliant",
+    note: "Three methods matching no responsibility domain at all.",
+  },
+  {
+    id: "solid.srp.compliant.single-domain",
+    ruleId: "solid.srp",
+    language: "typescript",
+    sourceCode: [
+      "class UserStore {",
+      "  save(user) {}",
+      "  load(id) {}",
+      "  fetch(id) {}",
+      "  query(filter) {}",
+      "}",
+    ].join("\n"),
+    expected: "compliant",
+    note: "Four methods in persistence alone: one responsibility.",
+  },
+  {
+    id: "solid.ocp.violation.type-dispatch",
+    ruleId: "solid.ocp",
+    language: "typescript",
+    sourceCode: [
+      "function area(shape) {",
+      "  switch (shape.kind) {",
+      "    case 'circle': return 1;",
+      "  }",
+      "  if (typeof shape === 'string') {}",
+      "  if (shape instanceof Circle) {}",
+      "}",
+    ].join("\n"),
+    expected: "violation",
+    note: "A switch plus two type guards: three extension signals.",
+  },
+  {
+    id: "solid.ocp.violation.branch-chains",
+    ruleId: "solid.ocp",
+    language: "typescript",
+    sourceCode: [
+      "function route(event) {",
+      "  switch (event.kind) {}",
+      "  if (a) {} else if (b) {}",
+      "  if (c) {} else if (d) {}",
+      "}",
+    ].join("\n"),
+    expected: "violation",
+    note: "A switch plus two else-if chains: three extension signals.",
+  },
+  {
+    id: "solid.ocp.compliant.sequential",
+    ruleId: "solid.ocp",
+    language: "typescript",
+    sourceCode: "const x = 1;\nreturn x + 1;",
+    expected: "compliant",
+    note: "Straight-line code with no branch at all.",
+  },
+  {
+    id: "solid.ocp.compliant.single-guard",
+    ruleId: "solid.ocp",
+    language: "typescript",
+    sourceCode: "if (typeof x === 'string') { return x; }",
+    expected: "compliant",
+    note: "One type guard is a check, not extension pressure.",
+  },
+  {
+    id: "solid.lsp.violation.throwing-overrides",
+    ruleId: "solid.lsp",
+    language: "typescript",
+    sourceCode: [
+      "class Animal {",
+      "  speak() { return '...'; }",
+      "  fly() { return '...'; }",
+      "}",
+      "class Rock extends Animal {",
+      "  speak() { throw new Error('silent'); }",
+      "  fly() { throw new Error('heavy'); }",
+      "}",
+    ].join("\n"),
+    expected: "violation",
+    note: "Two overrides that throw where the parent did not.",
+  },
+  {
+    id: "solid.lsp.violation.two-subclasses",
+    ruleId: "solid.lsp",
+    language: "typescript",
+    sourceCode: [
+      "class Animal {",
+      "  speak() { return '...'; }",
+      "  fly() { return '...'; }",
+      "}",
+      "class Fish extends Animal {",
+      "  fly() { throw new Error('no wings'); }",
+      "}",
+      "class Stone extends Animal {",
+      "  speak() { throw new Error('silent'); }",
+      "}",
+    ].join("\n"),
+    expected: "violation",
+    note: "One throwing override in each of two subclasses.",
+  },
+  {
+    id: "solid.lsp.compliant.honest-override",
+    ruleId: "solid.lsp",
+    language: "typescript",
+    sourceCode: [
+      "class Animal {",
+      "  speak() { return '...'; }",
+      "}",
+      "class Dog extends Animal {",
+      "  speak() { return 'woof'; }",
+      "}",
+    ].join("\n"),
+    expected: "compliant",
+    note: "An override that honours the parent contract.",
+  },
+  {
+    id: "solid.lsp.compliant.additive-subclass",
+    ruleId: "solid.lsp",
+    language: "typescript",
+    sourceCode: [
+      "class Animal {",
+      "  speak() { return '...'; }",
+      "}",
+      "class Dog extends Animal {",
+      "  bark() { return 'woof'; }",
+      "}",
+    ].join("\n"),
+    expected: "compliant",
+    note: "A subclass that adds behaviour without overriding.",
+  },
+  {
+    id: "solid.isp.violation.god-interface",
+    ruleId: "solid.isp",
+    language: "typescript",
+    sourceCode: [
+      "interface God {",
+      "  op0(): void;",
+      "  op1(): void;",
+      "  op2(): void;",
+      "  op3(): void;",
+      "  op4(): void;",
+      "  op5(): void;",
+      "  op6(): void;",
+      "  op7(): void;",
+      "}",
+    ].join("\n"),
+    expected: "violation",
+    note: "Eight members: no single consumer needs all of these.",
+  },
+  {
+    id: "solid.isp.violation.broad-type",
+    ruleId: "solid.isp",
+    language: "typescript",
+    sourceCode: [
+      "type Config = {",
+      "  host: string;",
+      "  port: number;",
+      "  retries: number;",
+      "  timeout: number;",
+      "  verbose: boolean;",
+      "  format: string;",
+      "  output: string;",
+      "};",
+    ].join("\n"),
+    expected: "violation",
+    note: "Seven members on an object type literal.",
+  },
+  {
+    id: "solid.isp.compliant.narrow",
+    ruleId: "solid.isp",
+    language: "typescript",
+    sourceCode: [
+      "interface User {",
+      "  name: string;",
+      "  age: number;",
+      "  email: string;",
+      "}",
+    ].join("\n"),
+    expected: "compliant",
+    note: "Three cohesive members.",
+  },
+  {
+    id: "solid.isp.compliant.small-type",
+    ruleId: "solid.isp",
+    language: "typescript",
+    sourceCode: ["type Point = {", "  x: number;", "  y: number;", "};"].join(
+      "\n",
+    ),
+    expected: "compliant",
+    note: "Two members on an object type literal.",
+  },
+  {
+    id: "solid.dip.violation.direct-coupling",
+    ruleId: "solid.dip",
+    language: "typescript",
+    sourceCode: [
+      'import { Pool } from "pg";',
+      "export class UserStore {",
+      "  private pool = new Pool();",
+      "}",
+    ].join("\n"),
+    expected: "violation",
+    note: "An infrastructure import plus its direct instantiation.",
+  },
+  {
+    id: "solid.dip.violation.more-infra",
+    ruleId: "solid.dip",
+    language: "typescript",
+    sourceCode: [
+      'import fs from "node:fs";',
+      'import axios from "axios";',
+      "export function load(url: string) {}",
+    ].join("\n"),
+    expected: "violation",
+    note: "Two infrastructure imports with no abstraction between them.",
+  },
+  {
+    id: "solid.dip.compliant.decoupled",
+    ruleId: "solid.dip",
+    language: "typescript",
+    sourceCode: [
+      'import { format } from "./format";',
+      "const cache = new Map();",
+    ].join("\n"),
+    expected: "compliant",
+    note: "A relative import and a platform collection: no infrastructure.",
+  },
+  {
+    id: "solid.dip.compliant.no-deps",
+    ruleId: "solid.dip",
+    language: "typescript",
+    sourceCode: "export function add(a: number, b: number) { return a + b; }",
+    expected: "compliant",
+    note: "Pure logic with nothing to invert.",
+  },
+];

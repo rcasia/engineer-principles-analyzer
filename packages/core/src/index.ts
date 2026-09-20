@@ -132,6 +132,25 @@ export type {
   RuleLanguageQuality,
 } from "./evaluation/domain/evaluation-snapshot.ts";
 
+// Test corpus for SOLID judgments (#27).
+export {
+  InvalidCorpusError,
+  validateCorpus,
+} from "./evaluation/domain/corpus-entry.ts";
+export type {
+  CorpusEntry,
+  CorpusExpectation,
+} from "./evaluation/domain/corpus-entry.ts";
+export {
+  EvaluateCorpus,
+  type EvaluateCorpusRequest,
+  type EvaluateCorpusResult,
+} from "./evaluation/application/evaluate-corpus.use-case.ts";
+export {
+  SOLID_CORPUS,
+  SOLID_CORPUS_VERSION,
+} from "./evaluation/corpus/solid-corpus-v1.ts";
+
 // Public code exemplars and instructive cases (#32, story #46).
 export {
   EXEMPLAR_CATEGORIES,
