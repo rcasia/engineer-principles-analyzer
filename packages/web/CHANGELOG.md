@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/rcasia/principled/compare/web-v1.11.0...web-v1.12.0) (2026-09-20)
+
+
+### Features
+
+* **web:** make Analyze and Principles state the product promise ([925c562](https://github.com/rcasia/principled/commit/925c562faac5b516ba844f16d9a248b3c7dfa03e)), closes [#52](https://github.com/rcasia/principled/issues/52)
+
 # [1.11.0](https://github.com/rcasia/principled/compare/web-v1.10.3...web-v1.11.0) (2026-09-20)
 
 
