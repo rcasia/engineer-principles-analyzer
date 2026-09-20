@@ -855,6 +855,64 @@ describe("validation echo", () => {
 });
 
 describe("example switching", () => {
+  it("re-renders synchronously on switch, before any language lookup settles", async () => {
+    const window = new Window();
+
+    try {
+      const document = window.document as unknown as Document;
+      document.body.innerHTML =
+        `<div>` +
+        `<form id="analyzeForm">` +
+        `<span id="editorFilename">snippet.txt</span>` +
+        `<span id="editorLanguage" data-language="">Auto-detect</span>` +
+        `<div class="editor__stage">` +
+        `<pre class="editor__backdrop" aria-hidden="true"><code id="sourceHighlight"></code></pre>` +
+        `<textarea id="sourceCode" name="sourceCode"></textarea>` +
+        `</div>` +
+        `<p id="editorMeta"></p>` +
+        `<div class="editor__gutter" aria-hidden="true"></div>` +
+        `<input id="sourceFile" name="sourceFile" type="file">` +
+        `</form>` +
+        `<section class="examples"><div class="button-row">` +
+        `<a class="button" href="/analyze?example=single-responsibility">Single Responsibility</a>` +
+        `</div></section>` +
+        `</div>`;
+
+      const calls: RecordedCall[] = [];
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("typescript", calls)),
+      ).toBe(true);
+
+      const link = document.querySelector(
+        'a[href="/analyze?example=single-responsibility"]',
+      );
+      const event = new window.Event("click", {
+        bubbles: true,
+        cancelable: true,
+      }) as unknown as Event;
+      link?.dispatchEvent(event);
+
+      // No tick: the language lookup has not settled, so only the
+      // synchronous re-render can have updated the toolbar and backdrop.
+      expect(event.defaultPrevented).toBe(true);
+      expect(document.querySelector("#editorFilename")?.textContent).toBe(
+        "UserService.ts",
+      );
+      expect(
+        document.querySelector("#sourceHighlight")?.textContent,
+      ).toContain("sendWelcomeEmail");
+
+      await awaitTick();
+
+      expect(calls).toHaveLength(1);
+      expect(document.querySelector("#editorLanguage")?.textContent).toBe(
+        "TypeScript",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
   it("fills the editor and refreshes the language without navigating", async () => {
     const window = new Window();
 
@@ -989,6 +1047,62 @@ describe("hydration mismatch", () => {
         "sourceCode must not be empty.",
       );
     } finally {
+      void window.close();
+    }
+  });
+});
+
+describe("module auto-enhancement", () => {
+  let importCount = 0;
+
+  it("enhances the playground on load when a document exists", async () => {
+    const window = new Window();
+    const document = window.document as unknown as Document;
+    document.body.innerHTML =
+      `<form id="analyzeForm">` +
+      `<span id="editorFilename">snippet.txt</span>` +
+      `<span id="editorLanguage" data-language="">Auto-detect</span>` +
+      `<div class="editor__stage">` +
+      `<pre class="editor__backdrop" aria-hidden="true"><code id="sourceHighlight"></code></pre>` +
+      `<textarea id="sourceCode" name="sourceCode">package main</textarea>` +
+      `</div>` +
+      `<p id="editorMeta"></p>` +
+      `<div class="editor__gutter" aria-hidden="true"></div>` +
+      `<input id="sourceFile" name="sourceFile" type="file">` +
+      `</form>`;
+
+    const globals = globalThis as unknown as Record<string, unknown>;
+    const previousDocument = globals["document"];
+    const previousFetch = globals["fetch"];
+    globals["document"] = document;
+    globals["fetch"] = (async () =>
+      jsonResponse({ language: "go" })) as unknown as typeof fetch;
+
+    try {
+      importCount += 1;
+      await import(`./analyze-editor.ts?auto-init=${importCount}`);
+      await awaitTick();
+      await awaitTick();
+
+      expect(document.querySelector("#editorLanguage")?.textContent).toBe(
+        "Go",
+      );
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Go · 1 line",
+      );
+      expect(
+        document.querySelector(".editor__stage")?.classList.contains(
+          "editor--live",
+        ),
+      ).toBe(true);
+    } finally {
+      if (previousDocument === undefined) {
+        delete globals["document"];
+      } else {
+        globals["document"] = previousDocument;
+      }
+
+      globals["fetch"] = previousFetch;
       void window.close();
     }
   });

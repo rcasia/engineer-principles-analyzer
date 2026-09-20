@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
-import { enhanceExampleSwitching } from "./example-switcher.ts";
+import { exampleIdOf, enhanceExampleSwitching } from "./example-switcher.ts";
 
 function switcherDom(options?: {
   readonly textareaTag?: string;
@@ -67,6 +67,32 @@ function clickOn(
   link?.dispatchEvent(event);
   return event;
 }
+
+describe("exampleIdOf", () => {
+  it("reads the example id from the query string", () => {
+    expect(exampleIdOf("/analyze?example=single-responsibility")).toBe(
+      "single-responsibility",
+    );
+  });
+
+  it("reads the id regardless of surrounding parameters", () => {
+    expect(exampleIdOf("/analyze?other=1&example=hexagonal-violation")).toBe(
+      "hexagonal-violation",
+    );
+  });
+
+  it("returns null when the parameter is absent", () => {
+    expect(exampleIdOf("/analyze")).toBe(null);
+  });
+
+  it("returns null for an empty href", () => {
+    expect(exampleIdOf("")).toBe(null);
+  });
+
+  it("returns null instead of throwing for an unparseable href", () => {
+    expect(exampleIdOf("http://[/")).toBe(null);
+  });
+});
 
 describe("enhanceExampleSwitching", () => {
   it("fills the editor in place instead of navigating", () => {
@@ -196,6 +222,10 @@ describe("enhanceExampleSwitching", () => {
 
   it("keeps the plain navigation when the editor is absent", () => {
     const window = new Window();
+    const errors: unknown[] = [];
+    window.addEventListener("error", (event) => {
+      errors.push(event);
+    });
 
     try {
       const document = window.document as unknown as Document;
@@ -214,6 +244,7 @@ describe("enhanceExampleSwitching", () => {
       );
 
       expect(event.defaultPrevented).toBe(false);
+      expect(errors).toEqual([]);
     } finally {
       void window.close();
     }
@@ -242,6 +273,10 @@ describe("enhanceExampleSwitching", () => {
 
   it("leaves a malformed href to the browser", () => {
     const window = new Window();
+    const errors: unknown[] = [];
+    window.addEventListener("error", (event) => {
+      errors.push(event);
+    });
 
     try {
       const document = window.document as unknown as Document;
@@ -255,6 +290,7 @@ describe("enhanceExampleSwitching", () => {
       const event = clickOn(window, document.querySelector(".examples a"));
 
       expect(event.defaultPrevented).toBe(false);
+      expect(errors).toEqual([]);
       expect(
         (document.querySelector("#sourceCode") as unknown as HTMLTextAreaElement)
           .value,
@@ -286,6 +322,153 @@ describe("enhanceExampleSwitching", () => {
         `<section class="examples"><a class="button">Example</a></section>`;
 
       expect(enhanceExampleSwitching(document)).toBe(false);
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("ignores non-HTML anchors, which never match the editor's links", () => {
+    const window = new Window();
+
+    try {
+      const document = window.document as unknown as Document;
+      document.body.innerHTML =
+        `<div>` +
+        `<form id="analyzeForm"><textarea id="sourceCode" name="sourceCode"></textarea></form>` +
+        `<section class="examples"><svg><a href="/analyze?example=single-responsibility">Example</a></svg></section>` +
+        `</div>`;
+
+      expect(enhanceExampleSwitching(document)).toBe(false);
+      expect(
+        document.querySelector(".examples a")?.tagName,
+      ).toBe("a");
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("creates the fallback input event with the DOM Event interface", () => {
+    const { window, document, textarea } = switcherDom();
+    const created: string[] = [];
+    const ownerDocument = (textarea as unknown as HTMLTextAreaElement)
+      .ownerDocument;
+    const originalCreateEvent = ownerDocument.createEvent.bind(ownerDocument);
+    ownerDocument.createEvent = ((type: string) => {
+      created.push(type);
+      return originalCreateEvent(type as "Event");
+    }) as typeof ownerDocument.createEvent;
+
+    try {
+      expect(enhanceExampleSwitching(document)).toBe(true);
+      clickOn(
+        window,
+        document.querySelector(
+          'a[href="/analyze?example=single-responsibility"]',
+        ),
+      );
+
+      expect(created).toEqual(["Event"]);
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("dispatches the fallback input as a bubbling, cancelable event", () => {
+    const { window, document, form } = switcherDom();
+    const seen: { readonly bubbles: boolean; readonly cancelable: boolean }[] =
+      [];
+    form?.addEventListener("input", (event) => {
+      seen.push({ bubbles: event.bubbles, cancelable: event.cancelable });
+    });
+
+    try {
+      expect(enhanceExampleSwitching(document)).toBe(true);
+      clickOn(
+        window,
+        document.querySelector(
+          'a[href="/analyze?example=single-responsibility"]',
+        ),
+      );
+
+      expect(seen).toEqual([{ bubbles: true, cancelable: true }]);
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("keeps the plain navigation when the href vanished after wiring", () => {
+    const { window, document, textarea } = switcherDom();
+
+    try {
+      expect(enhanceExampleSwitching(document)).toBe(true);
+      const link = document.querySelector(
+        'a[href="/analyze?example=single-responsibility"]',
+      );
+      link?.removeAttribute("href");
+      const errors: unknown[] = [];
+      window.addEventListener("error", (event) => {
+        errors.push(event);
+      });
+      const event = clickOn(window, link);
+
+      expect(event.defaultPrevented).toBe(false);
+      expect((textarea as unknown as HTMLTextAreaElement).value).toBe("");
+      expect(errors).toEqual([]);
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("drops a chosen file when switching, so the fill cannot lose on submit", () => {
+    const { window, document, textarea, form } = switcherDom();
+    const fileInput = document.querySelector(
+      "#sourceFile",
+    ) as unknown as HTMLInputElement;
+    let fileValue = "upload-me.ts";
+    Object.defineProperty(fileInput, "value", {
+      get: () => fileValue,
+      set: (next: string) => {
+        fileValue = next;
+      },
+      configurable: true,
+    });
+
+    try {
+      expect(enhanceExampleSwitching(document)).toBe(true);
+      const event = clickOn(
+        window,
+        document.querySelector(
+          'a[href="/analyze?example=single-responsibility"]',
+        ),
+      );
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(fileValue).toBe("");
+      expect((textarea as unknown as HTMLTextAreaElement).value).toContain(
+        "sendWelcomeEmail",
+      );
+      expect(form?.dataset["exampleFilename"]).toBe("UserService.ts");
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("records the example filename even without a file input", () => {
+    const { window, document, form } = switcherDom({
+      withFileInput: false,
+    });
+
+    try {
+      expect(enhanceExampleSwitching(document)).toBe(true);
+      const event = clickOn(
+        window,
+        document.querySelector(
+          'a[href="/analyze?example=single-responsibility"]',
+        ),
+      );
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(form?.dataset["exampleFilename"]).toBe("UserService.ts");
     } finally {
       void window.close();
     }

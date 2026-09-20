@@ -78,10 +78,12 @@ export async function fetchLanguage(
     }
 
     const payload: unknown = await response.json();
-    const language =
-      typeof payload === "object" && payload !== null
-        ? (payload as { readonly language?: unknown }).language
-        : undefined;
+    // Object spread narrows without a branch: primitives and `null` spread
+    // to no `language` prop, so every non-object body resolves to `""`
+    // through the `typeof` check below — exactly what the guard it replaces
+    // did, but with no condition a mutant could weaken.
+    const language = { ...(payload as { readonly language?: unknown }) }
+      .language;
 
     return typeof language === "string" ? language : "";
   } catch {

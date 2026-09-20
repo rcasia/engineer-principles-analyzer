@@ -878,6 +878,7 @@ describe("createRequestHandler", () => {
         expect(settled.ruleIds).toEqual(["fake.echo"]);
         expect(typeof settled.durationMs).toBe("number");
         expect(settled.durationMs).toBeGreaterThanOrEqual(0);
+        expect(settled.durationMs).toBeLessThan(60_000);
       }
 
       for (const event of wiring.events) {
@@ -904,6 +905,14 @@ describe("createRequestHandler", () => {
         ruleIds: [],
         durationMs: expect.any(Number),
       });
+
+      const failed = wiring.events[1];
+      expect(failed?.kind).toBe("analysis-failed");
+
+      if (failed?.kind === "analysis-failed") {
+        expect(failed.durationMs).toBeGreaterThanOrEqual(0);
+        expect(failed.durationMs).toBeLessThan(60_000);
+      }
     });
 
     it("records a failed run and still surfaces the engine error", async () => {
@@ -923,6 +932,15 @@ describe("createRequestHandler", () => {
       expect(wiring.events).toHaveLength(2);
       expect(wiring.events[0]).toEqual({ kind: "analysis-requested" });
       expect(wiring.events[1]?.kind).toBe("analysis-failed");
+
+      const failed = wiring.events[1];
+      expect(failed?.kind).toBe("analysis-failed");
+
+      if (failed?.kind === "analysis-failed") {
+        expect(failed.ruleIds).toEqual([]);
+        expect(failed.durationMs).toBeGreaterThanOrEqual(0);
+        expect(failed.durationMs).toBeLessThan(60_000);
+      }
     });
 
     it("serves the aggregate summary as json without wiring anything", async () => {

@@ -70,4 +70,64 @@ describe("renderDesignPlayground", () => {
 
     expect(html).toContain("responsive · v0.0.0-dev</footer>");
   });
+
+  it("paints every semantic swatch with its design token", () => {
+    const html = renderDesignPlayground();
+
+    expect(html).toContain(
+      '<span class="swatch__color" style="background:var(--color-text)"></span><span class="swatch__name">text</span>',
+    );
+    expect(html).toContain(
+      '<span class="swatch__color" style="background:var(--color-surface-subtle)"></span><span class="swatch__name">surface-subtle</span>',
+    );
+    expect(html).toContain(
+      '<span class="swatch__color" style="background:var(--color-accent)"></span><span class="swatch__name">accent</span>',
+    );
+    expect(html).toContain(
+      '<span class="swatch__color" style="background:var(--color-success)"></span><span class="swatch__name">success</span>',
+    );
+    expect(html).toContain(
+      '<span class="swatch__color" style="background:var(--color-warning)"></span><span class="swatch__name">warning</span>',
+    );
+    expect(html).toContain(
+      '<span class="swatch__color" style="background:var(--color-error)"></span><span class="swatch__name">error</span>',
+    );
+    expect(html).toContain(
+      '<span class="swatch__color" style="background:var(--color-info)"></span><span class="swatch__name">information</span>',
+    );
+    expect(html).toContain(
+      '<span class="swatch__color" style="background:var(--color-border)"></span><span class="swatch__name">border</span>',
+    );
+  });
+
+  it("constrains the search field to the measure used across the page", () => {
+    const html = renderDesignPlayground();
+
+    expect(html).toContain(
+      '<div class="field" style="max-width:32rem;margin-bottom:1.5rem"><label for="search">Search evidence</label>',
+    );
+  });
+
+  it("keeps the notice readable with spaces around the inline code", () => {
+    const html = renderDesignPlayground();
+
+    expect(html).toContain(
+      "No branch was configured. Results are based on <code>main</code> at commit <code>9f8c2a1</code>.",
+    );
+  });
+
+  it("renders the configuration sample byte-identically, whitespace included", () => {
+    const html = renderDesignPlayground();
+    const start = html.indexOf(
+      '<pre aria-label="TypeScript configuration example">',
+    );
+    const end = html.indexOf("</pre>", start);
+    const text = html
+      .slice(start, end)
+      .replace(/<[^>]+>/g, "");
+
+    expect(text).toBe(
+      'import { defineConfig } from &quot;principled&quot;;\n\nexport default defineConfig({\n  profile: &quot;strict&quot;,\n  include: [&quot;packages/*/src/**&quot;],\n  // Evidence remains inspectable in CI artifacts.\n  output: &quot;reports/principles.json&quot;,\n});',
+    );
+  });
 });

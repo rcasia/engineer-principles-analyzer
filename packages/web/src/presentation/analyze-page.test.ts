@@ -996,6 +996,12 @@ describe("renderAnalyzePage", () => {
 
       expect(html).not.toContain("results-note");
     });
+
+    it("renders an empty run with no summary or note markup at all", () => {
+      const html = renderAnalyzePage({ kind: "completed", results: [] });
+
+      expect(html).toContain("</header>\n\n\n<div class=\"empty-state\">");
+    });
   });
 });
 

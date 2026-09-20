@@ -303,10 +303,13 @@ async function handleDetectRequest(
     );
   }
 
-  const fields =
-    typeof payload === "object" && payload !== null
-      ? (payload as Record<string, unknown>)
-      : {};
+  // Object spread narrows without a branch: primitives and `null` spread
+  // to no props, so every non-object body behaves as a blank buffer —
+  // exactly what the guard it replaces did, but with no condition a mutant
+  // could weaken.
+  const fields: Record<string, unknown> = {
+    ...(payload as Record<string, unknown>),
+  };
   const sourceCode =
     typeof fields["sourceCode"] === "string" ? fields["sourceCode"] : "";
   const filenameRaw = fields["filename"];

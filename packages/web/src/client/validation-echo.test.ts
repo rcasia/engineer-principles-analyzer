@@ -86,6 +86,7 @@ describe("syncValidationEcho", () => {
         `#${VALIDATION_ERROR_ID}`,
       );
       expect(banner?.tagName).toBe("DIV");
+      expect(banner?.className).toBe("field__error");
       expect(banner?.getAttribute("role")).toBe("alert");
       expect(banner?.textContent).toBe(EMPTY_MESSAGE);
 
@@ -118,10 +119,16 @@ describe("syncValidationEcho", () => {
     const { window, document, form } = echoDom({ banner: "stale words" });
 
     try {
+      const before = document.querySelector(`#${VALIDATION_ERROR_ID}`);
       expect(syncValidationEcho(form, "", "")).toBe(true);
       expect(
         document.querySelectorAll(`#${VALIDATION_ERROR_ID}`),
       ).toHaveLength(1);
+      const banner = document.querySelector(`#${VALIDATION_ERROR_ID}`);
+      expect(banner).toBe(before);
+      expect(banner?.tagName).toBe("DIV");
+      expect(banner?.className).toBe("field__error");
+      expect(banner?.getAttribute("role")).toBe("alert");
       expect(
         document.querySelector(`#${VALIDATION_ERROR_ID}`)?.textContent,
       ).toBe(EMPTY_MESSAGE);
@@ -199,6 +206,51 @@ describe("syncValidationEcho", () => {
 
   it("is a no-op without a form", () => {
     expect(syncValidationEcho(null, "", "")).toBe(false);
+  });
+
+  it("scopes to the document when the form has no parent element", () => {
+    const window = new Window();
+
+    try {
+      const document = window.document as unknown as Document;
+      const form = document.createElement("form") as unknown as HTMLFormElement;
+      form.id = "analyzeForm";
+      form.innerHTML = `<textarea id="sourceCode" name="sourceCode"></textarea>`;
+      expect(form.parentElement).toBe(null);
+
+      expect(syncValidationEcho(form, "", "")).toBe(true);
+
+      const textarea = form.querySelector("#sourceCode");
+      expect(textarea?.getAttribute("aria-invalid")).toBe("true");
+      expect(textarea?.getAttribute("aria-describedby")).toBe(
+        VALIDATION_ERROR_ID,
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("is a no-op when the form itself is mistagged, leaving the page untouched", () => {
+    const window = new Window();
+
+    try {
+      const document = window.document as unknown as Document;
+      document.body.innerHTML =
+        `<div>` +
+        `<div id="analyzeForm"><textarea id="sourceCode" name="sourceCode"></textarea></div>` +
+        `</div>`;
+      const impostor = document.querySelector(
+        "#analyzeForm",
+      ) as unknown as HTMLFormElement;
+      expect(impostor.tagName).toBe("DIV");
+      const before = document.body.innerHTML;
+
+      expect(syncValidationEcho(impostor, "", "")).toBe(false);
+      expect(document.body.innerHTML).toBe(before);
+      expect(document.querySelector(`#${VALIDATION_ERROR_ID}`)).toBe(null);
+    } finally {
+      void window.close();
+    }
   });
 
   it("is a no-op when the source field is mistagged, leaving the page untouched", () => {

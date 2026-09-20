@@ -31,7 +31,12 @@ export interface ExampleSwitchHooks {
   readonly onSwitch?: ((textarea: HTMLTextAreaElement) => void) | undefined;
 }
 
-function exampleIdOf(href: string): string | null {
+/**
+ * Reads `?example=` from a link's `href`. Returns `null` when the value is
+ * absent or the `href` does not parse, so callers fall through to the plain
+ * navigation. Exported so tests can pin the null/string boundary directly.
+ */
+export function exampleIdOf(href: string): string | null {
   try {
     return new URL(href, "http://localhost").searchParams.get("example");
   } catch {
@@ -82,15 +87,26 @@ export function enhanceExampleSwitching(
 
   for (const link of links) {
     link.addEventListener("click", (event) => {
-      const id = exampleIdOf(link.getAttribute("href") ?? "");
-      const example = id === null ? undefined : exampleFor(id);
       const form = byTag<HTMLFormElement>(root, "form#analyzeForm", "FORM");
-      const textarea =
-        form === null
-          ? null
-          : byTag<HTMLTextAreaElement>(form, "#sourceCode", "TEXTAREA");
 
-      if (example === undefined || form === null || textarea === null) {
+      if (form === null) {
+        return;
+      }
+
+      const textarea = byTag<HTMLTextAreaElement>(
+        form,
+        "#sourceCode",
+        "TEXTAREA",
+      );
+      // `exampleFor` already maps unknown, empty and missing values to
+      // `undefined`, so no ternary is needed here: anything unresolvable
+      // keeps the plain navigation below. The `href` is present by
+      // construction (`exampleLinksOf` only wires anchors with one); the
+      // assertion keeps that invariant visible to the type checker.
+      const id = exampleIdOf(link.getAttribute("href")!);
+      const example = exampleFor(id);
+
+      if (example === undefined || textarea === null) {
         return;
       }
 
