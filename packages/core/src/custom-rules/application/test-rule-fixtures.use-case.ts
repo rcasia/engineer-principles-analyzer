@@ -62,12 +62,13 @@ export class TestCustomRule {
     rule: VersionedRule,
     fixture: RuleFixture,
   ): Promise<FixtureOutcome> {
-    let actual: AnalysisStatus | "unable_to_analyze" = "unable_to_analyze";
+    // No default: every path below assigns, so the `catch` assignment is
+    // load-bearing — a rule that throws must read back as unable_to_analyze.
+    let actual: AnalysisStatus | "unable_to_analyze";
     try {
       const outcome = await rule.evaluate(fixture.subject);
-      if (outcome instanceof AnalysisResult) {
-        actual = outcome.status;
-      }
+      actual =
+        outcome instanceof AnalysisResult ? outcome.status : "unable_to_analyze";
     } catch {
       actual = "unable_to_analyze";
     }

@@ -3,9 +3,12 @@ import { unwrap, unwrapErr } from "../../shared/result.ts";
 import { InvalidRuleVersionError, RuleVersion } from "./rule-version.ts";
 
 describe("RuleVersion", () => {
-  it.each(["1", "1.2", "1.2.3"])("accepts %p", (value) => {
-    expect(unwrap(RuleVersion.of(value)).toString()).toBe(value);
-  });
+  it.each(["1", "1.2", "1.2.3", "10", "1.20", "10.20.30"])(
+    "accepts %p",
+    (value) => {
+      expect(unwrap(RuleVersion.of(value)).toString()).toBe(value);
+    },
+  );
 
   it.each(["", "v1", "1.2.3.4", "1.x", "1.2-beta", " 1", "latest"])(
     "rejects %p",

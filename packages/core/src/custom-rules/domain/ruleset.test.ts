@@ -56,6 +56,16 @@ describe("Ruleset", () => {
     ).toEqual(
       new InvalidRulesetError("ruleset rule ids must not be empty."),
     );
+    expect(
+      unwrapErr(
+        Ruleset.of({
+          ...props(),
+          rules: [{ ruleId: "   ", version: "1.0.0" }],
+        }),
+      ),
+    ).toEqual(
+      new InvalidRulesetError("ruleset rule ids must not be empty."),
+    );
   });
 
   it("rejects malformed rule pins", () => {
