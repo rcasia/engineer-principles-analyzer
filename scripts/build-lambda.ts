@@ -26,6 +26,10 @@ const { version } = await Bun.file("packages/web/package.json").json();
 await rm(OUT_FILE, { force: true });
 await rm(`${OUT_DIR}/handler.zip`, { force: true });
 await mkdir(OUT_DIR, { recursive: true });
+// A bare Glob.scan throws ENOENT when the directory is missing. Creating
+// it means "no build:client ran" simply zips a handler with no client
+// assets — the ADR-0029 fallback the pages already support.
+await mkdir(CLIENT_DIR, { recursive: true });
 
 const result = await Bun.build({
   entrypoints: [ENTRY],
