@@ -12,6 +12,7 @@ import {
 import type { EventStore, Principle, Rule } from "@principled/core";
 import {
   ANALYSIS_CACHE_CONTROL,
+  CLIENT_ASSET_CACHE_CONTROL,
   createRequestHandler,
   type RequestHandlerDependencies,
 } from "./server.ts";
@@ -82,6 +83,12 @@ describe("createRequestHandler", () => {
     const response = await handlerFor()(new Request("http://localhost/gone"));
 
     expect(response.headers.get("cache-control")).toBe("public, max-age=300");
+  });
+
+  it("declares hashed client assets immutable for a year", () => {
+    expect(CLIENT_ASSET_CACHE_CONTROL).toBe(
+      "public, max-age=31536000, immutable",
+    );
   });
 
   it("ignores the query string when routing", async () => {

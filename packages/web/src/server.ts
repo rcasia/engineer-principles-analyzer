@@ -26,6 +26,14 @@ export const NOT_FOUND_CACHE_CONTROL = "public, max-age=300";
  * either the form echo or the findings from one visitor's request.
  */
 export const ANALYSIS_CACHE_CONTROL = "no-store";
+/**
+ * Content-hashed client bundles from `scripts/build-client.ts` are immutable
+ * by construction: a new build is a new file name, so caches never need to
+ * revalidate. Served with this directive once Phase 2 ships the first
+ * `<script>` tag; declared now so the spike's asset contract is asserted.
+ */
+export const CLIENT_ASSET_CACHE_CONTROL =
+  "public, max-age=31536000, immutable";
 
 /** What `createRequestHandler` needs to serve every route. */
 export interface RequestHandlerDependencies {

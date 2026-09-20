@@ -9,11 +9,16 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@principled/core": "*"
+    "@principled/core": "*",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
   },
   "scripts": {
     "typecheck": "tsc --build",
     "test": "bun test",
     "dev": "bun --hot src/bin.ts"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.5"
   }
 }

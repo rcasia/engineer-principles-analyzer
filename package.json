@@ -26,6 +26,7 @@
     "cli": "bun packages/cli/src/bin.ts",
     "check": "bun run typecheck && bun run test",
     "build:lambda": "bun scripts/build-lambda.ts",
+    "build:client": "bun scripts/build-client.ts",
     "build:edge-signer": "bun scripts/build-edge-signer.ts",
     "localstack:up": "docker compose -f infra/localstack/compose.yml up -d --wait",
     "localstack:down": "docker compose -f infra/localstack/compose.yml down -v",
