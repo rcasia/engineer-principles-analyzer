@@ -3,6 +3,7 @@ import {
   AnalysisResult,
   AnalyzeSubject,
   Confidence,
+  findForbiddenKeys,
   InMemoryEventStore,
   InMemoryJevClient,
   InMemoryPrincipleCatalog,
@@ -10,18 +11,24 @@ import {
   JevLanguageDetector,
   ListPrinciples,
   unwrap,
+  WebMetrics,
 } from "@principled/core";
 import type {
   EventStore,
   LanguageDetector,
   Principle,
   Rule,
+  RuleCatalog,
+  WebMetricEvent,
+  WebMetricsSummary,
 } from "@principled/core";
 import {
   ANALYSIS_CACHE_CONTROL,
   CLIENT_ASSET_CACHE_CONTROL,
   CLIENT_ASSET_CONTENT_TYPE,
   createRequestHandler,
+  METRICS_CONTENT_TYPE,
+  metricLanguageOf,
   type RequestHandlerDependencies,
 } from "./server.ts";
 import type { ClientAssets } from "./client-assets.ts";
@@ -51,6 +58,7 @@ const echoRule: Rule = {
 function handlerFor(overrides?: {
   readonly principles?: readonly Principle[];
   readonly rules?: readonly Rule[];
+  readonly ruleCatalog?: RuleCatalog;
   readonly eventStore?: EventStore;
   readonly clientAssets?: ClientAssets | undefined;
   /**
@@ -62,13 +70,15 @@ function handlerFor(overrides?: {
    */
   readonly jevChoices?: readonly string[];
   readonly languageDetector?: LanguageDetector;
+  readonly recordMetric?: ((event: WebMetricEvent) => void) | undefined;
+  readonly readMetrics?: (() => WebMetricsSummary) | undefined;
 }): (request: Request) => Promise<Response> {
   const deps: RequestHandlerDependencies = {
     listPrinciples: new ListPrinciples(
       new InMemoryPrincipleCatalog(overrides?.principles ?? []),
     ),
     analyzeSubject: new AnalyzeSubject(
-      new InMemoryRuleCatalog(overrides?.rules ?? []),
+      overrides?.ruleCatalog ?? new InMemoryRuleCatalog(overrides?.rules ?? []),
     ),
     languageDetector:
       overrides?.languageDetector ??
@@ -86,6 +96,12 @@ function handlerFor(overrides?: {
     eventStore: overrides?.eventStore ?? new InMemoryEventStore(),
     ...(overrides?.clientAssets !== undefined
       ? { clientAssets: overrides.clientAssets }
+      : {}),
+    ...(overrides?.recordMetric !== undefined
+      ? { recordMetric: overrides.recordMetric }
+      : {}),
+    ...(overrides?.readMetrics !== undefined
+      ? { readMetrics: overrides.readMetrics }
       : {}),
   };
 
@@ -709,8 +725,8 @@ describe("createRequestHandler", () => {
         postDetect({ sourceCode: "def greet(name):" }),
       );
 
-      expect(response.headers.get("cache-control")).toBe("no-store");
-      expect(ANALYSIS_CACHE_CONTROL).toBe("no-store");
+      expect(response.headers.get("cache-control")).toBe("no-store, private");
+      expect(ANALYSIS_CACHE_CONTROL).toBe("no-store, private");
     });
 
     it("answers empty when Jev reports unknown", async () => {
@@ -797,7 +813,7 @@ describe("createRequestHandler", () => {
       await expect(response.json()).resolves.toEqual({
         error: "expected a JSON body with sourceCode",
       });
-      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("cache-control")).toBe("no-store, private");
     });
 
     it("404s a GET lookup", async () => {
@@ -806,6 +822,169 @@ describe("createRequestHandler", () => {
       );
 
       expect(response.status).toBe(404);
+    });
+  });
+
+  describe("product metrics", () => {
+    function postSource(fields: Record<string, string | File>): Request {
+      const form = new FormData();
+
+      for (const [key, value] of Object.entries(fields)) {
+        form.set(key, value);
+      }
+
+      return new Request("http://localhost/analyze", {
+        method: "POST",
+        body: form,
+      });
+    }
+
+    function metricsWiring(): {
+      readonly events: WebMetricEvent[];
+      readonly recordMetric: (event: WebMetricEvent) => void;
+      readonly readMetrics: () => WebMetricsSummary;
+    } {
+      let metrics = WebMetrics.empty();
+      const events: WebMetricEvent[] = [];
+
+      return {
+        events,
+        recordMetric: (event) => {
+          events.push(event);
+          metrics = metrics.record(event);
+        },
+        readMetrics: () => metrics.summarize(),
+      };
+    }
+
+    it("records a completed analysis as minimized facts, never the source", async () => {
+      const wiring = metricsWiring();
+      const source = "interface Foo { readonly name: string }";
+
+      const response = await handlerFor({
+        rules: [echoRule],
+        recordMetric: wiring.recordMetric,
+      })(postSource({ sourceCode: source }));
+
+      expect(response.status).toBe(200);
+      expect(wiring.events).toHaveLength(2);
+      expect(wiring.events[0]).toEqual({ kind: "analysis-requested" });
+
+      const settled = wiring.events[1];
+      expect(settled?.kind).toBe("analysis-completed");
+
+      if (settled?.kind === "analysis-completed") {
+        expect(settled.language).toBe("typescript");
+        expect(settled.ruleIds).toEqual(["fake.echo"]);
+        expect(typeof settled.durationMs).toBe("number");
+        expect(settled.durationMs).toBeGreaterThanOrEqual(0);
+      }
+
+      for (const event of wiring.events) {
+        expect(findForbiddenKeys(event)).toEqual([]);
+      }
+
+      expect(JSON.stringify(wiring.events)).not.toContain(source);
+    });
+
+    it("records a rejected submission as requested then failed", async () => {
+      const wiring = metricsWiring();
+
+      const response = await handlerFor({
+        recordMetric: wiring.recordMetric,
+      })(postSource({ sourceCode: "" }));
+
+      expect(response.status).toBe(400);
+      expect(wiring.events).toHaveLength(2);
+      expect(wiring.events[0]).toEqual({ kind: "analysis-requested" });
+      expect(wiring.events[1]?.kind).toBe("analysis-failed");
+      expect(wiring.events[1]).toEqual({
+        kind: "analysis-failed",
+        language: "undetected",
+        ruleIds: [],
+        durationMs: expect.any(Number),
+      });
+    });
+
+    it("records a failed run and still surfaces the engine error", async () => {
+      const wiring = metricsWiring();
+      const catalog: RuleCatalog = {
+        all: async () => {
+          throw new Error("catalog down");
+        },
+      };
+
+      await expect(
+        handlerFor({ ruleCatalog: catalog, recordMetric: wiring.recordMetric })(
+          postSource({ sourceCode: "package main" }),
+        ),
+      ).rejects.toThrow("catalog down");
+
+      expect(wiring.events).toHaveLength(2);
+      expect(wiring.events[0]).toEqual({ kind: "analysis-requested" });
+      expect(wiring.events[1]?.kind).toBe("analysis-failed");
+    });
+
+    it("serves the aggregate summary as json without wiring anything", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/metrics"),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe(METRICS_CONTENT_TYPE);
+      expect(METRICS_CONTENT_TYPE).toBe("application/json; charset=utf-8");
+      await expect(response.json()).resolves.toEqual({
+        totalRequests: 0,
+        completedAnalyses: 0,
+        failedAnalyses: 0,
+        failureRate: 0,
+        abandonedRequests: 0,
+        latencyP50Ms: null,
+        latencyP95Ms: null,
+        languageDistribution: {},
+        ruleSelectionDistribution: {},
+      });
+    });
+
+    it("serves recorded aggregates per language and rule", async () => {
+      const wiring = metricsWiring();
+      const handler = handlerFor({
+        rules: [echoRule],
+        recordMetric: wiring.recordMetric,
+        readMetrics: wiring.readMetrics,
+      });
+
+      await handler(
+        postSource({ sourceCode: "interface Foo { readonly name: string }" }),
+      );
+      await handler(postSource({ sourceCode: "" }));
+
+      const response = await handler(new Request("http://localhost/metrics"));
+      const summary = (await response.json()) as WebMetricsSummary;
+
+      expect(summary.totalRequests).toBe(2);
+      expect(summary.completedAnalyses).toBe(1);
+      expect(summary.failedAnalyses).toBe(1);
+      expect(summary.failureRate).toBe(0.5);
+      expect(summary.abandonedRequests).toBe(0);
+      expect(summary.languageDistribution).toEqual({
+        typescript: 1,
+        undetected: 1,
+      });
+      expect(summary.ruleSelectionDistribution).toEqual({ "fake.echo": 1 });
+    });
+
+    it("does not answer metrics over other methods", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/metrics", { method: "POST" }),
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it("buckets an undetectable language instead of an empty key", () => {
+      expect(metricLanguageOf("")).toBe("undetected");
+      expect(metricLanguageOf("typescript")).toBe("typescript");
     });
   });
 });

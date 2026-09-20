@@ -9,6 +9,7 @@ import {
   LspRule,
   OcpRule,
   SrpRule,
+  WebMetrics,
 } from "@principled/core";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -43,6 +44,11 @@ const clientAssets = await loadClientAssets(
   async () => readdir(bundleDir),
   async (name) => readFile(join(bundleDir, name), "utf8"),
 );
+// Privacy-safe product metrics (#31): an in-memory fold over minimized
+// metric events, served at GET /metrics. Like InMemoryEventStore above it
+// does not survive a cold start — the port (recordMetric/readMetrics) is
+// real, the durable adapter is not built yet.
+let metrics = WebMetrics.empty();
 export const handler = createLambdaHandler(
   createRequestHandler({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
@@ -54,5 +60,9 @@ export const handler = createLambdaHandler(
     ),
     eventStore: new InMemoryEventStore(),
     clientAssets,
+    recordMetric: (event) => {
+      metrics = metrics.record(event);
+    },
+    readMetrics: () => metrics.summarize(),
   }),
 );

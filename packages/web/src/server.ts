@@ -3,8 +3,11 @@ import type {
   EventStore,
   LanguageDetector,
   ListPrinciples,
+  WebMetricEvent,
+  WebMetricsSummary,
 } from "@principled/core";
 import {
+  INITIAL_WEB_METRICS_SUMMARY,
   InvalidJevResponseError,
   JevTransportError,
   Subject,
@@ -48,7 +51,17 @@ export const ANALYSIS_CACHE_CONTROL = "no-store, private";
 export const CLIENT_ASSET_CACHE_CONTROL =
   "public, max-age=31536000, immutable";
 
+/**
+ * Bucket for metric events whose language could not be detected (#31): the
+ * public summary must never carry an empty-string language key.
+ */
+export function metricLanguageOf(language: string): string {
+  return language === "" ? "undetected" : language;
+}
+
 export const CLIENT_ASSET_CONTENT_TYPE = "text/javascript; charset=utf-8";
+
+export const METRICS_CONTENT_TYPE = "application/json; charset=utf-8";
 
 /**
  * Serves a hashed client bundle by exact filename match only — the name
@@ -98,6 +111,19 @@ export interface RequestHandlerDependencies {
    * `<script>` tag and the no-JS baseline holds.
    */
   readonly clientAssets?: ClientAssets | undefined;
+  /**
+   * First-party, server-side metrics sink (#31). Optional so tests and
+   * compositions without analytics keep working: unrecorded runs simply do
+   * not contribute to the aggregates. Only minimized {@link WebMetricEvent}
+   * facts ever reach it — never source, prompts or findings.
+   */
+  readonly recordMetric?: ((event: WebMetricEvent) => void) | undefined;
+  /**
+   * Reads the current metrics summary for `GET /metrics` (#31). The default
+   * reports the empty summary; the Lambda composition root folds recorded
+   * events through `WebMetrics` instead.
+   */
+  readonly readMetrics?: (() => WebMetricsSummary) | undefined;
 }
 
 function htmlResponse(
@@ -174,9 +200,11 @@ async function handleAnalyzeSubmission(
   request: Request,
   deps: Pick<
     RequestHandlerDependencies,
-    "analyzeSubject" | "eventStore" | "languageDetector" | "clientAssets"
+    "analyzeSubject" | "eventStore" | "languageDetector" | "clientAssets" | "recordMetric"
   >,
 ): Promise<Response> {
+  const recordMetric = deps.recordMetric ?? (() => {});
+  const startedAt = Date.now();
   const form = await request.formData();
   const { sourceCode, filename } = await sourceCodeOf(form);
   // Fully automatic: any `language` field in the form is ignored and the
@@ -189,9 +217,17 @@ async function handleAnalyzeSubmission(
     filename,
   )) ?? "";
 
+  recordMetric({ kind: "analysis-requested" });
+
   const subject = Subject.of({ sourceCode, language });
 
   if (!subject.ok) {
+    recordMetric({
+      kind: "analysis-failed",
+      language: metricLanguageOf(language),
+      ruleIds: [],
+      durationMs: Date.now() - startedAt,
+    });
     // A failed Subject with non-empty source can only mean detection drew
     // a blank (language ""), so the visitor needs the detection guidance;
     // an empty source always reports itself, whichever language came out.
@@ -215,14 +251,31 @@ async function handleAnalyzeSubmission(
     );
   }
 
-  const run = await deps.analyzeSubject.execute({ subject: subject.value });
-  await deps.eventStore.append(run.analysisId, 0, run.events);
+  try {
+    const run = await deps.analyzeSubject.execute({ subject: subject.value });
+    const ruleIds = run.results.map((result) => result.ruleId);
+    recordMetric({
+      kind: "analysis-completed",
+      language,
+      ruleIds,
+      durationMs: Date.now() - startedAt,
+    });
+    await deps.eventStore.append(run.analysisId, 0, run.events);
 
-  return htmlResponse(
-    renderAnalyzePage({ kind: "completed", results: run.results }),
-    200,
-    ANALYSIS_CACHE_CONTROL,
-  );
+    return htmlResponse(
+      renderAnalyzePage({ kind: "completed", results: run.results }),
+      200,
+      ANALYSIS_CACHE_CONTROL,
+    );
+  } catch (error) {
+    recordMetric({
+      kind: "analysis-failed",
+      language: metricLanguageOf(language),
+      ruleIds: [],
+      durationMs: Date.now() - startedAt,
+    });
+    throw error;
+  }
 }
 
 /**
@@ -283,6 +336,22 @@ export function createRequestHandler(
 
     if (pathname === "/design") {
       return htmlResponse(renderDesignPlayground(), 200, PAGE_CACHE_CONTROL);
+    }
+
+    if (pathname === "/metrics" && request.method === "GET") {
+      // Aggregates only (#31): counts, failure rate, latency percentiles and
+      // language/rule distributions. No source, prompts, findings, repository
+      // names or user identifiers exist in the summary, so this page is as
+      // cacheable as the other informational pages.
+      const readMetrics = deps.readMetrics ?? (() => INITIAL_WEB_METRICS_SUMMARY);
+
+      return new Response(JSON.stringify(readMetrics()), {
+        status: 200,
+        headers: {
+          "content-type": METRICS_CONTENT_TYPE,
+          "cache-control": PAGE_CACHE_CONTROL,
+        },
+      });
     }
 
     const asset = clientAssetResponse(deps.clientAssets, pathname);
