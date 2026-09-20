@@ -87,12 +87,7 @@ export class SourceLocation {
       );
     }
 
-    if (
-      startLine === endLine &&
-      startColumn !== undefined &&
-      endColumn !== undefined &&
-      endColumn < startColumn
-    ) {
+    if (startLine === endLine && !columnsInOrder(startColumn, endColumn)) {
       return err(
         new InvalidSourceLocationError(
           "endColumn must not be before startColumn on the same line.",
@@ -118,4 +113,20 @@ export class SourceLocation {
 
 function isPositiveInteger(value: number): boolean {
   return Number.isInteger(value) && value >= 1;
+}
+
+/**
+ * Column order only constrains locations that pin both columns: when
+ * either column is absent there is nothing to compare, so any order is
+ * accepted. Extracted so the guard reads as one decision.
+ */
+function columnsInOrder(
+  startColumn: number | undefined,
+  endColumn: number | undefined,
+): boolean {
+  if (startColumn === undefined || endColumn === undefined) {
+    return true;
+  }
+
+  return endColumn >= startColumn;
 }
