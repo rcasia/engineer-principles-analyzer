@@ -322,3 +322,52 @@ export {
   InMemoryCustomRuleCatalog,
 } from "./custom-rules/infrastructure/in-memory-custom-rule-catalog.ts";
 export type { CustomRuleEntry } from "./custom-rules/infrastructure/in-memory-custom-rule-catalog.ts";
+
+// Finding lifecycle and suppressions (#26, #42).
+export {
+  canTransition,
+  FINDING_STATUSES,
+  InvalidFindingTransitionError,
+  isFindingStatus,
+  transitionStatus,
+} from "./findings/domain/finding-state.ts";
+export type { FindingStatus } from "./findings/domain/finding-state.ts";
+export {
+  FINDING_ACCEPTED_EVENT,
+  FINDING_DETECTED_EVENT,
+  FINDING_REOPENED_EVENT,
+  FINDING_RESOLVED_EVENT,
+  FINDING_SUPPRESSED_EVENT,
+} from "./findings/domain/finding-event.ts";
+export type {
+  FindingAcceptedPayload,
+  FindingDetectedPayload,
+  FindingEventPayload,
+  FindingReopenedPayload,
+  FindingResolvedPayload,
+  FindingSuppressedPayload,
+} from "./findings/domain/finding-event.ts";
+export {
+  FINDING_MS_PER_DAY,
+  FindingRetentionPolicy,
+  InvalidFindingRetentionError,
+  isFindingArtifactDeletionDue,
+  isFindingHistoryExpired,
+} from "./findings/domain/finding-retention.ts";
+export type { FindingRetentionProps } from "./findings/domain/finding-retention.ts";
+export {
+  FindingLifecycleDecider,
+  INITIAL_FINDING_STATE,
+  InvalidFindingCommandError,
+} from "./findings/application/finding-lifecycle.decider.ts";
+export type {
+  FindingCommand,
+  FindingLifecycleEvent,
+  FindingLifecycleState,
+  FindingSuppression,
+} from "./findings/application/finding-lifecycle.decider.ts";
+export {
+  FindingProjection,
+  INITIAL_FINDING_VIEW,
+} from "./findings/application/finding.projection.ts";
+export type { FindingView } from "./findings/application/finding.projection.ts";
