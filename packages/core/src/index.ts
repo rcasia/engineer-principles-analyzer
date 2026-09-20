@@ -206,3 +206,32 @@ export {
   RetentionPolicy,
 } from "./project/domain/retention-policy.ts";
 export type { RetentionPolicyProps } from "./project/domain/retention-policy.ts";
+
+// Project-level analysis, application and infrastructure side (#22, #38).
+export type { ProjectRule } from "./project/application/project-rule.port.ts";
+export type { ProjectRuleCatalog } from "./project/application/project-rule-catalog.port.ts";
+export {
+  InvalidArtifactStoreError,
+  type ProjectArtifactStore,
+} from "./project/application/project-artifact-store.port.ts";
+export {
+  AnalyzeProject,
+  InvalidProjectAnalysisError,
+} from "./project/application/analyze-project.use-case.ts";
+export type {
+  ProjectAnalysis,
+  ProjectAnalysisRequest,
+} from "./project/application/analyze-project.use-case.ts";
+export {
+  INITIAL_PROJECT_ANALYSIS_VIEW,
+  ProjectAnalysisProjection,
+} from "./project/application/project.projection.ts";
+export type {
+  CompletedProjectRuleOutcome,
+  FailedProjectRuleOutcome,
+  ProjectAnalysisStatus,
+  ProjectAnalysisView,
+  ProjectRuleOutcomeView,
+} from "./project/application/project.projection.ts";
+export { InMemoryProjectRuleCatalog } from "./project/infrastructure/in-memory-project-rule-catalog.ts";
+export { InMemoryProjectArtifactStore } from "./project/infrastructure/in-memory-project-artifact-store.ts";
