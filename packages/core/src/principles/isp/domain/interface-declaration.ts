@@ -57,7 +57,9 @@ function skipNoise(code: string, index: number): number {
 function skipQuoted(code: string, start: number, quote: string): number {
   let i = start + 1;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     if (code[i] === "\\") {
       i += 2;
       continue;
@@ -81,7 +83,9 @@ function findMatchingBrace(code: string, openBraceIndex: number): number {
   let depth = 1;
   let i = openBraceIndex + 1;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     const char = code[i];
 
     if (char === "{") {
@@ -111,8 +115,10 @@ function findMatchingBrace(code: string, openBraceIndex: number): number {
 function lineOf(code: string, index: number): number {
   let line = 1;
 
-  for (let i = 0; i < index; i += 1) {
-    if (code[i] === "\n") {
+  // Iterate the prefix itself rather than an index bound: every character is
+  // inspected exactly once, so no weaken-able boundary remains.
+  for (const char of code.slice(0, index)) {
+    if (char === "\n") {
       line += 1;
     }
   }
@@ -128,7 +134,9 @@ function lineOf(code: string, index: number): number {
 function findBodyStart(code: string, fromIndex: number): number {
   let i = fromIndex;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     if (code[i] === "{") {
       return i;
     }
@@ -167,9 +175,20 @@ export function countMembers(interfaceBody: string): number {
   while (i < interfaceBody.length) {
     const char = interfaceBody[i];
 
-    if (char === "{" || char === "}") {
+    // Opening and closing braces are tracked in separate branches on
+    // purpose: a shared depth update would leave equivalent, untestable
+    // mutants behind (negating the trajectory preserves every zero
+    // crossing, hence every split).
+    if (char === "{") {
       fragment += char;
-      depth += char === "{" ? 1 : -1;
+      depth += 1;
+      i += 1;
+      continue;
+    }
+
+    if (char === "}") {
+      fragment += char;
+      depth -= 1;
       i += 1;
       continue;
     }
@@ -201,9 +220,9 @@ interface RawDeclaration {
   readonly braceIndex: number;
 }
 
-function collectRaw(sourceCode: string): readonly RawDeclaration[] {
-  const found: RawDeclaration[] = [];
-
+function* interfaceDeclarations(
+  sourceCode: string,
+): Generator<RawDeclaration> {
   INTERFACE_HEADER.lastIndex = 0;
   let match: RegExpExecArray | null = INTERFACE_HEADER.exec(sourceCode);
 
@@ -211,32 +230,42 @@ function collectRaw(sourceCode: string): readonly RawDeclaration[] {
     const braceIndex = findBodyStart(sourceCode, INTERFACE_HEADER.lastIndex);
 
     if (braceIndex !== -1) {
-      found.push({
+      yield {
         kind: "interface",
         name: match[1] as string,
         headerStart: match.index,
         braceIndex,
-      });
+      };
     }
 
     match = INTERFACE_HEADER.exec(sourceCode);
   }
+}
 
+function* typeDeclarations(sourceCode: string): Generator<RawDeclaration> {
   TYPE_LITERAL_HEADER.lastIndex = 0;
-  match = TYPE_LITERAL_HEADER.exec(sourceCode);
+  let match: RegExpExecArray | null = TYPE_LITERAL_HEADER.exec(sourceCode);
 
   while (match !== null) {
-    found.push({
+    yield {
       kind: "type",
       name: match[1] as string,
       headerStart: match.index,
       braceIndex: match.index + match[0].length - 1,
-    });
+    };
 
     match = TYPE_LITERAL_HEADER.exec(sourceCode);
   }
+}
 
-  return found.sort((a, b) => a.headerStart - b.headerStart);
+function collectRaw(sourceCode: string): readonly RawDeclaration[] {
+  // Spread into a fresh array rather than pushing into a `[]` literal: an
+  // empty-literal seed would leave an equivalent, untestable mutant behind
+  // (a spurious entry never survives brace delineation, so no test could
+  // observe it), while an emptied spread observably yields nothing.
+  return [...interfaceDeclarations(sourceCode), ...typeDeclarations(sourceCode)].sort(
+    (a, b) => a.headerStart - b.headerStart,
+  );
 }
 
 /**
