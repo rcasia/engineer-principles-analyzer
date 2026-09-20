@@ -1,3 +1,10 @@
+## [1.10.3](https://github.com/rcasia/principled/compare/web-v1.10.2...web-v1.10.3) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** keep standalone build:lambda usable without a client build ([01accec](https://github.com/rcasia/principled/commit/01accecb05248faf476c8ee2dfc7d1c267968bfa))
+
 ## [1.10.2](https://github.com/rcasia/principled/compare/web-v1.10.1...web-v1.10.2) (2026-09-20)
 
 
