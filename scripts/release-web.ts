@@ -28,5 +28,8 @@ await Bun.write(PACKAGE_JSON, `${JSON.stringify(manifest, null, 2)}\n`);
 
 console.log(`Set ${PACKAGE_JSON} version to ${version}`);
 
+// The handler zip embeds the client bundles (ADR-0029), so the client
+// builds first — the same order as the gates and the infra:*:local scripts.
+await $`bun run build:client`;
 await $`bun run build:lambda`;
 await $`bun run build:edge-signer`;
