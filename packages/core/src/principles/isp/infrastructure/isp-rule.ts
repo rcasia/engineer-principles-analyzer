@@ -142,10 +142,17 @@ function explanationFor(assessment: IspAssessment): string {
     return `Could not confidently confirm or rule out an interface-segregation violation. ${details}.`;
   }
 
-  const [broadest] = assessment.interfaces;
+  // The broadest count without optional chaining: a compliant verdict implies
+  // a non-empty interface list (an empty one is not_applicable), but spelling
+  // the fallback as `?.`/`??` leaves an equivalent, untestable mutant behind,
+  // so the zero floor is expressed as a Math.max floor instead.
+  const broadestCount = Math.max(
+    ...assessment.interfaces.map((info) => info.memberCount),
+    0,
+  );
 
   return (
     "No interface showed evidence of unrelated-operation grouping. " +
-    `Checked ${assessment.interfaces.length} interface(s); the broadest exposes ${broadest?.memberCount ?? 0} member(s).`
+    `Checked ${assessment.interfaces.length} interface(s); the broadest exposes ${broadestCount} member(s).`
   );
 }

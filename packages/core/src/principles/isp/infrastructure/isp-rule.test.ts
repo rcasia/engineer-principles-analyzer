@@ -94,6 +94,17 @@ describe("IspRule", () => {
     );
   });
 
+  test("joins several broad interfaces' details with '. '", async () => {
+    const result = await rule.evaluate(
+      subjectOf(`interface Alpha {\n${members(7)}\n}\ninterface Beta {\n${members(8)}\n}`),
+    );
+
+    expect(result.status).toBe("violation");
+    expect(result.explanation).toBe(
+      'Found interface-segregation evidence in broad interfaces. "Beta" exposes 8 member(s). "Alpha" exposes 7 member(s).',
+    );
+  });
+
   test("attaches evidence pointing at the broad interface only", async () => {
     const result = await rule.evaluate(
       subjectOf(`interface Narrow {\n${members(2)}\n}\ninterface God {\n${members(7)}\n}`),
