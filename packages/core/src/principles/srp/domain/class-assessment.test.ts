@@ -29,7 +29,7 @@ describe("thresholds", () => {
 describe("assessClass", () => {
   test("marks a class below the method-count floor as uncertain, for too_few_methods", () => {
     const declaration = declarationWithBody("foo() {}\n  bar() {}");
-    const assessment = assessClass(declaration);
+    const assessment = assessClass(declaration, "typescript");
 
     expect(assessment.methodCount).toBe(2);
     expect(assessment.verdict).toBe("uncertain");
@@ -39,7 +39,7 @@ describe("assessClass", () => {
 
   test("still assesses domains once the method-count floor is met", () => {
     const declaration = declarationWithBody("save() {}\n  load() {}\n  build() {}");
-    const assessment = assessClass(declaration);
+    const assessment = assessClass(declaration, "typescript");
 
     expect(assessment.methodCount).toBe(3);
     expect(assessment.reason).toBe("domain_count");
@@ -47,7 +47,7 @@ describe("assessClass", () => {
 
   test("is compliant with zero responsibility domains", () => {
     const declaration = declarationWithBody("build() {}\n  process() {}\n  handle() {}");
-    const assessment = assessClass(declaration);
+    const assessment = assessClass(declaration, "typescript");
 
     expect(assessment.verdict).toBe("compliant");
     expect(assessment.domains).toEqual([]);
@@ -57,7 +57,7 @@ describe("assessClass", () => {
     const declaration = declarationWithBody(
       "save() {}\n  load() {}\n  build() {}",
     );
-    const assessment = assessClass(declaration);
+    const assessment = assessClass(declaration, "typescript");
 
     expect(assessment.verdict).toBe("compliant");
     expect(assessment.domains).toHaveLength(1);
@@ -67,7 +67,7 @@ describe("assessClass", () => {
     const declaration = declarationWithBody(
       "save() {}\n  load() {}\n  send() {}\n  notify() {}",
     );
-    const assessment = assessClass(declaration);
+    const assessment = assessClass(declaration, "typescript");
 
     expect(assessment.verdict).toBe("uncertain");
     expect(assessment.reason).toBe("domain_count");
@@ -78,7 +78,7 @@ describe("assessClass", () => {
     const declaration = declarationWithBody(
       "save() {}\n  load() {}\n  send() {}\n  notify() {}\n  render() {}\n  display() {}",
     );
-    const assessment = assessClass(declaration);
+    const assessment = assessClass(declaration, "typescript");
 
     expect(assessment.verdict).toBe("violation");
     expect(assessment.domains).toHaveLength(3);
@@ -86,7 +86,7 @@ describe("assessClass", () => {
 
   test("keeps the declaration on the returned assessment unchanged", () => {
     const declaration = declarationWithBody("foo() {}");
-    const assessment = assessClass(declaration);
+    const assessment = assessClass(declaration, "typescript");
 
     expect(assessment.declaration).toBe(declaration);
   });
@@ -103,18 +103,18 @@ describe("assessClass", () => {
     expect(assessment.domains).toHaveLength(2);
   });
 
-  test("finds no brace methods in a python body without the language", () => {
+  test("finds no brace methods in a python body read as typescript", () => {
     const declaration = declarationWithBody(
       "    def save(self):\n        pass\n    def load(self):\n        pass\n",
     );
-    const assessment = assessClass(declaration);
+    const assessment = assessClass(declaration, "typescript");
 
     expect(assessment.methodCount).toBe(0);
     expect(assessment.verdict).toBe("uncertain");
     expect(assessment.reason).toBe("too_few_methods");
   });
 
-  test("reads java signatures with return types in the default path", () => {
+  test("reads java signatures with return types in the brace path", () => {
     const declaration = declarationWithBody(
       "public void save(User user) {}\n  public User load(String id) {}\n  public void send(String email) {}\n  public void notify(User user) {}\n",
     );

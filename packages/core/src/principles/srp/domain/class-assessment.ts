@@ -37,11 +37,14 @@ export interface ClassAssessment {
  * `language` selects how those names are read (see `extractMethodNames`):
  * the domain grouping and verdict thresholds below are identical for every
  * language — the rule's semantics stay language-independent, only the
- * method-shape interpretation varies (ADR-0031, #16).
+ * method-shape interpretation varies (ADR-0031, #16). It is required rather
+ * than defaulted so every caller states which interpretation it wants; a
+ * defaulted empty string would leave an equivalent, untestable mutant behind
+ * (any non-"python" default behaves identically).
  */
 export function assessClass(
   declaration: ClassDeclaration,
-  language = "",
+  language: string,
 ): ClassAssessment {
   const methodNames = extractMethodNames(
     declaration.body,
