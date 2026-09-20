@@ -1,6 +1,6 @@
 # ADR-0004: Render the web UI on the server with no client-side JavaScript
 
-**Status**: Accepted
+**Status**: Superseded by [ADR-0023](0023-react-hydration-frontend.md)
 **Date**: 2026-09-19
 
 ## Context

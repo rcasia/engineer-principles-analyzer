@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { renderDesignPlayground } from "./design-playground.ts";
+import {
+  DESIGN_PLAYGROUND_TITLE,
+  renderDesignPlayground,
+} from "./design-playground.tsx";
 
 describe("renderDesignPlayground", () => {
   it("renders a standalone, accessible design reference", () => {
@@ -8,10 +11,21 @@ describe("renderDesignPlayground", () => {
     expect(html).toStartWith("<!doctype html>");
     expect(html).toContain('<html lang="en">');
     expect(html).toContain("<title>Design playground | Principled</title>");
-    expect(html).toContain('<a class="skip-link" href="#main">Skip to content</a>');
+    expect(DESIGN_PLAYGROUND_TITLE).toBe("Design playground | Principled");
+    expect(html).toContain(
+      '<a class="skip-link" href="#main">Skip to content</a>',
+    );
     expect(html).toContain('<main class="playground" id="main">');
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).not.toContain("<script");
+  });
+
+  it("ships no client script and no hydration artifacts", () => {
+    const html = renderDesignPlayground();
+
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("data-react");
+    expect(html).not.toContain("react-mount");
   });
 
   it("demonstrates the required interface vocabulary with developer content", () => {
@@ -43,6 +57,12 @@ describe("renderDesignPlayground", () => {
       ".editor__body { display: grid; grid-template-columns: auto minmax(0, 1fr); }",
     );
     expect(html).toContain(".editor__gutter { min-width: 3.25rem;");
+  });
+
+  it("marks Design system as the current page in the primary nav", () => {
+    expect(renderDesignPlayground()).toContain(
+      '<a href="/design" aria-current="page">Design system</a>',
+    );
   });
 
   it("shows the web version in the footer", () => {

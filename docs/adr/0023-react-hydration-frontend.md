@@ -1,6 +1,7 @@
 # ADR-0023: Migrate the web UI to React with selective hydration
 
-**Status**: Proposed
+**Status**: Accepted — Phase 1 (#49), Phase 2 (#50) and Phase 3 (#51) all
+landed; supersedes [ADR-0004](0004-server-rendered-web-without-client-javascript.md).
 **Date**: 2026-09-20
 
 ## Context

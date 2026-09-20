@@ -15,7 +15,7 @@ import {
 import type { ClientAssets } from "./client-assets.ts";
 import { renderAnalyzePage } from "./presentation/analyze-page.ts";
 import { exampleFor } from "./presentation/code-examples.ts";
-import { renderDesignPlayground } from "./presentation/design-playground.ts";
+import { renderDesignPlayground } from "./presentation/design-playground.tsx";
 import { UNDETECTED_LANGUAGE_MESSAGE } from "./presentation/language-display.ts";
 import { renderPrinciplesPage } from "./presentation/principles-page.ts";
 
