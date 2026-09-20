@@ -6,6 +6,7 @@ import {
   InMemoryPrincipleCatalog,
   InMemoryRuleCatalog,
   JevLanguageDetector,
+  IspRule,
   ListPrinciples,
   LspRule,
   OcpRule,
@@ -41,7 +42,7 @@ const server = Bun.serve({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
     // Seeded with the real SOLID rules as they land (#10 SRP first).
     analyzeSubject: new AnalyzeSubject(
-      new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule()]),
+      new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule(), new IspRule()]),
     ),
     languageDetector: new JevLanguageDetector(
       new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),

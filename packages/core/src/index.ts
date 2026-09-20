@@ -156,6 +156,9 @@ export { OCP_RULE_ID, OcpRule } from "./principles/ocp/infrastructure/ocp-rule.t
 // Liskov Substitution Principle rule (#12, ADR-0032).
 export { LSP_RULE_ID, LspRule } from "./principles/lsp/infrastructure/lsp-rule.ts";
 
+// Interface Segregation Principle rule (#13, ADR-0034).
+export { ISP_RULE_ID, IspRule } from "./principles/isp/infrastructure/isp-rule.ts";
+
 // Jev adapter: AI-assisted judgments behind an injected port (ADR-0024).
 export type {
   ChoiceJudgment,
