@@ -5,7 +5,8 @@ import { VERSION } from "../version.ts";
 const body = `<h1>Test page</h1>`;
 
 function navOf(html: string): string {
-  return html.slice(html.indexOf('<nav class="topnav"'), html.indexOf("</nav>"));
+  const start = html.indexOf('<nav class="topnav"');
+  return html.slice(start, html.indexOf("</nav>", start) + "</nav>".length);
 }
 
 describe("escapeHtml", () => {
@@ -17,6 +18,7 @@ describe("escapeHtml", () => {
 describe("NAV_ITEMS", () => {
   it("is the product's primary navigation", () => {
     expect(NAV_ITEMS).toEqual([
+      { href: "/", label: "Home" },
       { href: "/principles", label: "Principles" },
       { href: "/analyze", label: "Analyze" },
       { href: "/design", label: "Design system" },
@@ -57,15 +59,15 @@ describe("renderPage", () => {
     );
   });
 
-  it("marks exactly the nav item matching the path as current", () => {
-    const nav = navOf(
-      renderPage({ title: "Analyze", path: "/analyze", body }),
+  it("renders the whole nav block, one item per line, only the path current", () => {
+    expect(navOf(renderPage({ title: "Analyze", path: "/analyze", body }))).toBe(
+      `<nav class="topnav" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/principles">Principles</a>
+      <a href="/analyze" aria-current="page">Analyze</a>
+      <a href="/design">Design system</a>
+    </nav>`,
     );
-
-    expect(nav).toContain('<a href="/principles">Principles</a>');
-    expect(nav).toContain('<a href="/analyze" aria-current="page">Analyze</a>');
-    expect(nav).toContain('<a href="/design">Design system</a>');
-    expect(nav.match(/aria-current="page"/g)).toHaveLength(1);
   });
 
   it("marks nothing current for a route outside the nav", () => {
@@ -74,9 +76,18 @@ describe("renderPage", () => {
     ).not.toContain("aria-current");
   });
 
+  it("keeps the head free of stray text when no description is given", () => {
+    expect(renderPage({ title: "T", path: "/", body })).toContain(
+      '<meta name="color-scheme" content="light dark">\n<link rel="icon" href="data:,">',
+    );
+  });
+
   it("omits the description meta unless one is given, and escapes it", () => {
     expect(renderPage({ title: "T", path: "/", body })).not.toContain(
       'name="description"',
+    );
+    expect(renderPage({ title: "T", path: "/", body })).toContain(
+      '<meta name="color-scheme" content="light dark">\n<link',
     );
     expect(
       renderPage({

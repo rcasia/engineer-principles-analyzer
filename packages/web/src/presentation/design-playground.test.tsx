@@ -59,10 +59,19 @@ describe("renderDesignPlayground", () => {
     expect(html).toContain(".editor__gutter { min-width: 3.25rem;");
   });
 
-  it("marks Design system as the current page in the primary nav", () => {
-    expect(renderDesignPlayground()).toContain(
+  it("marks Design system as the only current page in the primary nav", () => {
+    const html = renderDesignPlayground();
+
+    expect(html).toContain(
       '<a href="/design" aria-current="page">Design system</a>',
     );
+    const nav = html.slice(
+      html.indexOf('<nav class="topnav"'),
+      html.indexOf("</nav>") + "</nav>".length,
+    );
+
+    expect(nav.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(nav).toContain('<a href="/">Home</a>');
   });
 
   it("shows the web version in the footer", () => {

@@ -17,9 +17,12 @@ export function escapeHtml(text: string): string {
  * The primary navigation, defined once so every page agrees on what the
  * product is made of: `label` is what visitors see, `href` is the route.
  * Pages render this list and mark the current one, never their own copy.
+ * `/` is listed as Home so every page — the landing one included — marks
+ * exactly one item current.
  */
 export const NAV_ITEMS: readonly { readonly href: string; readonly label: string }[] =
   [
+    { href: "/", label: "Home" },
     { href: "/principles", label: "Principles" },
     { href: "/analyze", label: "Analyze" },
     { href: "/design", label: "Design system" },

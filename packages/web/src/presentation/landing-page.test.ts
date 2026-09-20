@@ -77,18 +77,37 @@ describe("renderLandingPage", () => {
       "<h2 id=\"how-heading\">From principle to finding, in four steps</h2>",
     );
     expect(html).toContain(
-      "<p class=\"panel__label\">Step 01</p>\n  <h3 class=\"card-title\">Principles</h3>",
+      `<article class="panel span-6">
+  <p class="panel__label">Step 01</p>
+  <h3 class="card-title">Principles</h3>
+  <p class="card-copy">The standard is written down: what good looks like, the decisions it guards and the cost of ignoring it. Together the principles are the engineering contract.</p>
+</article>`,
     );
     expect(html).toContain(
-      "<p class=\"panel__label\">Step 02</p>\n  <h3 class=\"card-title\">Semantic analysis</h3>",
+      `<article class="panel span-6">
+  <p class="panel__label">Step 02</p>
+  <h3 class="card-title">Semantic analysis</h3>
+  <p class="card-copy">Rules examine the structure of the subject — its dependencies, boundaries, members and call sites — where design problems actually live.</p>
+</article>`,
     );
     expect(html).toContain(
-      "<p class=\"panel__label\">Step 03</p>\n  <h3 class=\"card-title\">Evidence + judgment</h3>",
+      `<article class="panel span-6">
+  <p class="panel__label">Step 03</p>
+  <h3 class="card-title">Evidence + judgment</h3>
+  <p class="card-copy">Every finding quotes the exact lines it judged, names the rule behind it and carries a confidence. Uncertain results are labeled uncertain, never hidden.</p>
+</article>`,
     );
     expect(html).toContain(
-      "<p class=\"panel__label\">Step 04</p>\n  <h3 class=\"card-title\">Actionable finding</h3>",
+      `<article class="panel span-6">
+  <p class="panel__label">Step 04</p>
+  <h3 class="card-title">Actionable finding</h3>
+  <p class="card-copy">A verdict, an explanation in the principle's terms and — where the rule knows one — a suggested fix, so the next step is concrete.</p>
+</article>`,
     );
     expect(html.match(/class="panel__label">Step 0/g)).toHaveLength(4);
+    expect(html).toContain(
+      '</article>\n    <article class="panel span-6">\n  <p class="panel__label">Step 02</p>',
+    );
   });
 
   it("labels the sample finding as illustrative, not a claim of accuracy", () => {
@@ -127,7 +146,8 @@ describe("renderLandingPage", () => {
     expect(html).toContain(
       '<footer class="footer">Principled · evidence before opinion · v0.0.0-dev</footer>',
     );
-    expect(html).not.toMatch(/<a\b[^>]*aria-current/);
+    expect(html).toContain('<a href="/" aria-current="page">Home</a>');
+    expect(html.match(/<a\b[^>]*aria-current="page"/g)).toHaveLength(1);
     expect(html).not.toContain("<script");
   });
 
