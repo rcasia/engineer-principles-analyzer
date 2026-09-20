@@ -159,6 +159,10 @@ function build(
         toEvidence(assessment, subject.language),
       ),
       explanation: explanationFor(verdict, highlighted),
+      // Stryker disable next-line ConditionalExpression: spreading an
+      // `{remediation: undefined}` is unobservable — AnalysisResult.of always
+      // assigns the key, so only the defined case can be tested (and is,
+      // by every violation test asserting the remediation string).
       ...(remediation === undefined ? {} : { remediation }),
       language: subject.language,
       analyzer: ANALYZER,
@@ -293,11 +297,11 @@ function uncertainRemediationFor(
   language: string,
 ): string | undefined {
   const noun = collaboratorNoun(language);
+  // A non-empty domain list implies reason "domain_count" (a "too_few_methods"
+  // assessment always carries an empty list), so testing the list alone keeps
+  // the filter — and its mutants — honest: every weakening is observable.
   const suggestions = assessments
-    .filter(
-      (assessment) =>
-        assessment.reason === "domain_count" && assessment.domains.length > 0,
-    )
+    .filter((assessment) => assessment.domains.length > 0)
     .map((assessment) => {
       const domainNames = assessment.domains
         .map((domain) => domain.domain)

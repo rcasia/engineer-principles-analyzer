@@ -113,6 +113,69 @@ describe("SrpRule", () => {
     );
   });
 
+  test("reads python despite surrounding whitespace in the language name", async () => {
+    const source = [
+      "class UserManager:",
+      "    def save_user(self, user):",
+      "        pass",
+      "    def load_user(self, user_id):",
+      "        pass",
+      "    def send_email(self, email):",
+      "        pass",
+      "    def notify_user(self, user):",
+      "        pass",
+      "    def render_profile(self, user):",
+      "        pass",
+      "    def display_dashboard(self, user):",
+      "        pass",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, " python "));
+
+    expect(result.status).toBe("violation");
+    expect(result.language).toBe(" python ");
+    expect(result.remediation).toBe(
+      'Consider splitting responsibilities: extract persistence/communication/presentation out of "UserManager" into its own module(s).',
+    );
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.excerpt).toBe("class UserManager: …");
+  });
+
+  test("reports compliant without remediation for a class with a single responsibility domain", async () => {
+    const source =
+      "class Repo {\n  save(user) {}\n  load(id) {}\n  build(params) {}\n}";
+    const result = await rule.evaluate(subjectOf(source));
+
+    expect(result.status).toBe("compliant");
+    expect(result.remediation).toBeUndefined();
+    expect(result.explanation).toBe(
+      "No class showed method-name evidence of more than one responsibility domain. " +
+        '"Repo" touches 1 responsibility domains: persistence (save, load).',
+    );
+  });
+
+  test("leaves domain-free classes out of an uncertain remediation", async () => {
+    const source = `
+      class UserService {
+        save(user) {}
+        load(id) {}
+        send(email) {}
+        notify(user) {}
+      }
+      class Calculator {
+        add(a, b) {}
+        subtract(a, b) {}
+        multiply(a, b) {}
+      }
+    `;
+    const result = await rule.evaluate(subjectOf(source));
+
+    expect(result.status).toBe("uncertain");
+    expect(result.remediation).toBe(
+      "Consider whether a split is warranted: " +
+        '"UserService" may mix persistence/communication — if a review confirms the responsibilities are truly distinct, extract the secondary one into its own collaborator(s).',
+    );
+  });
+
   test("suggests a module, not a collaborator, for an uncertain python class", async () => {
     const source = [
       "class UserService:",
