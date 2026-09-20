@@ -1,11 +1,9 @@
 import {
   AnalyzeSubject,
   DipRule,
-  HttpJevClient,
   InMemoryEventStore,
   InMemoryPrincipleCatalog,
   InMemoryRuleCatalog,
-  JevLanguageDetector,
   IspRule,
   ListPrinciples,
   LspRule,
@@ -17,6 +15,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLambdaHandler } from "./lambda.ts";
+import { detectorFor } from "./language-detector.ts";
 import { createRequestHandler } from "./server.ts";
 import { loadClientAssets } from "./client-assets.ts";
 
@@ -28,15 +27,11 @@ import { loadClientAssets } from "./client-assets.ts";
 // real, the durable adapter is not built yet, the same gap already accepted
 // for InMemoryPrincipleCatalog and InMemoryRuleCatalog below.
 //
-// Language detection asks Jev (ADR-0028): TYPESAFE_API_KEY must reach the
-// function as an environment variable (infra follow-up), or the cold start
-// fails fast instead of 400ing every submission.
-const apiKey = process.env["TYPESAFE_API_KEY"];
-if (apiKey === undefined || apiKey.trim().length === 0) {
-  throw new Error(
-    "TYPESAFE_API_KEY must be set: language detection asks Jev (ADR-0028).",
-  );
-}
+// Language detection asks Jev (ADR-0028) and the key reaches the function
+// through the `typesafe_api_key` infra variable (ADR-0037). When it is
+// absent the cold start must still succeed: detectorFor reports every
+// submission as undetectable, so pages serve and submissions get the 400
+// guidance, instead of every route 502ing because detection cannot run.
 
 // Client bundles ship beside the handler in the zip (build-lambda.ts) and
 // are read once per cold start; absent without a client build, in which
@@ -57,9 +52,7 @@ export const handler = createLambdaHandler(
     analyzeSubject: new AnalyzeSubject(
       new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule(), new IspRule(), new DipRule()]),
     ),
-    languageDetector: new JevLanguageDetector(
-      new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),
-    ),
+    languageDetector: detectorFor(process.env["TYPESAFE_API_KEY"]),
     eventStore: new InMemoryEventStore(),
     clientAssets,
     recordMetric: (event) => {
