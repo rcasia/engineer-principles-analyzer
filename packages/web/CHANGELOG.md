@@ -1,3 +1,18 @@
+# [1.9.0](https://github.com/rcasia/principled/compare/web-v1.8.1...web-v1.9.0) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** install detect-secrets in release jobs ([a284293](https://github.com/rcasia/principled/commit/a284293787a5ad1e4090a34a208db278b249fb54))
+* **infra:** post detectable source in the deployed-stack check ([04f7976](https://github.com/rcasia/principled/commit/04f7976e65ae8ae3cdbb8ddcb075cef23aa953f1))
+* **web:** render the editor gutter exactly from the loaded buffer ([4a9ed86](https://github.com/rcasia/principled/commit/4a9ed86151ca3ea32c6379aeb362cb4ba5005fd0))
+
+
+### Features
+
+* **ci:** block new secrets with detect-secrets hook ([f7d46a5](https://github.com/rcasia/principled/commit/f7d46a58eadbfa9489ba41a6df423597ee7e0df3))
+* **web:** auto-detect the submission language with no manual override ([5fabdd3](https://github.com/rcasia/principled/commit/5fabdd3add03d52e85f6287119757210041bf731))
+
 ## [1.8.1](https://github.com/rcasia/principled/compare/web-v1.8.0...web-v1.8.1) (2026-09-20)
 
 
