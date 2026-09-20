@@ -114,7 +114,7 @@ const editorAssets: ClientAssets = {
 };
 
 describe("createRequestHandler", () => {
-  it("serves the principles page as html at the root", async () => {
+  it("serves the landing page as html at the root", async () => {
     const response = await handlerFor({ principles: [tdd] })(
       new Request("http://localhost/"),
     );
@@ -124,7 +124,31 @@ describe("createRequestHandler", () => {
       "text/html; charset=utf-8",
     );
     await expect(response.text()).resolves.toContain(
-      "Test Driven Development",
+      "Code review arguments, written down and checked.",
+    );
+  });
+
+  it("serves the principles catalog as html at /principles", async () => {
+    const response = await handlerFor({ principles: [tdd] })(
+      new Request("http://localhost/principles"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe(
+      "text/html; charset=utf-8",
+    );
+    const body = await response.text();
+    expect(body).toContain("<title>Principles | Principled</title>");
+    expect(body).toContain("Test Driven Development");
+  });
+
+  it("lets the cdn cache the principles catalog like any other page", async () => {
+    const response = await handlerFor()(
+      new Request("http://localhost/principles"),
+    );
+
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=60, stale-while-revalidate=600",
     );
   });
 
@@ -251,7 +275,7 @@ describe("createRequestHandler", () => {
     );
   });
 
-  it.each(["/missing", "/principles", "/design/", "//"])(
+  it.each(["/missing", "/design/", "//"])(
     "responds 404 as plain text for %p",
     async (pathname) => {
       const response = await handlerFor()(

@@ -43,15 +43,24 @@ describe("renderPrinciplesPage", () => {
 
     expect(html).toContain('<meta charset="utf-8">');
     expect(html).toContain('<meta name="viewport"');
-    expect(html).toContain("<title>Principled</title>");
+    expect(html).toContain("<title>Principles | Principled</title>");
   });
 
   it("wraps content in a main landmark with a single level one heading", () => {
     const html = renderPrinciplesPage([tdd]);
 
     expect(html).toContain('<main class="page" id="main">');
-    expect(html).toContain("<h1>Principled</h1>");
+    expect(html).toContain("<h1>Principles</h1>");
     expect(html.match(/<h1>/g)).toHaveLength(1);
+  });
+
+  it("marks Principles as the current page in the primary nav", () => {
+    const html = renderPrinciplesPage([]);
+
+    expect(html).toContain(
+      '<a href="/principles" aria-current="page">Principles</a>',
+    );
+    expect(html.match(/<a\b[^>]*aria-current="page"/g)).toHaveLength(1);
   });
 
   it("lets keyboard users bypass navigation", () => {

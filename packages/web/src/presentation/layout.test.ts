@@ -17,7 +17,7 @@ describe("escapeHtml", () => {
 describe("NAV_ITEMS", () => {
   it("is the product's primary navigation", () => {
     expect(NAV_ITEMS).toEqual([
-      { href: "/", label: "Principles" },
+      { href: "/principles", label: "Principles" },
       { href: "/analyze", label: "Analyze" },
       { href: "/design", label: "Design system" },
     ]);
@@ -62,7 +62,7 @@ describe("renderPage", () => {
       renderPage({ title: "Analyze", path: "/analyze", body }),
     );
 
-    expect(nav).toContain('<a href="/">Principles</a>');
+    expect(nav).toContain('<a href="/principles">Principles</a>');
     expect(nav).toContain('<a href="/analyze" aria-current="page">Analyze</a>');
     expect(nav).toContain('<a href="/design">Design system</a>');
     expect(nav.match(/aria-current="page"/g)).toHaveLength(1);

@@ -232,6 +232,8 @@ h1 {
 }
 .intro__facts dt { color: var(--color-text-muted); font-size: 0.75rem; }
 .intro__facts dd { margin: 0; font: 0.75rem/1.5 var(--font-mono); }
+.hero__actions { margin-top: var(--space-8); }
+.panel__list { display: grid; margin: 0 0 var(--space-4); padding-left: 1.25rem; color: var(--color-text-secondary); gap: var(--space-2); }
 .section { padding-block: var(--space-12); border-bottom: 1px solid var(--color-border); }
 .section:last-child { border-bottom: 0; }
 .section__header {

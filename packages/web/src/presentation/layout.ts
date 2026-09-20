@@ -20,7 +20,7 @@ export function escapeHtml(text: string): string {
  */
 export const NAV_ITEMS: readonly { readonly href: string; readonly label: string }[] =
   [
-    { href: "/", label: "Principles" },
+    { href: "/principles", label: "Principles" },
     { href: "/analyze", label: "Analyze" },
     { href: "/design", label: "Design system" },
   ];

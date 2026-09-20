@@ -17,6 +17,7 @@ import { renderAnalyzePage } from "./presentation/analyze-page.ts";
 import { exampleFor } from "./presentation/code-examples.ts";
 import { renderDesignPlayground } from "./presentation/design-playground.tsx";
 import { UNDETECTED_LANGUAGE_MESSAGE } from "./presentation/language-display.ts";
+import { renderLandingPage } from "./presentation/landing-page.ts";
 import { renderPrinciplesPage } from "./presentation/principles-page.ts";
 
 export { UNDETECTED_LANGUAGE_MESSAGE };
@@ -357,6 +358,14 @@ export function createRequestHandler(
       });
     }
 
+    if (pathname === "/principles") {
+      return htmlResponse(
+        renderPrinciplesPage(await deps.listPrinciples.execute()),
+        200,
+        PAGE_CACHE_CONTROL,
+      );
+    }
+
     const asset = clientAssetResponse(deps.clientAssets, pathname);
 
     if (asset !== undefined) {
@@ -422,10 +431,6 @@ export function createRequestHandler(
       });
     }
 
-    return htmlResponse(
-      renderPrinciplesPage(await deps.listPrinciples.execute()),
-      200,
-      PAGE_CACHE_CONTROL,
-    );
+    return htmlResponse(renderLandingPage(), 200, PAGE_CACHE_CONTROL);
   };
 }

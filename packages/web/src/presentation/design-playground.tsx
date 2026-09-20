@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
+import { NAV_ITEMS } from "./layout.ts";
 import { VERSION } from "../version.ts";
 
 export const DESIGN_PLAYGROUND_TITLE = "Design playground | Principled";
@@ -16,11 +17,15 @@ function TopBar(): ReactElement {
           <span>Principled</span>
         </a>
         <nav className="topnav" aria-label="Primary">
-          <a href="/">Principles</a>
-          <a href="/analyze">Analyze</a>
-          <a href="/design" aria-current="page">
-            Design system
-          </a>
+          {NAV_ITEMS.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              aria-current={item.href === "/design" ? "page" : undefined}
+            >
+              {item.label}
+            </a>
+          ))}
         </nav>
         <div
           className="topbar__meta"

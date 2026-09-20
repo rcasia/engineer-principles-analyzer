@@ -48,6 +48,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0036](0036-solid-judgment-corpus.md) | Judge the SOLID rules against a versioned synthetic corpus | Accepted | 2026-09-20 |
 | [0037](0037-keyless-detection-degrades.md) | Serve keyless without failing the cold start | Accepted | 2026-09-20 |
 | [0038](0038-mutation-advisory.md) | Mutation testing reports separately, never blocks delivery | Accepted | 2026-09-20 |
+| [0039](0039-landing-page-and-shared-shell.md) | Serve a landing page at / and the catalog from /principles behind one shared shell | Accepted | 2026-09-20 |
 
 ## Writing a new ADR
 

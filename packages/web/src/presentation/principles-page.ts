@@ -2,7 +2,7 @@ import type { Principle } from "@principled/core";
 import { escapeHtml, renderPage } from "./layout.ts";
 import { renderPrinciplesList } from "./principles-list.tsx";
 
-export const PAGE_TITLE = "Principled";
+export const PAGE_TITLE = "Principles | Principled";
 export { EMPTY_STATE } from "./principles-list.tsx";
 export { escapeHtml };
 
@@ -24,10 +24,10 @@ function renderPrinciples(principles: readonly Principle[]): string {
 export function renderPrinciplesPage(principles: readonly Principle[]): string {
   return renderPage({
     title: PAGE_TITLE,
-    path: "/",
+    path: "/principles",
     body: `<header class="page-header">
 <p class="eyebrow">Engineering reference</p>
-<h1>${PAGE_TITLE}</h1>
+<h1>Principles</h1>
 <p class="lede">Explicit principles for evaluating software decisions and the evidence behind them.</p>
 </header>
 ${renderPrinciples(principles)}`,
