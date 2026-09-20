@@ -145,12 +145,12 @@ describe("renderAnalyzePage", () => {
     it("renders an empty editor with auto-detect and no language input", () => {
       const html = renderAnalyzePage(blankForm());
 
-      expect(html).toContain('<span class="editor__filename">snippet.txt</span>');
+      expect(html).toContain('<span class="editor__filename" id="editorFilename">snippet.txt</span>');
       expect(html).toContain(
         '<textarea class="editor__input" id="sourceCode" name="sourceCode" rows="16" spellcheck="false" placeholder="Paste exactly one source file"></textarea>',
       );
       expect(html).toContain(
-        '<span class="editor__language" aria-label="Language is detected automatically">Auto-detect</span>',
+        '<span class="editor__language" id="editorLanguage" aria-label="Language is detected automatically">Auto-detect</span>',
       );
       expect(html).not.toContain('name="language"');
       expect(AUTO_DETECT_LABEL).toBe("Auto-detect");
@@ -253,7 +253,7 @@ describe("renderAnalyzePage", () => {
       const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain(
-        '<p class="analyze-toolbar__meta">Auto-detect · 0 lines</p>',
+        '<p class="analyze-toolbar__meta" id="editorMeta">Auto-detect · 0 lines</p>',
       );
       expect(html).toContain(
         '<button class="button button--primary" type="submit">Analyze →</button>',
@@ -292,7 +292,41 @@ describe("renderAnalyzePage", () => {
       const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain(
-        '<form method="post" action="/analyze" enctype="multipart/form-data"',
+        '<form id="analyzeForm" method="post" action="/analyze" enctype="multipart/form-data" class="analyze-form">',
+      );
+    });
+
+    it("renders the highlight backdrop with the escaped buffer behind the textarea", () => {
+      const html = renderAnalyzePage({
+        kind: "form",
+        sourceCode: "<b>hi</b>",
+        language: "",
+        exampleId: null,
+      });
+
+      expect(html).toContain(
+        '<pre class="editor__backdrop" aria-hidden="true"><code id="sourceHighlight">&lt;b&gt;hi&lt;/b&gt;</code></pre>',
+      );
+      expect(html).toContain(
+        ">&lt;b&gt;hi&lt;/b&gt;</textarea>",
+      );
+    });
+
+    it("carries no example dataset on the blank form", () => {
+      const html = renderAnalyzePage(blankForm());
+
+      expect(formSectionOf(html)).not.toContain("data-example-filename");
+    });
+
+    it("renders the live-highlight script only when a bundle is available", () => {
+      expect(renderAnalyzePage(blankForm())).not.toContain("<script");
+      expect(renderAnalyzePage(blankForm())).toContain("</style>\n</head>");
+      expect(
+        renderAnalyzePage(blankForm(), {
+          scriptSrc: "/assets/analyze-editor-a1b2c3.js",
+        }),
+      ).toContain(
+        '<script type="module" src="/assets/analyze-editor-a1b2c3.js"></script>',
       );
     });
 
@@ -315,7 +349,10 @@ describe("renderAnalyzePage", () => {
       const html = renderAnalyzePage(exampleView);
 
       expect(html).toContain(
-        '<span class="editor__filename">UserService.ts</span>',
+        '<span class="editor__filename" id="editorFilename">UserService.ts</span>',
+      );
+      expect(html).toContain(
+        'data-example-filename="UserService.ts"',
       );
       expect(html).toContain(">class UserService {}</textarea>");
       expect(html).toContain(
@@ -332,7 +369,7 @@ describe("renderAnalyzePage", () => {
         exampleId: "bogus",
       });
 
-      expect(html).toContain('<span class="editor__filename">snippet.txt</span>');
+      expect(html).toContain('<span class="editor__filename" id="editorFilename">snippet.txt</span>');
       expect(html).not.toContain('aria-current="true"');
     });
   });
@@ -395,10 +432,10 @@ describe("renderAnalyzePage", () => {
         });
 
         expect(html).toContain(
-          `<p class="analyze-toolbar__meta">${label} · 0 lines</p>`,
+          `<p class="analyze-toolbar__meta" id="editorMeta">${label} · 0 lines</p>`,
         );
         expect(html).toContain(
-          `<span class="editor__filename">${filename}</span>`,
+          `<span class="editor__filename" id="editorFilename">${filename}</span>`,
         );
       },
     );
@@ -412,9 +449,9 @@ describe("renderAnalyzePage", () => {
       });
 
       expect(html).toContain(
-        '<p class="analyze-toolbar__meta">Auto-detect · 0 lines</p>',
+        '<p class="analyze-toolbar__meta" id="editorMeta">Auto-detect · 0 lines</p>',
       );
-      expect(html).toContain('<span class="editor__filename">snippet.txt</span>');
+      expect(html).toContain('<span class="editor__filename" id="editorFilename">snippet.txt</span>');
     });
 
     it.each([
@@ -430,7 +467,7 @@ describe("renderAnalyzePage", () => {
       });
 
       expect(html).toContain(
-        `<p class="analyze-toolbar__meta">TypeScript · ${label}</p>`,
+        `<p class="analyze-toolbar__meta" id="editorMeta">TypeScript · ${label}</p>`,
       );
     });
 
@@ -485,7 +522,7 @@ describe("renderAnalyzePage", () => {
       });
 
       expect(html).toContain(">class Foo {}</textarea>");
-      expect(html).toContain('<span class="editor__filename">snippet.py</span>');
+      expect(html).toContain('<span class="editor__filename" id="editorFilename">snippet.py</span>');
       expect(html).toContain("Python · 1 line");
     });
 

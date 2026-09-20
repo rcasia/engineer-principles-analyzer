@@ -1,20 +1,24 @@
 #!/usr/bin/env bun
 /**
  * Bundles the client islands into content-hashed files for immutable CDN
- * caching (Phase 1 spike, #49).
+ * caching (ADR-0027).
  *
- * Phase 1 ships no `<script>` tag — the principles page stays SSR-only —
- * so nothing references this output yet. The point of the spike is proving
- * the pipeline: `Bun.build` hashes the bundle, the manifest maps the
- * logical entry to its hashed file, and the server answers hashed assets
- * with `CLIENT_ASSET_CACHE_CONTROL` (`public, max-age=31536000, immutable`),
+ * `gutter.ts` is the Phase 1 spike; `analyze-editor.ts` is the live
+ * language detection and syntax highlighting for `/analyze`, loaded as a
+ * `<script type="module">` only when the bundle exists — without it the
+ * server-rendered form works as before. The manifest maps each logical
+ * entry to its hashed file; the server answers hashed assets with
+ * `CLIENT_ASSET_CACHE_CONTROL` (`public, max-age=31536000, immutable`),
  * which the CloudFront cache policy honours from the origin's headers, so
  * no Terraform change is needed for the new asset class.
  */
 import { mkdir, rm } from "node:fs/promises";
 
 const OUT_DIR = "infra/build/client";
-const ENTRIES = ["packages/web/src/client/gutter.ts"];
+const ENTRIES = [
+  "packages/web/src/client/gutter.ts",
+  "packages/web/src/client/analyze-editor.ts",
+];
 
 await rm(OUT_DIR, { recursive: true, force: true });
 await mkdir(OUT_DIR, { recursive: true });
@@ -37,17 +41,29 @@ const bundles = result.outputs
   .map((output) => output.path.split("/").at(-1))
   .filter((file): file is string => file !== undefined && file.endsWith(".js"));
 
-if (bundles.length !== 1) {
-  throw new Error(`Expected one client bundle, got ${bundles.length}.`);
+if (bundles.length !== ENTRIES.length) {
+  throw new Error(
+    `Expected ${ENTRIES.length} client bundles, got ${bundles.length}.`,
+  );
 }
 
-const [bundle] = bundles;
+const manifest: Record<string, string> = {};
 
-if (bundle === undefined) {
-  throw new Error("Expected one client bundle, found none.");
+for (const entry of ENTRIES) {
+  const logical = entry.split("/").at(-1)?.replace(/\.ts$/, ".js");
+
+  if (logical === undefined) {
+    throw new Error(`Cannot derive a bundle name from ${entry}.`);
+  }
+
+  const hashed = bundles.find((file) => file.startsWith(logical.replace(/\.js$/, "-")));
+
+  if (hashed === undefined) {
+    throw new Error(`No bundle found for ${entry}.`);
+  }
+
+  manifest[logical] = hashed;
 }
-
-const manifest: Record<string, string> = { "gutter.js": bundle };
 
 await Bun.write(`${OUT_DIR}/manifest.json`, `${JSON.stringify(manifest)}\n`);
 console.log(`Built ${OUT_DIR}/manifest.json: ${JSON.stringify(manifest)}`);

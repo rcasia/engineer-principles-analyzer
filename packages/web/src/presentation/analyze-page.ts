@@ -6,12 +6,16 @@ import type {
 } from "@principled/core";
 import { CODE_EXAMPLES, exampleFor } from "./code-examples.ts";
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
+import {
+  AUTO_DETECT_LABEL,
+  extensionFor,
+  languageLabel,
+} from "./language-display.ts";
 import { escapeHtml } from "./principles-page.ts";
 import { VERSION } from "../version.ts";
 
 export const ANALYZE_PAGE_TITLE = "Analyze | Principled";
-/** Shown wherever a language would appear but detection has nothing to show yet. */
-export const AUTO_DETECT_LABEL = "Auto-detect";
+export { AUTO_DETECT_LABEL };
 export const NO_FINDINGS_MESSAGE =
   "The analysis completed, but no rules were available to evaluate this submission.";
 
@@ -144,41 +148,6 @@ function renderErrorBanner(message: string): string {
 }
 
 /**
- * Display names and file extensions per language, as shown in the editor
- * toolbar and status bar. The backend accepts any free-text language, so an
- * unlisted one is echoed back untouched with a plain `.txt` filename rather
- * than rejected.
- */
-const LANGUAGE_DETAILS: Record<
-  string,
-  { readonly label: string; readonly extension: string }
-> = {
-  typescript: { label: "TypeScript", extension: "ts" },
-  javascript: { label: "JavaScript", extension: "js" },
-  python: { label: "Python", extension: "py" },
-  go: { label: "Go", extension: "go" },
-  rust: { label: "Rust", extension: "rs" },
-  java: { label: "Java", extension: "java" },
-};
-
-function canonicalLanguage(language: string): string {
-  return language.trim().toLowerCase();
-}
-
-/** Display name for a detector-produced language; "" renders as auto-detect. */
-function languageLabel(language: string): string {
-  if (canonicalLanguage(language) === "") {
-    return AUTO_DETECT_LABEL;
-  }
-
-  return LANGUAGE_DETAILS[canonicalLanguage(language)]?.label ?? language;
-}
-
-function extensionFor(language: string): string {
-  return LANGUAGE_DETAILS[canonicalLanguage(language)]?.extension ?? "txt";
-}
-
-/**
  * The filename in the editor toolbar. Real for examples, derived for
  * anything the visitor typed. Every source here is static or map-derived,
  * never user input, so there is nothing to escape.
@@ -301,28 +270,36 @@ function renderPlayground(options: {
   const invalidAttr = options.invalid
     ? ' aria-invalid="true" aria-describedby="analyze-error"'
     : "";
+  const example = exampleFor(options.exampleId);
+  const exampleAttrs =
+    example === undefined
+      ? ""
+      : ` data-example-filename="${example.filename}"`;
 
-  return `<form method="post" action="/analyze" enctype="multipart/form-data" class="analyze-form">
+  return `<form id="analyzeForm" method="post" action="/analyze" enctype="multipart/form-data" class="analyze-form"${exampleAttrs}>
   <div class="analyze-grid">
     <section class="panel editor" aria-label="Source code editor">
       <div class="editor__toolbar">
-        <span class="editor__filename">${filenameFor(options.language, options.exampleId)}</span>
+        <span class="editor__filename" id="editorFilename">${filenameFor(options.language, options.exampleId)}</span>
         <span class="editor__actions">
           <label class="button" for="sourceFile" title="If a file is chosen it is used instead of the pasted text">Upload</label>
           <input class="visually-hidden" id="sourceFile" name="sourceFile" type="file">
-          <span class="editor__language" aria-label="Language is detected automatically">Auto-detect</span>
+          <span class="editor__language" id="editorLanguage" aria-label="Language is detected automatically">Auto-detect</span>
         </span>
       </div>
       <div class="editor__body">
         ${renderGutter(options.sourceCode)}
-        <label class="visually-hidden" for="sourceCode">Source code</label>
-        <textarea class="editor__input" id="sourceCode" name="sourceCode" rows="16" spellcheck="false"${invalidAttr} placeholder="Paste exactly one source file">${escapeHtml(options.sourceCode)}</textarea>
+        <div class="editor__stage">
+          <pre class="editor__backdrop" aria-hidden="true"><code id="sourceHighlight">${escapeHtml(options.sourceCode)}</code></pre>
+          <label class="visually-hidden" for="sourceCode">Source code</label>
+          <textarea class="editor__input" id="sourceCode" name="sourceCode" rows="16" spellcheck="false"${invalidAttr} placeholder="Paste exactly one source file">${escapeHtml(options.sourceCode)}</textarea>
+        </div>
       </div>
     </section>
     ${renderContract()}
   </div>
   <div class="analyze-toolbar">
-    <p class="analyze-toolbar__meta">${escapeHtml(languageLabel(options.language))} · ${lineCountLabel(options.sourceCode)}</p>
+    <p class="analyze-toolbar__meta" id="editorMeta">${escapeHtml(languageLabel(options.language))} · ${lineCountLabel(options.sourceCode)}</p>
     <button class="button button--primary" type="submit">Analyze →</button>
   </div>
 </form>
@@ -364,13 +341,23 @@ ${renderFindings(view.results)}
 
 /**
  * Renders the whole `/analyze` page server side, for every {@link AnalyzeView}
- * (ADR-0004: no client-side JavaScript at all, so the empty form, a
- * validation error and completed findings are three full page renders, not
- * three states of one script). The playground gets the full content width;
- * findings stay at reading width.
+ * (ADR-0015: the empty form, a validation error and completed findings are
+ * three full page renders, not three states of one script). The playground
+ * gets the full content width; findings stay at reading width.
+ *
+ * `scriptSrc` is the hashed live-highlight bundle (ADR-0027). It is
+ * rendered only when a built bundle is available; without it the page is
+ * the plain server-rendered form, so the no-JS baseline keeps working.
  */
-export function renderAnalyzePage(view: AnalyzeView): string {
+export function renderAnalyzePage(
+  view: AnalyzeView,
+  options?: { readonly scriptSrc?: string | undefined },
+): string {
   const mainClass = view.kind === "completed" ? "page" : "playground";
+  const script =
+    options?.scriptSrc === undefined
+      ? ""
+      : `<script type="module" src="${options.scriptSrc}"></script>\n`;
 
   return `<!doctype html>
 <html lang="en">
@@ -381,7 +368,7 @@ export function renderAnalyzePage(view: AnalyzeView): string {
 <link rel="icon" href="data:,">
 <title>${ANALYZE_PAGE_TITLE}</title>
 <style>${DESIGN_SYSTEM_CSS}</style>
-</head>
+${script}</head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar">

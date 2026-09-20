@@ -12,7 +12,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0001](0001-bun-monorepo.md)   | Use Bun as the runtime and a single monorepo | Accepted | 2026-09-19 |
 | [0002](0002-hexagonal-architecture.md) | Organise code as vertical slices over a hexagon | Accepted | 2026-09-19 |
 | [0003](0003-mutation-testing-gate.md) | Gate on mutation score, not line coverage | Accepted | 2026-09-19 |
-| [0004](0004-server-rendered-web-without-client-javascript.md) | Render the web UI on the server with no client-side JavaScript | Accepted | 2026-09-19 |
+| [0004](0004-server-rendered-web-without-client-javascript.md) | Render the web UI on the server with no client-side JavaScript | Partly superseded by [0027](0027-live-highlighting-analyze-editor.md) | 2026-09-19 |
 | [0005](0005-aws-lambda-function-url.md) | Deploy to AWS Lambda behind a Function URL, verified on LocalStack | Partly superseded by [0009](0009-cloudfront-in-front-of-lambda.md) | 2026-09-19 |
 | [0006](0006-trunk-based-delivery.md) | Push to main, gate with CI, release and deploy automatically | Accepted | 2026-09-19 |
 | [0007](0007-remote-terraform-state.md) | Keep production state in S3, provisioned by a bootstrap module | Accepted | 2026-09-19 |
@@ -36,6 +36,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0024](0024-jev-backed-srp-rule-adapter.md) | Judge SRP with a Jev-backed Rule adapter to validate the core | Accepted | 2026-09-20 |
 | [0025](0025-language-detection.md) | Detect the submission language from filename and content | Superseded by [0026](0026-auto-detect-language-only.md) | 2026-09-20 |
 | [0026](0026-auto-detect-language-only.md) | Auto-detect the submission language with no manual override | Accepted | 2026-09-20 |
+| [0027](0027-live-highlighting-analyze-editor.md) | Live language detection and syntax highlighting on /analyze | Accepted | 2026-09-20 |
 | [0027](0027-detect-secrets-commit-hook.md) | Block new secrets with detect-secrets, at commit time and in CI | Accepted | 2026-09-20 |
 
 ## Writing a new ADR

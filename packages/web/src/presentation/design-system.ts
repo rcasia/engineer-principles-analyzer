@@ -433,6 +433,25 @@ h1 {
 .editor__gutter { min-width: 3.25rem; padding: var(--space-3) 0; border-right: 1px solid var(--color-border); background: var(--color-surface-subtle); font-variant-numeric: tabular-nums; user-select: none; }
 .editor__gutter span { display: block; padding-right: var(--space-3); color: var(--color-text-muted); font: 0.8125rem/1.6 var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
 .editor__input { width: 100%; min-height: 32rem; padding: var(--space-3); border: 0; border-radius: 0; color: var(--color-text); background: transparent; font: 0.8125rem/1.6 var(--font-mono); resize: vertical; }
+.editor__stage { display: grid; min-width: 0; }
+.editor__stage > * { grid-area: 1 / 1; min-width: 0; }
+.editor__backdrop { display: none; margin: 0; padding: var(--space-3); overflow: hidden; border: 0; font: 0.8125rem/1.6 var(--font-mono); white-space: pre-wrap; overflow-wrap: break-word; }
+.editor__backdrop code { font: inherit; }
+.editor--live .editor__backdrop { display: block; }
+.editor--live .editor__input { position: relative; z-index: 1; color: transparent; caret-color: var(--color-text); }
+.editor--live .editor__input::selection { color: transparent; background: var(--color-accent-soft); }
+.hljs-keyword, .hljs-selector-tag, .hljs-doctag { color: var(--color-accent); }
+.hljs-string, .hljs-regexp, .hljs-addition { color: var(--color-success); }
+.hljs-number, .hljs-literal { color: var(--color-warning); }
+.hljs-comment, .hljs-quote { color: var(--color-text-muted); }
+.hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-function .hljs-title { color: var(--color-info); }
+.hljs-type, .hljs-built_in, .hljs-builtin-name { color: var(--color-accent); }
+.hljs-variable, .hljs-template-variable, .hljs-attr, .hljs-attribute { color: var(--color-text-secondary); }
+.hljs-operator, .hljs-punctuation, .hljs-subst { color: var(--color-text); }
+.hljs-section, .hljs-name, .hljs-selector-id, .hljs-selector-class { color: var(--color-accent); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 650; }
+.hljs-deletion { color: var(--color-error); }
 .contract__group { margin-bottom: var(--space-4); }
 .contract__group:last-child { margin-bottom: 0; }
 .contract__group-title { margin: 0 0 var(--space-2); color: var(--color-text-muted); font: 0.6875rem/1.4 var(--font-mono); letter-spacing: 0.07em; text-transform: uppercase; }

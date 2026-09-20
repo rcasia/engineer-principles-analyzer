@@ -13,9 +13,11 @@ import type { EventStore, Principle, Rule } from "@principled/core";
 import {
   ANALYSIS_CACHE_CONTROL,
   CLIENT_ASSET_CACHE_CONTROL,
+  CLIENT_ASSET_CONTENT_TYPE,
   createRequestHandler,
   type RequestHandlerDependencies,
 } from "./server.ts";
+import type { ClientAssets } from "./client-assets.ts";
 
 const tdd: Principle = { id: "tdd", title: "Test Driven Development" };
 
@@ -42,6 +44,7 @@ function handlerFor(overrides?: {
   readonly principles?: readonly Principle[];
   readonly rules?: readonly Rule[];
   readonly eventStore?: EventStore;
+  readonly clientAssets?: ClientAssets | undefined;
 }): (request: Request) => Promise<Response> {
   const deps: RequestHandlerDependencies = {
     listPrinciples: new ListPrinciples(
@@ -51,10 +54,18 @@ function handlerFor(overrides?: {
       new InMemoryRuleCatalog(overrides?.rules ?? []),
     ),
     eventStore: overrides?.eventStore ?? new InMemoryEventStore(),
+    ...(overrides?.clientAssets !== undefined
+      ? { clientAssets: overrides.clientAssets }
+      : {}),
   };
 
   return createRequestHandler(deps);
 }
+
+const editorAssets: ClientAssets = {
+  scriptSrc: "/assets/analyze-editor-a1b2c3.js",
+  files: { "analyze-editor-a1b2c3.js": "console.log(1);" },
+};
 
 describe("createRequestHandler", () => {
   it("serves the principles page as html at the root", async () => {
@@ -89,6 +100,89 @@ describe("createRequestHandler", () => {
     expect(CLIENT_ASSET_CACHE_CONTROL).toBe(
       "public, max-age=31536000, immutable",
     );
+    expect(CLIENT_ASSET_CONTENT_TYPE).toBe("text/javascript; charset=utf-8");
+  });
+
+  describe("GET /assets/*", () => {
+    it("serves a built editor bundle as immutable javascript", async () => {
+      const response = await handlerFor({ clientAssets: editorAssets })(
+        new Request("http://localhost/assets/analyze-editor-a1b2c3.js"),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe(
+        "text/javascript; charset=utf-8",
+      );
+      expect(response.headers.get("cache-control")).toBe(
+        "public, max-age=31536000, immutable",
+      );
+      await expect(response.text()).resolves.toBe("console.log(1);");
+    });
+
+    it("404s an asset that was never built", async () => {
+      const response = await handlerFor({ clientAssets: editorAssets })(
+        new Request("http://localhost/assets/analyze-editor-zzzz.js"),
+      );
+
+      expect(response.status).toBe(404);
+      await expect(response.text()).resolves.toBe("Not found");
+    });
+
+    it("404s assets when no bundle was wired at all", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/assets/analyze-editor-a1b2c3.js"),
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe("live-highlight script", () => {
+    it("omits the script tag without a built bundle", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/analyze"),
+      );
+
+      await expect(response.text()).resolves.not.toContain("<script");
+    });
+
+    it("loads the hashed bundle on the blank playground", async () => {
+      const response = await handlerFor({ clientAssets: editorAssets })(
+        new Request("http://localhost/analyze"),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toContain(
+        '<script type="module" src="/assets/analyze-editor-a1b2c3.js"></script>',
+      );
+    });
+
+    it("loads the hashed bundle on a prefilled example", async () => {
+      const response = await handlerFor({ clientAssets: editorAssets })(
+        new Request("http://localhost/analyze?example=single-responsibility"),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toContain(
+        '<script type="module" src="/assets/analyze-editor-a1b2c3.js"></script>',
+      );
+    });
+
+    it("keeps the script on a rejected submission so the editor stays live", async () => {
+      const form = new FormData();
+      form.set("sourceCode", "");
+      const response = await handlerFor({ clientAssets: editorAssets })(
+        new Request("http://localhost/analyze", {
+          method: "POST",
+          body: form,
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toContain(
+        '<script type="module" src="/assets/analyze-editor-a1b2c3.js"></script>',
+      );
+    });
   });
 
   it("ignores the query string when routing", async () => {
@@ -161,7 +255,7 @@ describe("createRequestHandler", () => {
       expect(response.status).toBe(200);
       const body = await response.text();
       expect(body).toContain(
-        '<span class="editor__filename">UserService.ts</span>',
+        '<span class="editor__filename" id="editorFilename">UserService.ts</span>',
       );
       expect(body).toContain("sendWelcomeEmail");
       expect(body).toContain(
@@ -188,9 +282,9 @@ describe("createRequestHandler", () => {
       expect(response.status).toBe(200);
       const body = await response.text();
       expect(body).toContain(
-        '<span class="editor__language" aria-label="Language is detected automatically">Auto-detect</span>',
+        '<span class="editor__language" id="editorLanguage" aria-label="Language is detected automatically">Auto-detect</span>',
       );
-      expect(body).toContain('<span class="editor__filename">snippet.txt</span>');
+      expect(body).toContain('<span class="editor__filename" id="editorFilename">snippet.txt</span>');
       expect(body).toContain("Auto-detect · 0 lines");
       expect(body).not.toContain('name="language"');
     });
@@ -202,7 +296,7 @@ describe("createRequestHandler", () => {
 
       expect(response.status).toBe(200);
       const body = await response.text();
-      expect(body).toContain('<span class="editor__filename">snippet.txt</span>');
+      expect(body).toContain('<span class="editor__filename" id="editorFilename">snippet.txt</span>');
       expect(body).not.toContain('aria-current="true"');
       expect(response.headers.get("cache-control")).toBe(
         "public, max-age=60, stale-while-revalidate=600",

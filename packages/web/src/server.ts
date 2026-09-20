@@ -1,5 +1,6 @@
 import type { AnalyzeSubject, EventStore, ListPrinciples } from "@principled/core";
 import { detectLanguage, Subject } from "@principled/core";
+import type { ClientAssets } from "./client-assets.ts";
 import { renderAnalyzePage } from "./presentation/analyze-page.ts";
 import { exampleFor } from "./presentation/code-examples.ts";
 import { renderDesignPlayground } from "./presentation/design-playground.ts";
@@ -26,8 +27,9 @@ export const ANALYSIS_CACHE_CONTROL = "no-store";
 /**
  * Content-hashed client bundles from `scripts/build-client.ts` are immutable
  * by construction: a new build is a new file name, so caches never need to
- * revalidate. Served with this directive once Phase 2 ships the first
- * `<script>` tag; declared now so the spike's asset contract is asserted.
+ * revalidate. The `/assets/` route below serves them with this directive,
+ * which the CloudFront cache policy honours from the origin's headers, so
+ * no Terraform change is needed for the asset class.
  */
 export const CLIENT_ASSET_CACHE_CONTROL =
   "public, max-age=31536000, immutable";
@@ -35,6 +37,32 @@ export const CLIENT_ASSET_CACHE_CONTROL =
 /** Shown when detection produced no language. The visitor cannot override it. */
 export const UNDETECTED_LANGUAGE_MESSAGE =
   "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.";
+
+export const CLIENT_ASSET_CONTENT_TYPE = "text/javascript; charset=utf-8";
+
+/**
+ * Serves a hashed client bundle by exact filename match only — the name
+ * comes from the build manifest, never from request parsing — so any path
+ * that is not a built bundle simply misses and routing continues to 404.
+ */
+function clientAssetResponse(
+  assets: ClientAssets | undefined,
+  pathname: string,
+): Response | undefined {
+  const source = assets?.files[pathname.slice("/assets/".length)];
+
+  if (source === undefined) {
+    return undefined;
+  }
+
+  return new Response(source, {
+    status: 200,
+    headers: {
+      "content-type": CLIENT_ASSET_CONTENT_TYPE,
+      "cache-control": CLIENT_ASSET_CACHE_CONTROL,
+    },
+  });
+}
 
 /** What `createRequestHandler` needs to serve every route. */
 export interface RequestHandlerDependencies {
@@ -47,7 +75,13 @@ export interface RequestHandlerDependencies {
    * source, so the "not persisted by default" requirement holds regardless
    * of which concrete `EventStore` is wired in here.
    */
-  readonly eventStore: EventStore;
+   readonly eventStore: EventStore;
+  /**
+   * Hashed live-highlight bundle, when one was built (ADR-0027). Absent in
+   * development without a client build — the form then renders with no
+   * `<script>` tag and the no-JS baseline holds.
+   */
+  readonly clientAssets?: ClientAssets | undefined;
 }
 
 function htmlResponse(
@@ -97,7 +131,10 @@ async function sourceCodeOf(form: FormData): Promise<SubmittedSource> {
 
 async function handleAnalyzeSubmission(
   request: Request,
-  deps: Pick<RequestHandlerDependencies, "analyzeSubject" | "eventStore">,
+  deps: Pick<
+    RequestHandlerDependencies,
+    "analyzeSubject" | "eventStore" | "clientAssets"
+  >,
 ): Promise<Response> {
   const form = await request.formData();
   const { sourceCode, filename } = await sourceCodeOf(form);
@@ -117,12 +154,15 @@ async function handleAnalyzeSubmission(
         : UNDETECTED_LANGUAGE_MESSAGE;
 
     return htmlResponse(
-      renderAnalyzePage({
-        kind: "invalid",
-        message,
-        sourceCode,
-        language,
-      }),
+      renderAnalyzePage(
+        {
+          kind: "invalid",
+          message,
+          sourceCode,
+          language,
+        },
+        { scriptSrc: deps.clientAssets?.scriptSrc },
+      ),
       400,
       ANALYSIS_CACHE_CONTROL,
     );
@@ -153,21 +193,31 @@ export function createRequestHandler(
       return htmlResponse(renderDesignPlayground(), 200, PAGE_CACHE_CONTROL);
     }
 
+    const asset = clientAssetResponse(deps.clientAssets, pathname);
+
+    if (asset !== undefined) {
+      return asset;
+    }
+
     if (pathname === "/analyze") {
       if (request.method === "POST") {
         return handleAnalyzeSubmission(request, deps);
       }
 
+      const scriptSrc = deps.clientAssets?.scriptSrc;
       const example = exampleFor(searchParams.get("example"));
 
       if (example === undefined) {
         return htmlResponse(
-          renderAnalyzePage({
-            kind: "form",
-            sourceCode: "",
-            language: "",
-            exampleId: null,
-          }),
+          renderAnalyzePage(
+            {
+              kind: "form",
+              sourceCode: "",
+              language: "",
+              exampleId: null,
+            },
+            { scriptSrc },
+          ),
           200,
           PAGE_CACHE_CONTROL,
         );
@@ -176,12 +226,15 @@ export function createRequestHandler(
       // Prefilled by query, which the CDN cache key ignores: this response
       // must not be stored, or one visitor's example would be served to all.
       return htmlResponse(
-        renderAnalyzePage({
-          kind: "form",
-          sourceCode: example.source,
-          language: detectLanguage(example.source, example.filename) ?? "",
-          exampleId: example.id,
-        }),
+        renderAnalyzePage(
+          {
+            kind: "form",
+            sourceCode: example.source,
+            language: detectLanguage(example.source, example.filename) ?? "",
+            exampleId: example.id,
+          },
+          { scriptSrc },
+        ),
         200,
         ANALYSIS_CACHE_CONTROL,
       );

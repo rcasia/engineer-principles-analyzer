@@ -32,8 +32,8 @@
     "localstack:down": "docker compose -f infra/localstack/compose.yml down -v",
     "infra:fmt": "terraform -chdir=infra fmt -recursive",
     "infra:validate": "terraform -chdir=infra init -backend=false -input=false && terraform -chdir=infra validate",
-    "infra:plan": "bun run build:lambda && bun run build:edge-signer && bun scripts/tf-local.ts plan",
-    "infra:apply:local": "bun run build:lambda && bun run build:edge-signer && bun scripts/tf-local.ts apply",
+    "infra:plan": "bun run build:client && bun run build:lambda && bun run build:edge-signer && bun scripts/tf-local.ts plan",
+    "infra:apply:local": "bun run build:client && bun run build:lambda && bun run build:edge-signer && bun scripts/tf-local.ts apply",
     "infra:destroy:local": "bun scripts/tf-local.ts destroy",
     "build:cli": "bun scripts/build-cli.ts"
   },

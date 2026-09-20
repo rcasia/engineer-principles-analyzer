@@ -66,6 +66,35 @@ if (analyzePost.status !== 200) {
   );
 }
 
+// ADR-0027: the playground form ships the live-highlight bundle when one
+// was built; the findings page has no editor so it carries no script. The
+// deploy is broken if the form references a script that 404s.
+const playground = await fetch(new URL("/analyze", url), {
+  signal: AbortSignal.timeout(60_000),
+});
+const playgroundBody = await playground.text();
+const scriptMatch = playgroundBody.match(
+  /<script type="module" src="([^"]+)"><\/script>/,
+);
+
+if (scriptMatch === null || scriptMatch[1] === undefined) {
+  fail("GET /analyze rendered no live-highlight script tag");
+}
+
+const asset = await fetch(new URL(scriptMatch[1], url), {
+  signal: AbortSignal.timeout(60_000),
+});
+
+if (asset.status !== 200) {
+  fail(`live-highlight bundle ${scriptMatch[1]} answered ${asset.status}`);
+}
+
+if (asset.headers.get("cache-control") !== "public, max-age=31536000, immutable") {
+  fail(
+    `live-highlight bundle is not immutable: ${asset.headers.get("cache-control")}`,
+  );
+}
+
 if (cdnEnabled) {
   // The whole point of origin access control: the Function URL is signed for,
   // so an unsigned request straight to the origin must be refused. If this

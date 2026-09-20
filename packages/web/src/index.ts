@@ -1,6 +1,7 @@
 export {
   ANALYSIS_CACHE_CONTROL,
   CLIENT_ASSET_CACHE_CONTROL,
+  CLIENT_ASSET_CONTENT_TYPE,
   createRequestHandler,
   HTML_CONTENT_TYPE,
   NOT_FOUND_BODY,
@@ -8,6 +9,8 @@ export {
   PAGE_CACHE_CONTROL,
 } from "./server.ts";
 export type { RequestHandlerDependencies } from "./server.ts";
+export { loadClientAssets } from "./client-assets.ts";
+export type { ClientAssets } from "./client-assets.ts";
 export {
   EMPTY_STATE,
   escapeHtml,
