@@ -28,6 +28,19 @@ Per #28, this assessment is explicit and reassessed when capabilities change.
 - Surface confidence/limitations and evidence for findings (aligns with the
   analysis result contract, #8).
 
+## Evaluation snapshots and quality communication
+
+Engine quality is reported per rule and per language (#30, story #45), so a
+finding can be read with appropriate confidence:
+
+- Precision, recall, false-positive/false-negative rates and calibration
+  are visible alongside evidence coverage and sample size.
+- Snapshots are versioned and dated; new runs append history, never rewrite
+  past claims.
+- Quality is never collapsed into an opaque overall "code quality" score.
+- Snapshots are built from synthetic, public or explicitly authorised
+  corpora — never from private customer code.
+
 ## Employment-adjacency boundary
 
 Developer/code-quality analysis is kept technically and contractually distinct

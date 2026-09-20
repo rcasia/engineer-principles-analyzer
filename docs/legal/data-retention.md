@@ -18,6 +18,9 @@ such feature documents its own category here before shipping.
 | --- | --- | --- | --- | --- |
 | Submitted source code | No (ephemeral) | In-memory during request | Not retained after response | N/A |
 | Analysis results | No (ephemeral) | In-memory during request | Not retained after response | N/A |
+| Web metric aggregates (#31) | Yes — counts only, no personal data | In-memory per Lambda execution environment | Lost on cold start; no cross-instance history yet | N/A (nothing personal to delete) |
+| Evaluation snapshots (#30) | Yes — public record | Published alongside the release they describe | Retained as append-only history; past snapshots are never rewritten | N/A (no personal data; built from synthetic/public/authorised corpora) |
+| Public exemplar entries (#32) | Yes — opt-in showcase | Published with owner, licence and provenance | Until the owner requests correction or removal | Correction/removal request workflow (to be completed alongside the showcase UI) |
 | Server/request logs | _to be completed_ | AWS `eu-west-1` | _to be completed_ | _to be completed_ |
 
 ## Event sourcing note

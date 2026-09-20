@@ -152,7 +152,12 @@ Accessibility of the public site alone is not a trigger.
   for sensitive artifacts live in [data-retention.md](data-retention.md).
 - Metrics and telemetry policy is split across #30/#31/#32; the
   privacy-affecting parts are summarised in
-  [privacy-policy.md](privacy-policy.md).
+  [privacy-policy.md](privacy-policy.md). The executable side lives in core:
+  `compliance/domain/sensitive-data.ts` (no telemetry by default,
+  forbidden-key guard), `metrics/domain/web-metrics.ts` (aggregates only,
+  served at `GET /metrics`), `evaluation/domain/` (versioned snapshots, no
+  opaque score) and `exemplars/domain/` (opt-in publication with
+  correction/removal).
 
 ## References
 
