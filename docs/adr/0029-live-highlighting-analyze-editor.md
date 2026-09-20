@@ -29,7 +29,11 @@ exists but serves nothing yet.
 
 - **Pros**: highlight.js 11.12.0 is BSD-licensed, dependency-free, and
   imports per language — core plus the six detected languages
-  (typescript, javascript, python, go, rust, java) bundles to ~53 kB.
+  (typescript, javascript, python, go, rust, java) bundles to ~56 kB
+  minified (~18 kB gzipped over the wire): measured 55,885 bytes
+  (17,772 gzipped) on 2026-09-20 after the Phase 2 islands
+  (validation echo, example switching) landed, against 52,776 bytes
+  before them — the original ~53 kB estimate held.
   Detection stays in core (`detectLanguage`), so client and server agree
   by construction; highlight.js only colours via `highlight` with
   `ignoreIllegals`, never `highlightAuto`, so its relevance heuristics
@@ -86,11 +90,19 @@ Option 1, as strict progressive enhancement on `/analyze` only:
 ### Negative
 
 - ADR-0004's "no client-side JavaScript" now reads "no *required*
-  client-side JavaScript": one page ships ~53 kB of progressive
+  client-side JavaScript": one page ships ~56 kB of progressive
   enhancement, and the design system carries highlight.js theme classes.
 - `highlight.js` is a new runtime dependency of `@principled/web` to
   audit (clean at introduction); grammar updates arrive via Dependabot
   like any other dep.
+- Phase 2 re-measured the hosting impact behind ADR-0005/ADR-0009 on
+  2026-09-20 and found nothing to amend there: the bundle is served
+  `public, max-age=31536000, immutable` from the origin's headers, which
+  the CloudFront cache policy honours with no Terraform change; the blank
+  form stays edge-cacheable while prefilled, invalid, completed, and
+  `POST /detect` responses stay `no-store`, so per-visitor judgments are
+  never reused. Request count, not bandwidth, remains the binding
+  free-tier limit.
 
 ### Risks and mitigations
 
