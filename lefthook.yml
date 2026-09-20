@@ -17,6 +17,14 @@ pre-commit:
         - "package.json"
         - "bun.lock"
       run: bun run audit
+    secrets:
+      # Requires Yelp detect-secrets, pinned to the baseline version:
+      # pip install detect-secrets==1.5.0
+      # Scans only staged changes; known test vectors live in
+      # .secrets.baseline (see ADR-0027). Regenerate with:
+      # detect-secrets scan --baseline .secrets.baseline > .secrets.baseline.new \
+      #   && mv .secrets.baseline.new .secrets.baseline
+      run: git diff --staged --name-only -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
 
 pre-push:
   commands:

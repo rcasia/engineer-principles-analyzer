@@ -60,6 +60,23 @@ jobs:
       # ran at all.
       - run: bun run audit
 
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      # Pinned to the version that generated .secrets.baseline, so local
+      # hooks and CI evaluate the same plugin set.
+      - run: pip install detect-secrets==1.5.0
+      # Backstops the pre-commit hook (lefthook.yml) for commits made with
+      # --no-verify and for pull requests from forks, where local hooks never
+      # ran at all. Scans every tracked file against the baseline, so only
+      # secrets added after the baseline fail the gate.
+      - run: git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
+
   mutation:
     name: mutation score
     runs-on: ubuntu-latest
