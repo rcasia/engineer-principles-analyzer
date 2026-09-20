@@ -159,6 +159,9 @@ export { LSP_RULE_ID, LspRule } from "./principles/lsp/infrastructure/lsp-rule.t
 // Interface Segregation Principle rule (#13, ADR-0034).
 export { ISP_RULE_ID, IspRule } from "./principles/isp/infrastructure/isp-rule.ts";
 
+// Dependency Inversion Principle rule (#14, ADR-0035).
+export { DIP_RULE_ID, DipRule } from "./principles/dip/infrastructure/dip-rule.ts";
+
 // Jev adapter: AI-assisted judgments behind an injected port (ADR-0024).
 export type {
   ChoiceJudgment,

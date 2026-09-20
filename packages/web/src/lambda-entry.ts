@@ -1,5 +1,6 @@
 import {
   AnalyzeSubject,
+  DipRule,
   HttpJevClient,
   InMemoryEventStore,
   InMemoryPrincipleCatalog,
@@ -54,7 +55,7 @@ export const handler = createLambdaHandler(
   createRequestHandler({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
     analyzeSubject: new AnalyzeSubject(
-      new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule(), new IspRule()]),
+      new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule(), new IspRule(), new DipRule()]),
     ),
     languageDetector: new JevLanguageDetector(
       new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),
