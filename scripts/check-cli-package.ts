@@ -94,6 +94,69 @@ try {
     fail(`expected exit code 2 for an unknown option, got ${unknown.exitCode}`);
   }
 
+  // Local analysis must work from the tarball exactly as from source: a
+  // violating fixture exits 1 with human findings, a clean one exits 0,
+  // and the machine-readable shapes carry schema version 1.
+  const violating = [
+    "class UserManager {",
+    "  save(user) {}",
+    "  load(id) {}",
+    "  send(email) {}",
+    "  notify(user) {}",
+    "  render(user) {}",
+    "  display(user) {}",
+    "}",
+    "",
+  ].join("\n");
+  const clean = [
+    "class Calculator {",
+    "  add(a, b) {}",
+    "  subtract(a, b) {}",
+    "  multiply(a, b) {}",
+    "}",
+    "",
+  ].join("\n");
+  await Bun.write(join(sandbox, "violating.ts"), violating);
+  await Bun.write(join(sandbox, "clean.ts"), clean);
+
+  const found = await $`${bin} analyze violating.ts`.cwd(sandbox).nothrow().quiet();
+  if (found.exitCode !== 1) {
+    fail(`expected exit code 1 for a violation, got ${found.exitCode}`);
+  }
+  const foundText = await found.text();
+  if (!foundText.includes("violation solid.srp")) {
+    fail(`human output is missing the violation: ${JSON.stringify(foundText)}`);
+  }
+
+  const none = await $`${bin} analyze clean.ts`.cwd(sandbox).nothrow().quiet();
+  if (none.exitCode !== 0) {
+    fail(`expected exit code 0 for a clean file, got ${none.exitCode}`);
+  }
+
+  const jsonRun = await $`${bin} analyze violating.ts --format json`.cwd(sandbox).nothrow().quiet();
+  if (jsonRun.exitCode !== 1) {
+    fail(`expected exit code 1 for JSON with a violation, got ${jsonRun.exitCode}`);
+  }
+  const json = JSON.parse(await jsonRun.text());
+  if (json.schemaVersion !== "1") {
+    fail(`expected JSON schemaVersion "1", got ${JSON.stringify(json.schemaVersion)}`);
+  }
+  if (json.status !== "completed" || json.ruleCount !== 1) {
+    fail(`unexpected JSON envelope: ${JSON.stringify(json).slice(0, 200)}`);
+  }
+
+  const sarifRun = await $`${bin} analyze violating.ts --format sarif`.cwd(sandbox).nothrow().quiet();
+  if (sarifRun.exitCode !== 1) {
+    fail(`expected exit code 1 for SARIF with a violation, got ${sarifRun.exitCode}`);
+  }
+  const sarif = JSON.parse(await sarifRun.text());
+  if (sarif.version !== "2.1.0") {
+    fail(`expected SARIF version "2.1.0", got ${JSON.stringify(sarif.version)}`);
+  }
+  if (sarif.runs?.[0]?.properties?.["principled/schemaVersion"] !== "1") {
+    fail("SARIF run is missing principled/schemaVersion 1");
+  }
+
   const installed = await $`npm ls --json --silent`.cwd(sandbox).json();
   const deps = Object.keys(installed.dependencies?.principled?.dependencies ?? {});
   if (deps.length > 0) fail(`published package pulled in dependencies: ${deps}`);
