@@ -247,7 +247,7 @@ function renderContract(): string {
 </section>`;
 }
 
-/** Plain navigations: each link reloads the page with the editor prefilled, no script involved. */
+/** Plain navigations: each link reloads the page with the editor prefilled, no script involved. The client island (`example-switcher.ts`) intercepts them for reload-free filling when it loads. */
 function renderExamples(activeId: string | null): string {
   const links = CODE_EXAMPLES.map((example) => {
     const current = activeId === example.id ? ' aria-current="true"' : "";

@@ -853,3 +853,68 @@ describe("validation echo", () => {
     }
   });
 });
+
+describe("example switching", () => {
+  it("fills the editor and refreshes the language without navigating", async () => {
+    const window = new Window();
+
+    try {
+      const document = window.document as unknown as Document;
+      document.body.innerHTML =
+        `<div>` +
+        `<form id="analyzeForm">` +
+        `<span id="editorFilename">snippet.txt</span>` +
+        `<span id="editorLanguage" data-language="">Auto-detect</span>` +
+        `<div class="editor__stage">` +
+        `<pre class="editor__backdrop" aria-hidden="true"><code id="sourceHighlight"></code></pre>` +
+        `<textarea id="sourceCode" name="sourceCode"></textarea>` +
+        `</div>` +
+        `<p id="editorMeta"></p>` +
+        `<div class="editor__gutter" aria-hidden="true"></div>` +
+        `<input id="sourceFile" name="sourceFile" type="file">` +
+        `</form>` +
+        `<section class="examples"><div class="button-row">` +
+        `<a class="button" href="/analyze?example=single-responsibility">Single Responsibility</a>` +
+        `</div></section>` +
+        `</div>`;
+
+      const calls: RecordedCall[] = [];
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("typescript", calls)),
+      ).toBe(true);
+      expect(document.querySelector("#analyze-error")?.textContent).toBe(
+        "sourceCode must not be empty.",
+      );
+
+      const link = document.querySelector(
+        'a[href="/analyze?example=single-responsibility"]',
+      );
+      const event = new window.Event("click", {
+        bubbles: true,
+        cancelable: true,
+      }) as unknown as Event;
+      link?.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(
+        (document.querySelector("#sourceCode") as unknown as HTMLTextAreaElement)
+          .value,
+      ).toContain("sendWelcomeEmail");
+
+      await awaitTick();
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.sourceCode).toContain("sendWelcomeEmail");
+      expect(document.querySelector("#editorLanguage")?.textContent).toBe(
+        "TypeScript",
+      );
+      expect(document.querySelector("#analyze-error")).toBe(null);
+      expect(document.querySelector("#editorFilename")?.textContent).toBe(
+        "UserService.ts",
+      );
+      expect(link?.getAttribute("aria-current")).toBe("true");
+    } finally {
+      void window.close();
+    }
+  });
+});

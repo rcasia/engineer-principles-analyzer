@@ -32,6 +32,7 @@ import {
 } from "../presentation/language-display.ts";
 import { hydrateGutter } from "./gutter.ts";
 import { byTag } from "./dom.ts";
+import { enhanceExampleSwitching } from "./example-switcher.ts";
 import { syncValidationEcho } from "./validation-echo.ts";
 
 type LanguageDefinition = Parameters<typeof hljs.registerLanguage>[1];
@@ -144,7 +145,6 @@ interface EditorElements {
   readonly meta: HTMLElement;
   readonly gutter: HTMLElement | null;
   readonly fileInput: HTMLInputElement | null;
-  readonly exampleFilename: string | undefined;
 }
 
 /** Mutable island state: the language the badge currently shows. */
@@ -166,9 +166,11 @@ function render(elements: EditorElements, language: string): void {
 
   elements.backdrop.innerHTML = `${highlightedHtml(sourceCode, language)}\n`;
   elements.badge.textContent = languageLabel(language);
+  // Read live, not cached: example switching rewrites the dataset, and the
+  // toolbar must follow the newest fill rather than the loaded buffer.
   elements.filename.textContent = toolbarFilename(
     language,
-    elements.exampleFilename,
+    elements.form.dataset["exampleFilename"],
   );
   elements.meta.textContent = `${languageLabel(language)} · ${lineCountLabel(sourceCode)}`;
 
@@ -244,7 +246,6 @@ export function enhanceAnalyzeEditor(
     meta,
     gutter: byTag<HTMLElement>(form, ".editor__gutter", "DIV"),
     fileInput: byTag<HTMLInputElement>(form, "#sourceFile", "INPUT"),
-    exampleFilename: form.dataset["exampleFilename"],
   };
 
   render(elements, state.language);
@@ -269,6 +270,15 @@ export function enhanceAnalyzeEditor(
   elements.fileInput?.addEventListener("change", () =>
     render(elements, state.language),
   );
+
+  // Best effort: example switching only changes what clicks do when the
+  // editor is present; without links the page keeps plain navigations.
+  enhanceExampleSwitching(root, {
+    onSwitch: () => {
+      render(elements, state.language);
+      void refreshLanguage(elements, state, detect);
+    },
+  });
 
   return true;
 }
