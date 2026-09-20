@@ -153,6 +153,9 @@ jobs:
         with:
           node-version: "22"
       - run: bun install --frozen-lockfile
+      # The handler zip embeds the client bundles (ADR-0029), so the client
+      # build runs first — the same order as the infra:plan/apply scripts.
+      - run: bun run build:client
       - run: bun run build:lambda
       # Production runs Node while development runs Bun (ADR-0005). This keeps
       # that gap honest by invoking the real bundle the way Lambda would.
