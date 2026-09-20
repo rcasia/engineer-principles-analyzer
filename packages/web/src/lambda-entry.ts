@@ -6,6 +6,7 @@ import {
   InMemoryRuleCatalog,
   JevLanguageDetector,
   ListPrinciples,
+  LspRule,
   OcpRule,
   SrpRule,
 } from "@principled/core";
@@ -46,7 +47,7 @@ export const handler = createLambdaHandler(
   createRequestHandler({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
     analyzeSubject: new AnalyzeSubject(
-      new InMemoryRuleCatalog([new SrpRule(), new OcpRule()]),
+      new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule()]),
     ),
     languageDetector: new JevLanguageDetector(
       new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),

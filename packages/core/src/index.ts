@@ -99,6 +99,9 @@ export { SRP_RULE_ID, SrpRule } from "./principles/srp/infrastructure/srp-rule.t
 // Open/Closed Principle rule (#11, ADR-0030).
 export { OCP_RULE_ID, OcpRule } from "./principles/ocp/infrastructure/ocp-rule.ts";
 
+// Liskov Substitution Principle rule (#12, ADR-0032).
+export { LSP_RULE_ID, LspRule } from "./principles/lsp/infrastructure/lsp-rule.ts";
+
 // Jev adapter: AI-assisted judgments behind an injected port (ADR-0024).
 export type {
   ChoiceJudgment,

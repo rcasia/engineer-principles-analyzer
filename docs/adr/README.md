@@ -41,6 +41,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0029](0029-live-highlighting-analyze-editor.md) | Live language detection and syntax highlighting on /analyze | Accepted | 2026-09-20 |
 | [0030](0030-ocp-heuristic-rule.md) | Detect Open/Closed violations with a dependency-free branch-counting heuristic | Accepted | 2026-09-20 |
 | [0031](0031-srp-java-python-extractors.md) | Support Java and Python in the SRP heuristic with per-language extractors | Accepted | 2026-09-20 |
+| [0032](0032-lsp-heuristic-rule.md) | Detect Liskov violations with a dependency-free override-throw heuristic | Accepted | 2026-09-20 |
 
 ## Writing a new ADR
 
