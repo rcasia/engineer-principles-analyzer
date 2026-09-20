@@ -235,3 +235,36 @@ export type {
 } from "./project/application/project.projection.ts";
 export { InMemoryProjectRuleCatalog } from "./project/infrastructure/in-memory-project-rule-catalog.ts";
 export { InMemoryProjectArtifactStore } from "./project/infrastructure/in-memory-project-artifact-store.ts";
+
+// Architecture dependency rules (#23, #39).
+export {
+  ARCHITECTURE_CONSTRAINT_KINDS,
+  ArchitectureConstraint,
+  InvalidArchitectureConstraintError,
+  isArchitectureConstraintKind,
+  matchesPath,
+} from "./architecture/domain/architecture-constraint.ts";
+export type {
+  ArchitectureConstraintKind,
+  ArchitectureConstraintProps,
+} from "./architecture/domain/architecture-constraint.ts";
+export {
+  architectureGraphCoverage,
+  evaluateArchitecture,
+} from "./architecture/domain/architecture-evaluation.ts";
+export type {
+  ArchitectureEdge,
+  ArchitectureViolation,
+} from "./architecture/domain/architecture-evaluation.ts";
+export {
+  EvaluateArchitecture,
+  InvalidArchitectureEvaluationError,
+} from "./architecture/application/evaluate-architecture.use-case.ts";
+export type {
+  ArchitectureEvaluation,
+  ArchitectureEvaluationRequest,
+} from "./architecture/application/evaluate-architecture.use-case.ts";
+export {
+  ARCHITECTURE_DEPENDENCY_RULE_ID,
+  ArchitectureDependencyRule,
+} from "./architecture/infrastructure/architecture-dependency-rule.ts";
