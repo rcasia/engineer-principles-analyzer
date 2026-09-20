@@ -163,3 +163,46 @@ export type {
   FailedRuleOutcome,
   RuleOutcomeView,
 } from "./engine/application/analysis-run.projection.ts";
+
+// Project-level analysis, domain side (#22, #38).
+export {
+  hashSource,
+  InvalidProjectFileError,
+  ProjectFile,
+} from "./project/domain/project-file.ts";
+export type { ProjectFileProps, ProjectFileReference } from "./project/domain/project-file.ts";
+export { InvalidProjectError, Project } from "./project/domain/project.ts";
+export {
+  DependencyGraph,
+  dependencyPath,
+  graphCoverage,
+  hasSufficientCoverage,
+  InvalidDependencyGraphError,
+} from "./project/domain/dependency-graph.ts";
+export type {
+  DependencyEdge,
+  DependencyGraphProps,
+} from "./project/domain/dependency-graph.ts";
+export {
+  InvalidProjectMetricsError,
+  ProjectMetrics,
+} from "./project/domain/project-metrics.ts";
+export type { ProjectMetricsProps } from "./project/domain/project-metrics.ts";
+export {
+  PROJECT_ANALYSIS_COMPLETED_EVENT,
+  PROJECT_ANALYSIS_FAILED_EVENT,
+  PROJECT_ANALYSIS_REQUESTED_EVENT,
+} from "./project/domain/project-event.ts";
+export type {
+  ProjectAnalysisCompletedPayload,
+  ProjectAnalysisFailedPayload,
+  ProjectAnalysisRequestedPayload,
+  ProjectEventPayload,
+} from "./project/domain/project-event.ts";
+export {
+  InvalidRetentionPolicyError,
+  isArtifactExpired,
+  MS_PER_DAY,
+  RetentionPolicy,
+} from "./project/domain/retention-policy.ts";
+export type { RetentionPolicyProps } from "./project/domain/retention-policy.ts";
