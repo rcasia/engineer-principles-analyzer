@@ -82,7 +82,7 @@ jobs:
       # Pull requests restore the base branch's cache via the restore-keys
       # fallback, so only mutants affected by the diff are re-tested.
       - name: Restore Stryker incremental cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: reports/stryker-incremental.json
           key: stryker-incremental-${{ github.ref_name }}-${{ github.sha }}
@@ -113,12 +113,12 @@ jobs:
       # to runs that can write back to this repository.
       - name: Save Stryker incremental cache
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: reports/stryker-incremental.json
           key: stryker-incremental-${{ github.ref_name }}-${{ github.sha }}
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mutation-report
           path: reports/mutation
