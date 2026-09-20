@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { Window } from "happy-dom";
 import {
   AnalysisResult,
   Confidence,
@@ -7,6 +8,7 @@ import {
   unwrap,
 } from "@principled/core";
 import type { AnalysisStatus } from "@principled/core";
+import { hydrateGutter } from "../client/gutter.ts";
 import {
   ANALYZE_PAGE_TITLE,
   AUTO_DETECT_LABEL,
@@ -994,5 +996,93 @@ describe("renderAnalyzePage", () => {
 
       expect(html).not.toContain("results-note");
     });
+  });
+});
+
+describe("analyze hydration", () => {
+  const scriptSrc = "/assets/analyze-editor-test.js";
+
+  function hydratedForm(): string {
+    return renderAnalyzePage(
+      { kind: "form", sourceCode: "", language: "", exampleId: null },
+      { scriptSrc },
+    );
+  }
+
+  it("loads the hashed island bundle as a module script", () => {
+    expect(hydratedForm()).toContain(
+      '<script type="module" src="/assets/analyze-editor-test.js"></script>',
+    );
+  });
+
+  it("keeps the accessibility baseline with the script present", () => {
+    const html = hydratedForm();
+
+    expect(html).toContain('<html lang="en">');
+    expect(html).toContain(
+      '<a class="skip-link" href="#main">Skip to content</a>',
+    );
+    expect(html).toContain('<main class="playground" id="main">');
+    expect(html.match(/<h1>/g)).toHaveLength(1);
+    expect(html).toContain('<meta name="color-scheme" content="light dark">');
+    expect(html).toContain("prefers-reduced-motion: reduce");
+    expect(html).toContain("prefers-color-scheme: dark");
+    expect(html).toContain(":focus-visible");
+    expect(html).toContain(
+      '<label class="visually-hidden" for="sourceCode">Source code</label>',
+    );
+    expect(html).toContain('<a href="/analyze" aria-current="page">Analyze</a>');
+  });
+
+  it("keeps the invalid banner a live alert with the script present", () => {
+    const html = renderAnalyzePage(
+      {
+        kind: "invalid",
+        message: "sourceCode must not be empty.",
+        sourceCode: "",
+        language: "",
+      },
+      { scriptSrc },
+    );
+
+    expect(html).toContain(
+      '<div class="field__error" id="analyze-error" role="alert">sourceCode must not be empty.</div>',
+    );
+    expect(html).toContain(
+      '<script type="module" src="/assets/analyze-editor-test.js"></script>',
+    );
+    expect(html).toContain(
+      'aria-invalid="true" aria-describedby="analyze-error"',
+    );
+  });
+
+  it.each([
+    ["empty", ""],
+    ["single line", "const a = 1;"],
+    ["multi-line", "a\nb\nc"],
+    ["trailing newline", "a\n"],
+    ["only a newline", "\n"],
+  ])("hydrates the identical gutter the server rendered for %s", (
+    _label,
+    sourceCode,
+  ) => {
+    const html = renderAnalyzePage({
+      kind: "form",
+      sourceCode,
+      language: "",
+      exampleId: null,
+    });
+    const section = gutterSectionOf(html);
+    const serverInner = section.slice(section.indexOf(">") + 1);
+    const window = new Window();
+
+    try {
+      const gutter = window.document.createElement("div");
+      hydrateGutter(gutter, sourceCode);
+
+      expect(gutter.innerHTML).toBe(serverInner);
+    } finally {
+      void window.close();
+    }
   });
 });

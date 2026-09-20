@@ -918,3 +918,78 @@ describe("example switching", () => {
     }
   });
 });
+
+describe("hydration mismatch", () => {
+  it("leaves a mismatched page byte-identical without touching anything", () => {
+    const window = new Window();
+
+    try {
+      const document = window.document as unknown as Document;
+      document.body.innerHTML =
+        `<div>` +
+        `<form id="analyzeForm">` +
+        `<span id="editorFilename">snippet.txt</span>` +
+        `<span id="editorLanguage" data-language="">Auto-detect</span>` +
+        `<div class="editor__stage">` +
+        `<pre class="editor__backdrop" aria-hidden="true"><div id="sourceHighlight"></div></pre>` +
+        `<textarea id="sourceCode" name="sourceCode"></textarea>` +
+        `</div>` +
+        `<p id="editorMeta"></p>` +
+        `<div class="editor__gutter" aria-hidden="true"></div>` +
+        `</form>` +
+        `</div>`;
+      const before = document.body.innerHTML;
+
+      expect(enhanceAnalyzeEditor(document, neverDetect())).toBe(false);
+      expect(document.body.innerHTML).toBe(before);
+      expect(document.querySelector("#analyze-error")).toBe(null);
+      expect(
+        document.querySelector(".editor__stage")?.classList.contains(
+          "editor--live",
+        ),
+      ).toBe(false);
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("tolerates a mistagged gutter, wiring everything else", async () => {
+    const window = new Window();
+
+    try {
+      const document = window.document as unknown as Document;
+      document.body.innerHTML =
+        `<div>` +
+        `<form id="analyzeForm">` +
+        `<span id="editorFilename">snippet.txt</span>` +
+        `<span id="editorLanguage" data-language="go">Auto-detect</span>` +
+        `<div class="editor__stage">` +
+        `<pre class="editor__backdrop" aria-hidden="true"><code id="sourceHighlight"></code></pre>` +
+        `<textarea id="sourceCode" name="sourceCode"></textarea>` +
+        `</div>` +
+        `<p id="editorMeta"></p>` +
+        `<span class="editor__gutter">stale</span>` +
+        `</form>` +
+        `</div>`;
+      const gutterBefore = document.querySelector(".editor__gutter")
+        ?.innerHTML;
+
+      expect(enhanceAnalyzeEditor(document, neverDetect())).toBe(true);
+      await awaitTick();
+
+      expect(document.querySelector("#editorLanguage")?.textContent).toBe(
+        "Go",
+      );
+      expect(document.querySelector(".editor__gutter")?.innerHTML).toBe(
+        gutterBefore,
+      );
+      // The empty buffer still echoes: a known language never excuses it,
+      // exactly as an empty submission 400s server side.
+      expect(document.querySelector("#analyze-error")?.textContent).toBe(
+        "sourceCode must not be empty.",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+});
