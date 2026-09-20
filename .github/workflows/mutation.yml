@@ -14,8 +14,11 @@ permissions:
   contents: read
 
 concurrency:
+  # Queue, never cancel: a new push waits behind the running mutation run
+  # instead of superseding it, so every main commit eventually gets its
+  # score without two runs overlapping.
   group: mutation-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   mutation:

@@ -41,9 +41,10 @@ facts broke that posture on the same day:
 ### Option 2: Standalone advisory workflow (chosen)
 
 - **Pros**: Deployments flow on the fast gates; mutation runs alone on
-  its own concurrency group with `cancel-in-progress`, so a new push
-  supersedes the stale run instead of queueing behind it. Score,
-  HTML report and incremental cache all keep working untouched.
+  its own concurrency group, where a new push queues behind the running
+  run instead of cancelling it — every main commit eventually gets its
+  score, and two runs never overlap. Score, HTML report and incremental
+  cache all keep working untouched.
 - **Cons**: A dropping score no longer stops anything by itself —
   somebody has to watch the workflow and fix findings forward.
 
@@ -51,7 +52,8 @@ facts broke that posture on the same day:
 
 - The `mutation` job leaves `gates.yml` for a standalone `mutation.yml`:
   push to `main` plus manual dispatch, own `mutation-<ref>` concurrency
-  group with `cancel-in-progress: true`, same cache/report steps.
+  group with `cancel-in-progress: false`, so queued runs wait their turn
+  and no two ever overlap. Same cache/report steps.
 - The forced-full-run branch keeps the ADR-0037-era fix (plain
   `stryker run --force`, no `--incremental`) until Stryker can serialize
   the full report again.
@@ -62,8 +64,8 @@ facts broke that posture on the same day:
 
 ### Positive
 
-- Push-to-deploy latency drops by the mutation runtime; no two mutation
-  runs ever overlap.
+- Push-to-deploy latency drops by the mutation runtime; queued mutation
+  runs wait their turn instead of piling up or cancelling each other.
 - The score, report artifact and cache survive, so the signal is not
   lost, only decoupled.
 
