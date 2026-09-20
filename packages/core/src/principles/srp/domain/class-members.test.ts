@@ -196,4 +196,89 @@ describe("extractMethodNames", () => {
     const body = "count = 0\n  foo() {}";
     expect(extractMethodNames(body)).toEqual([]);
   });
+
+  test("matches a Java method with a return type", () => {
+    expect(extractMethodNames("public void save(User user) {}")).toEqual([
+      "save",
+    ]);
+  });
+
+  test("matches a Java method with a primitive return type and modifiers", () => {
+    expect(extractMethodNames("private static int calculate() {}")).toEqual([
+      "calculate",
+    ]);
+  });
+
+  test("matches a Java method declaring a throws clause", () => {
+    expect(
+      extractMethodNames("public void save() throws IOException {}"),
+    ).toEqual(["save"]);
+  });
+
+  test("matches a Java generic method with a leading type parameter list", () => {
+    expect(extractMethodNames("public <T> void foo(T value) {}")).toEqual([
+      "foo",
+    ]);
+  });
+
+  test("matches the Java entry point with an array parameter", () => {
+    expect(
+      extractMethodNames("public static void main(String[] args) {}"),
+    ).toEqual(["main"]);
+  });
+
+  test("excludes a Java constructor spelled as the class name", () => {
+    const body = "public UserManager() {}\n  public void save() {}";
+    expect(extractMethodNames(body, "java", "UserManager")).toEqual(["save"]);
+  });
+
+  test("excludes a method named __init__ without a language", () => {
+    expect(extractMethodNames("__init__() {}\n  foo() {}")).toEqual(["foo"]);
+  });
+
+  test("excludes a same-named method when the class name is given", () => {
+    expect(extractMethodNames("Foo() {}", "", "Foo")).toEqual([]);
+  });
+
+  test("still rejects trailing content after the parameter list", () => {
+    expect(extractMethodNames("public void save() unexpected {}")).toEqual([]);
+  });
+
+  describe("python def lines", () => {
+    test("finds every def in the body", () => {
+      const body = "    def save(self):\n        pass\n    def load(self):\n        pass\n";
+      expect(extractMethodNames(body, "python")).toEqual(["save", "load"]);
+    });
+
+    test("is selected case-insensitively", () => {
+      expect(extractMethodNames("    def save(self):\n", "Python")).toEqual([
+        "save",
+      ]);
+    });
+
+    test("finds an async def", () => {
+      const body = "    async def fetch(self, url):\n        pass\n";
+      expect(extractMethodNames(body, "python")).toEqual(["fetch"]);
+    });
+
+    test("excludes the __init__ constructor", () => {
+      const body = "    def __init__(self):\n        pass\n    def save(self):\n        pass\n";
+      expect(extractMethodNames(body, "python")).toEqual(["save"]);
+    });
+
+    test("excludes a def nested inside another method", () => {
+      const body =
+        "    def save(self):\n        def helper():\n            pass\n        pass\n";
+      expect(extractMethodNames(body, "python")).toEqual(["save"]);
+    });
+
+    test("excludes a def named after the class", () => {
+      const body = "    def Thing(self):\n        pass\n    def save(self):\n        pass\n";
+      expect(extractMethodNames(body, "python", "Thing")).toEqual(["save"]);
+    });
+
+    test("returns an empty array when the body defines nothing", () => {
+      expect(extractMethodNames("    x = 1\n", "python")).toEqual([]);
+    });
+  });
 });

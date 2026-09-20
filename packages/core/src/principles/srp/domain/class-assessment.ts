@@ -31,9 +31,23 @@ export interface ClassAssessment {
   readonly reason: ClassAssessmentReason;
 }
 
-/** Classifies one class's cohesion from its top-level methods' names alone. */
-export function assessClass(declaration: ClassDeclaration): ClassAssessment {
-  const methodNames = extractMethodNames(declaration.body);
+/**
+ * Classifies one class's cohesion from its top-level methods' names alone.
+ *
+ * `language` selects how those names are read (see `extractMethodNames`):
+ * the domain grouping and verdict thresholds below are identical for every
+ * language — the rule's semantics stay language-independent, only the
+ * method-shape interpretation varies (ADR-0031, #16).
+ */
+export function assessClass(
+  declaration: ClassDeclaration,
+  language = "",
+): ClassAssessment {
+  const methodNames = extractMethodNames(
+    declaration.body,
+    language,
+    declaration.name,
+  );
   const methodCount = methodNames.length;
 
   if (methodCount < MINIMUM_METHODS_TO_ASSESS) {

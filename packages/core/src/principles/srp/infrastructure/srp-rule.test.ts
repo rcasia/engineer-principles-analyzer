@@ -16,7 +16,7 @@ describe("SrpRule", () => {
   });
 
   test("reports not_applicable, deterministically, for an unsupported language", async () => {
-    const result = await rule.evaluate(subjectOf("class Foo {}", "python"));
+    const result = await rule.evaluate(subjectOf("package main", "go"));
 
     expect(result.status).toBe("not_applicable");
     expect(result.method).toBe("deterministic");
@@ -24,7 +24,7 @@ describe("SrpRule", () => {
     expect(result.humanReviewRecommended).toBe(false);
     expect(result.evidence).toEqual([]);
     expect(result.explanation).toBe(
-      'This rule does not yet know how to detect class-shaped constructs in "python".',
+      'This rule does not yet know how to detect class-shaped constructs in "go".',
     );
   });
 
@@ -236,8 +236,121 @@ describe("SrpRule", () => {
   });
 
   test("does not disclose limitations on a not_applicable result", async () => {
-    const result = await rule.evaluate(subjectOf("class Foo {}", "python"));
+    const result = await rule.evaluate(subjectOf("package main", "go"));
 
     expect(result.limitations).toEqual([]);
+  });
+
+  test("reports a violation for an idiomatic java class touching three responsibility domains", async () => {
+    const source = [
+      "public class UserManager {",
+      "    public void save(User user) { db.save(user); }",
+      "    public User load(String id) { return db.load(id); }",
+      "    public void send(String email) { mailer.send(email); }",
+      "    public void notify(User user) { mailer.notify(user); }",
+      "    public String render(User user) { return view.render(user); }",
+      "    public void display(User user) { view.display(user); }",
+      "}",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "java"));
+
+    expect(result.status).toBe("violation");
+    expect(result.language).toBe("java");
+    expect(result.explanation).toBe(
+      "Found method-name evidence of concentrated responsibility. " +
+        '"UserManager" touches 3 responsibility domains: persistence (save, load); communication (send, notify); presentation (render, display).',
+    );
+    expect(result.remediation).toBe(
+      'Consider splitting responsibilities: extract persistence/communication/presentation out of "UserManager" into its own collaborator(s).',
+    );
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.location.startLine).toBe(1);
+    expect(result.evidence[0]?.location.endLine).toBe(8);
+    expect(result.evidence[0]?.excerpt).toBe("class UserManager { … }");
+  });
+
+  test("excludes a java constructor spelled as the class name", async () => {
+    const source = [
+      "public class Point {",
+      "    public Point(int x, int y) { this.x = x; }",
+      "    public int getX() { return x; }",
+      "}",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "java"));
+
+    expect(result.status).toBe("uncertain");
+    expect(result.explanation).toBe(
+      'Could not confidently confirm or rule out a single-responsibility violation. "Point" has only 1 method(s), too few to assess confidently.',
+    );
+  });
+
+  test("reports a violation for an idiomatic python class touching three responsibility domains", async () => {
+    const source = [
+      "class UserManager:",
+      "    def save_user(self, user):",
+      "        pass",
+      "    def load_user(self, user_id):",
+      "        pass",
+      "    def send_email(self, email):",
+      "        pass",
+      "    def notify_user(self, user):",
+      "        pass",
+      "    def render_profile(self, user):",
+      "        pass",
+      "    def display_dashboard(self, user):",
+      "        pass",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "python"));
+
+    expect(result.status).toBe("violation");
+    expect(result.language).toBe("python");
+    expect(result.explanation).toBe(
+      "Found method-name evidence of concentrated responsibility. " +
+        '"UserManager" touches 3 responsibility domains: persistence (save_user, load_user); communication (send_email, notify_user); presentation (render_profile, display_dashboard).',
+    );
+    expect(result.remediation).toBe(
+      'Consider splitting responsibilities: extract persistence/communication/presentation out of "UserManager" into its own module(s).',
+    );
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.location.startLine).toBe(1);
+    expect(result.evidence[0]?.location.endLine).toBe(13);
+    expect(result.evidence[0]?.excerpt).toBe("class UserManager: …");
+  });
+
+  test("reports compliant for a cohesive python class", async () => {
+    const source = [
+      "class Calculator:",
+      "    def add(self, a, b):",
+      "        return a + b",
+      "    def subtract(self, a, b):",
+      "        return a - b",
+      "    def multiply(self, a, b):",
+      "        return a * b",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "python"));
+
+    expect(result.status).toBe("compliant");
+    expect(result.method).toBe("heuristic");
+    expect(result.remediation).toBeUndefined();
+    expect(result.explanation).toBe(
+      "No class showed method-name evidence of more than one responsibility domain. " +
+        '"Calculator"\'s methods did not match more than one responsibility domain.',
+    );
+  });
+
+  test("excludes a python __init__ constructor from the method count", async () => {
+    const source = [
+      "class Point:",
+      "    def __init__(self, x, y):",
+      "        self.x = x",
+      "    def get_x(self):",
+      "        return self.x",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "python"));
+
+    expect(result.status).toBe("uncertain");
+    expect(result.explanation).toBe(
+      'Could not confidently confirm or rule out a single-responsibility violation. "Point" has only 1 method(s), too few to assess confidently.',
+    );
   });
 });

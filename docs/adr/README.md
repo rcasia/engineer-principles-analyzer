@@ -31,7 +31,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0019](0019-route-release-trains-by-changed-files.md) | Route release trains by changed files, not commit scope | Accepted | 2026-09-19 |
 | [0020](0020-run-release-trains-in-parallel.md) | Run the release trains in parallel, retrying the push race | Accepted | 2026-09-19 |
 | [0021](0021-incremental-mutation-testing-with-cache.md) | Cache Stryker incremental reports, forcing full runs on test changes | Accepted | 2026-09-20 |
-| [0022](0022-srp-heuristic-rule.md) | Detect Single Responsibility violations with a dependency-free method-name heuristic | Accepted | 2026-09-20 |
+| [0022](0022-srp-heuristic-rule.md) | Detect Single Responsibility violations with a dependency-free method-name heuristic | Accepted; language allow-list extended by [0031](0031-srp-java-python-extractors.md) | 2026-09-20 |
 | [0023](0023-react-hydration-frontend.md) | Migrate the web UI to React with selective hydration | Proposed | 2026-09-20 |
 | [0024](0024-jev-backed-srp-rule-adapter.md) | Judge SRP with a Jev-backed Rule adapter to validate the core | Accepted | 2026-09-20 |
 | [0025](0025-language-detection.md) | Detect the submission language from filename and content | Superseded by [0026](0026-auto-detect-language-only.md) | 2026-09-20 |
@@ -40,6 +40,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0028](0028-jev-language-detection.md) | Detect the submission language with Jev Choice | Accepted | 2026-09-20 |
 | [0029](0029-live-highlighting-analyze-editor.md) | Live language detection and syntax highlighting on /analyze | Accepted | 2026-09-20 |
 | [0030](0030-ocp-heuristic-rule.md) | Detect Open/Closed violations with a dependency-free branch-counting heuristic | Accepted | 2026-09-20 |
+| [0031](0031-srp-java-python-extractors.md) | Support Java and Python in the SRP heuristic with per-language extractors | Accepted | 2026-09-20 |
 
 ## Writing a new ADR
 

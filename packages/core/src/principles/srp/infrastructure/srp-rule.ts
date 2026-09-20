@@ -10,7 +10,11 @@ import {
   assessClass,
   type ClassAssessment,
 } from "../domain/class-assessment.ts";
-import { extractClasses } from "../domain/class-declaration.ts";
+import {
+  extractClasses,
+  extractPythonClasses,
+  type ClassDeclaration,
+} from "../domain/class-declaration.ts";
 import { isSupportedLanguage } from "../domain/supported-language.ts";
 
 /** Stable identifier. Matches `AnalysisResult.ruleId` (rule.port.ts). */
@@ -49,6 +53,11 @@ type Verdict = "violation" | "uncertain" | "compliant";
  * every language: a subject in a language this rule does not recognise as
  * class-based, or with no class construct at all, is reported
  * `not_applicable`, never `compliant` or `violation` (ADR-0022).
+ *
+ * Multi-language by interpretation, not by fork (#16, ADR-0031): Python
+ * subjects are read with the indentation-based extractor, every other
+ * supported language with the brace-based one, and both feed the same
+ * assessment, verdict and evidence core.
  */
 export class SrpRule implements Rule {
   readonly id = SRP_RULE_ID;
@@ -61,7 +70,7 @@ export class SrpRule implements Rule {
       );
     }
 
-    const classes = extractClasses(subject.sourceCode);
+    const classes = extractDeclarations(subject);
 
     if (classes.length === 0) {
       return notApplicable(
@@ -70,8 +79,20 @@ export class SrpRule implements Rule {
       );
     }
 
-    return fromAssessments(subject, classes.map(assessClass));
+    return fromAssessments(
+      subject,
+      classes.map((declaration) => assessClass(declaration, subject.language)),
+    );
   }
+}
+
+/** The class-shaped constructs of one subject, read in its own language. */
+function extractDeclarations(subject: Subject): readonly ClassDeclaration[] {
+  if (subject.language.trim().toLowerCase() === "python") {
+    return extractPythonClasses(subject.sourceCode);
+  }
+
+  return extractClasses(subject.sourceCode);
 }
 
 function notApplicable(subject: Subject, explanation: string): AnalysisResult {
@@ -128,10 +149,12 @@ function build(
       status: verdict,
       confidence,
       method: "heuristic",
-      evidence: highlighted.map(toEvidence),
+      evidence: highlighted.map((assessment) =>
+        toEvidence(assessment, subject.language),
+      ),
       explanation: explanationFor(verdict, highlighted),
       ...(verdict === "violation"
-        ? { remediation: remediationFor(highlighted) }
+        ? { remediation: remediationFor(highlighted, subject.language) }
         : {}),
       language: subject.language,
       analyzer: ANALYZER,
@@ -141,7 +164,10 @@ function build(
   );
 }
 
-function toEvidence(assessment: ClassAssessment): Evidence {
+function toEvidence(
+  assessment: ClassAssessment,
+  language: string,
+): Evidence {
   const { declaration } = assessment;
   const location = unwrap(
     SourceLocation.of({
@@ -153,9 +179,36 @@ function toEvidence(assessment: ClassAssessment): Evidence {
   return unwrap(
     Evidence.of({
       location,
-      excerpt: `${declaration.headerExcerpt} { … }`,
+      excerpt: evidenceExcerpt(declaration.headerExcerpt, language),
     }),
   );
+}
+
+/**
+ * The `header { … }` evidence shape in brace languages, `header: …` in
+ * Python: the excerpt mirrors the analysed language's own class syntax
+ * rather than inventing one style for all of them (#37).
+ */
+function evidenceExcerpt(headerExcerpt: string, language: string): string {
+  if (language.trim().toLowerCase() === "python") {
+    return `${headerExcerpt}: …`;
+  }
+
+  return `${headerExcerpt} { … }`;
+}
+
+/**
+ * What a split-out responsibility becomes in the analysed language: a
+ * Python codebase extracts into modules, brace-language codebases into
+ * collaborator classes — the suggestion follows the language's idiom
+ * instead of prescribing one decomposition style blindly (#37).
+ */
+function collaboratorNoun(language: string): string {
+  if (language.trim().toLowerCase() === "python") {
+    return "module(s)";
+  }
+
+  return "collaborator(s)";
 }
 
 function describe(assessment: ClassAssessment): string {
@@ -193,11 +246,15 @@ function explanationFor(
   return `No class showed method-name evidence of more than one responsibility domain. ${details}.`;
 }
 
-function remediationFor(assessments: readonly ClassAssessment[]): string {
+function remediationFor(
+  assessments: readonly ClassAssessment[],
+  language: string,
+): string {
+  const noun = collaboratorNoun(language);
   const suggestions = assessments.map((assessment) => {
     const domainNames = assessment.domains.map((domain) => domain.domain).join("/");
 
-    return `extract ${domainNames} out of "${assessment.declaration.name}" into its own collaborator(s)`;
+    return `extract ${domainNames} out of "${assessment.declaration.name}" into its own ${noun}`;
   });
 
   return `Consider splitting responsibilities: ${suggestions.join("; ")}.`;

@@ -90,4 +90,38 @@ describe("assessClass", () => {
 
     expect(assessment.declaration).toBe(declaration);
   });
+
+  test("reads python def lines when the language is python", () => {
+    const declaration = declarationWithBody(
+      "    def save(self):\n        pass\n    def load(self):\n        pass\n    def send(self):\n        pass\n    def notify(self):\n        pass\n",
+    );
+    const assessment = assessClass(declaration, "python");
+
+    expect(assessment.methodCount).toBe(4);
+    expect(assessment.verdict).toBe("uncertain");
+    expect(assessment.reason).toBe("domain_count");
+    expect(assessment.domains).toHaveLength(2);
+  });
+
+  test("finds no brace methods in a python body without the language", () => {
+    const declaration = declarationWithBody(
+      "    def save(self):\n        pass\n    def load(self):\n        pass\n",
+    );
+    const assessment = assessClass(declaration);
+
+    expect(assessment.methodCount).toBe(0);
+    expect(assessment.verdict).toBe("uncertain");
+    expect(assessment.reason).toBe("too_few_methods");
+  });
+
+  test("reads java signatures with return types in the default path", () => {
+    const declaration = declarationWithBody(
+      "public void save(User user) {}\n  public User load(String id) {}\n  public void send(String email) {}\n  public void notify(User user) {}\n",
+    );
+    const assessment = assessClass({ ...declaration, name: "Service" }, "java");
+
+    expect(assessment.methodCount).toBe(4);
+    expect(assessment.verdict).toBe("uncertain");
+    expect(assessment.domains).toHaveLength(2);
+  });
 });
