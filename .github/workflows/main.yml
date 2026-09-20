@@ -59,6 +59,14 @@ jobs:
       # explicitly rather than trusting whatever setup-node shipped.
       - name: Upgrade npm for OIDC trusted publishing
         run: npm install -g npm@^11.5.1
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      # The release commit made by @semantic-release/git below runs the
+      # repo's pre-commit hooks, including the detect-secrets staged scan
+      # (ADR-0027). Without this the hook fails with exit 127 and the
+      # release retries until the job fails. Pinned to the baseline version.
+      - run: pip install detect-secrets==1.5.0
       - run: bun install --frozen-lockfile
       - name: Release
         run: |
@@ -115,6 +123,12 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      # Same reason as release-cli above: the @semantic-release/git commit
+      # runs the pre-commit hooks, which need detect-secrets on PATH.
+      - run: pip install detect-secrets==1.5.0
       - run: bun install --frozen-lockfile
       - name: Release
         run: |
