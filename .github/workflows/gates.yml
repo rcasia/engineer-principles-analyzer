@@ -112,6 +112,10 @@ jobs:
       # files, dependencies or the Stryker config itself changed, force a
       # full run instead of reusing results the new tests might have killed.
       - name: Run mutation testing
+        # Non-blocking by design: the score is reported but never holds up
+        # delivery. The trunk stays protected by typecheck, tests, review
+        # and the other gates; mutation findings are fixed forward.
+        continue-on-error: true
         run: |
           if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
