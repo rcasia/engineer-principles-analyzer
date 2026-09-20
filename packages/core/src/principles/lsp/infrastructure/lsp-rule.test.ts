@@ -109,6 +109,20 @@ describe("LspRule", () => {
     );
   });
 
+  test("joins several unresolved parents with a period and a space", async () => {
+    const result = await rule.evaluate(
+      subjectOf(
+        "class Dog extends External {\n  speak() { return 'loud'; }\n}\nclass Cat extends Other {\n  meow() { return 'soft'; }\n}",
+      ),
+    );
+
+    expect(result.status).toBe("uncertain");
+    expect(result.evidence).toEqual([]);
+    expect(result.explanation).toBe(
+      'Could not resolve a parent class locally to compare substitutability. "Dog" extends "External" which is not defined in this subject. "Cat" extends "Other" which is not defined in this subject.',
+    );
+  });
+
   test("attaches evidence pointing at each throwing subclass", async () => {
     const result = await rule.evaluate(
       subjectOf(
