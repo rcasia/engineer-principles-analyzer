@@ -94,14 +94,10 @@ export function findForbiddenKeys(value: unknown): readonly string[] {
 
     seen.add(current);
 
-    if (Array.isArray(current)) {
-      for (const element of current) {
-        scan(element);
-      }
-
-      return;
-    }
-
+    // `Object.entries` yields index keys for arrays, so this one loop scans
+    // plain objects by key and arrays element by element with no special
+    // case: indices never match a forbidden key, and every element is
+    // still visited below.
     for (const [key, child] of Object.entries(current)) {
       const match = forbiddenMatchOf(key);
 

@@ -143,8 +143,11 @@ export function parseChoiceAnswerBody(
     );
   }
 
-  const choice: unknown = (answer as { readonly choice?: unknown }).choice;
-  if (typeof choice !== "string" || !expectedOptions.includes(choice)) {
+  // `includes` already rejects every non-string at runtime, so no `typeof`
+  // disjunct is needed; the cast only tells the compiler what `includes`
+  // already guarantees.
+  const choice = (answer as { readonly choice?: unknown }).choice as string;
+  if (!expectedOptions.includes(choice)) {
     return err(
       new InvalidJevResponseError(
         `Jev answer choice for question "${questionId}" must be one of: ${expectedOptions.join(", ")}.`,
@@ -203,11 +206,11 @@ export function parseChoiceAnswerBody(
 }
 
 /**
- * Narrows `unknown` wire input to a finite number. A single predicate rather
- * than an inline `typeof` disjunct: `!Number.isFinite` already rejects every
- * non-number, which would leave a separate `typeof` check nothing to catch
- * but the type narrowing the compiler needs.
+ * Narrows `unknown` wire input to a finite number. `Number.isFinite` already
+ * rejects every non-number (unlike the coercing global `isFinite`), so no
+ * separate `typeof` check is needed — the predicate signature alone gives
+ * the compiler the narrowing the callers rely on.
  */
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+  return Number.isFinite(value);
 }

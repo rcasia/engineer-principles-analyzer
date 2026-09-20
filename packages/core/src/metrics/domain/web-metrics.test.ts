@@ -99,6 +99,18 @@ describe("WebMetrics", () => {
     expect(summary.latencyP95Ms).toBe(40);
   });
 
+  it("sorts latencies before taking percentiles, not in arrival order", () => {
+    const metrics = [300, 100, 200].reduce(
+      (acc, ms) => acc.record(REQUESTED).record(completed(ms)),
+      WebMetrics.empty(),
+    );
+
+    const summary = metrics.summarize();
+
+    expect(summary.latencyP50Ms).toBe(200);
+    expect(summary.latencyP95Ms).toBe(300);
+  });
+
   it("aggregates settled language and rule-selection distributions", () => {
     const summary = WebMetrics.empty()
       .record(REQUESTED)
