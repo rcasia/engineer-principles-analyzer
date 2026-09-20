@@ -1,3 +1,17 @@
+# [1.16.0](https://github.com/rcasia/principled/compare/v1.15.0...v1.16.0) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** move cache and artifact actions to Node 24 runtimes ([63b1943](https://github.com/rcasia/principled/commit/63b19439a35588318844c0f4599d975abec95c99))
+* **ci:** remove duplicated then in mutation guard ([57fc1c4](https://github.com/rcasia/principled/commit/57fc1c4c3f62336f76a9884355799ad92d64da28))
+
+
+### Features
+
+* **core:** detect programming language from filename and content ([775f520](https://github.com/rcasia/principled/commit/775f520f49d7d6bb83461a89609c7ec7785a4378))
+* **core:** probe SRP with a Jev-backed Rule adapter to validate the core ([e4790f5](https://github.com/rcasia/principled/commit/e4790f525478cafd9718f95381de98413e72d985))
+
 # [1.15.0](https://github.com/rcasia/principled/compare/v1.14.0...v1.15.0) (2026-09-19)
 
 
