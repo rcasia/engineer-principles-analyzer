@@ -41,3 +41,20 @@ variable "log_retention_days" {
   type        = number
   default     = 7
 }
+
+variable "typesafe_api_key" {
+  description = <<-EOT
+    TypeSafe API key for Jev language detection (ADR-0028), injected as the
+    TYPESAFE_API_KEY environment variable of the web Lambda. Leave null and
+    the function still starts: submissions are reported as undetectable
+    (ADR-0037). LocalStack and the CI gate run keyless by design.
+  EOT
+  type        = string
+  sensitive   = true
+  default     = null
+
+  validation {
+    condition     = var.typesafe_api_key == null || trimspace(var.typesafe_api_key) != ""
+    error_message = "typesafe_api_key must be null or a non-blank key."
+  }
+}

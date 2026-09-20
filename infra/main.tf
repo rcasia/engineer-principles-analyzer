@@ -63,6 +63,20 @@ resource "aws_lambda_function" "web" {
 
   architectures = ["arm64"] # ~20% cheaper per GB-second than x86_64.
 
+  # The Jev credential for language detection (ADR-0028). Absent by default
+  # so LocalStack and the CI gate run with no secrets at all: the function
+  # starts keyless and reports submissions as undetectable (ADR-0037).
+  # Production sets it with -var typesafe_api_key=... (or TF_VAR_...).
+  dynamic "environment" {
+    for_each = var.typesafe_api_key == null ? [] : [var.typesafe_api_key]
+
+    content {
+      variables = {
+        TYPESAFE_API_KEY = environment.value
+      }
+    }
+  }
+
   depends_on = [
     aws_iam_role_policy.web_logging,
     aws_cloudwatch_log_group.web,
