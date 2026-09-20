@@ -1,5 +1,5 @@
 import type { AnalyzeSubject, EventStore, ListPrinciples } from "@principled/core";
-import { Subject } from "@principled/core";
+import { detectLanguage, Subject } from "@principled/core";
 import {
   DEFAULT_LANGUAGE,
   renderAnalyzePage,
@@ -34,6 +34,10 @@ export const ANALYSIS_CACHE_CONTROL = "no-store";
  */
 export const CLIENT_ASSET_CACHE_CONTROL =
   "public, max-age=31536000, immutable";
+
+/** Shown when neither the `language` field nor detection produced a language. */
+export const UNDETECTED_LANGUAGE_MESSAGE =
+  "Could not detect the programming language. Please enter one explicitly.";
 
 /** What `createRequestHandler` needs to serve every route. */
 export interface RequestHandlerDependencies {
@@ -73,16 +77,43 @@ function textFieldOf(value: FormDataEntryValue | null): string {
  * content when one was given, the pasted text otherwise. A visitor can use
  * either field, never both at once — there is no combination logic beyond
  * this preference, which is what keeps "exactly one file" true regardless
- * of what the visitor filled in (ADR-0015).
+ * of what the visitor filled in (ADR-0015). The uploaded filename is kept
+ * alongside as a hint for language detection; pasted text has no filename.
  */
-async function sourceCodeOf(form: FormData): Promise<string> {
+interface SubmittedSource {
+  readonly sourceCode: string;
+  readonly filename: string | undefined;
+}
+
+async function sourceCodeOf(form: FormData): Promise<SubmittedSource> {
   const uploaded = form.get("sourceFile");
 
   if (uploaded instanceof File && uploaded.size > 0) {
-    return await uploaded.text();
+    return { sourceCode: await uploaded.text(), filename: uploaded.name };
   }
 
-  return textFieldOf(form.get("sourceCode"));
+  return {
+    sourceCode: textFieldOf(form.get("sourceCode")),
+    filename: undefined,
+  };
+}
+
+/**
+ * Resolves the language a submission should be analyzed as: what the
+ * visitor typed when they typed anything, otherwise what detection infers
+ * from the uploaded filename and the source itself. An empty string means
+ * detection found nothing the analyzer recognises.
+ */
+function languageOf(
+  rawLanguage: string,
+  sourceCode: string,
+  filename: string | undefined,
+): string {
+  if (rawLanguage.trim().length > 0) {
+    return rawLanguage;
+  }
+
+  return detectLanguage(sourceCode, filename) ?? "";
 }
 
 async function handleAnalyzeSubmission(
@@ -90,18 +121,24 @@ async function handleAnalyzeSubmission(
   deps: Pick<RequestHandlerDependencies, "analyzeSubject" | "eventStore">,
 ): Promise<Response> {
   const form = await request.formData();
-  const sourceCode = await sourceCodeOf(form);
-  const language = textFieldOf(form.get("language"));
+  const { sourceCode, filename } = await sourceCodeOf(form);
+  const rawLanguage = textFieldOf(form.get("language"));
+  const language = languageOf(rawLanguage, sourceCode, filename);
 
   const subject = Subject.of({ sourceCode, language });
 
   if (!subject.ok) {
+    const message =
+      rawLanguage.trim().length === 0 && language === ""
+        ? UNDETECTED_LANGUAGE_MESSAGE
+        : subject.error.message;
+
     return htmlResponse(
       renderAnalyzePage({
         kind: "invalid",
-        message: subject.error.message,
+        message,
         sourceCode,
-        language,
+        language: rawLanguage,
       }),
       400,
       ANALYSIS_CACHE_CONTROL,

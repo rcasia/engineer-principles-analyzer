@@ -301,7 +301,7 @@ function renderPlayground(options: {
         <span class="editor__actions">
           <label class="button" for="sourceFile" title="If a file is chosen it is used instead of the pasted text">Upload</label>
           <input class="visually-hidden" id="sourceFile" name="sourceFile" type="file">
-          <input class="editor__language" id="language" name="language" type="text" value="${escapeHtml(options.language)}" required spellcheck="false" autocomplete="off" aria-label="Language">
+          <input class="editor__language" id="language" name="language" type="text" value="${escapeHtml(options.language)}" placeholder="auto-detect" spellcheck="false" autocomplete="off" aria-label="Language">
         </span>
       </div>
       <div class="editor__body">

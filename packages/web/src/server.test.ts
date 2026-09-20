@@ -276,14 +276,14 @@ describe("createRequestHandler", () => {
       );
     });
 
-    it("rejects a submission with no language", async () => {
+    it("rejects a submission with no language it cannot detect", async () => {
       const response = await handlerFor()(
         postAnalyze({ sourceCode: "class Foo {}", language: "" }),
       );
 
       expect(response.status).toBe(400);
       await expect(response.text()).resolves.toContain(
-        "language must not be empty.",
+        "Could not detect the programming language. Please enter one explicitly.",
       );
     });
 
@@ -297,7 +297,104 @@ describe("createRequestHandler", () => {
 
       expect(response.status).toBe(400);
       await expect(response.text()).resolves.toContain(
-        "language must not be empty.",
+        "Could not detect the programming language. Please enter one explicitly.",
+      );
+    });
+
+    it("detects the language from pasted content when none is given", async () => {
+      const eventStore = new InMemoryEventStore();
+      const response = await handlerFor({ rules: [echoRule], eventStore })(
+        postAnalyze({ sourceCode: "def greet(name):\n    print(name)" }),
+      );
+
+      expect(response.status).toBe(200);
+      const history = await eventStore.readAll();
+      expect(history[0]?.eventType).toBe("AnalysisRequested");
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("python");
+    });
+
+    it("detects the language from the uploaded filename", async () => {
+      const eventStore = new InMemoryEventStore();
+      const file = new File(["hello world"], "main.py", {
+        type: "text/plain",
+      });
+      const form = new FormData();
+      form.set("sourceFile", file);
+      const response = await handlerFor({ rules: [echoRule], eventStore })(
+        new Request("http://localhost/analyze", {
+          method: "POST",
+          body: form,
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      const history = await eventStore.readAll();
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("python");
+    });
+
+    it("prefers an explicitly entered language over detection", async () => {
+      const eventStore = new InMemoryEventStore();
+      const file = new File(["def greet(name):\n    print(name)"], "main.py", {
+        type: "text/plain",
+      });
+      const form = new FormData();
+      form.set("sourceFile", file);
+      form.set("language", "go");
+      await handlerFor({ rules: [echoRule], eventStore })(
+        new Request("http://localhost/analyze", {
+          method: "POST",
+          body: form,
+        }),
+      );
+
+      const history = await eventStore.readAll();
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("go");
+    });
+
+    it("detects the language when the field holds only whitespace", async () => {
+      const eventStore = new InMemoryEventStore();
+      const response = await handlerFor({ rules: [echoRule], eventStore })(
+        postAnalyze({ sourceCode: "package main", language: "   " }),
+      );
+
+      expect(response.status).toBe(200);
+      const history = await eventStore.readAll();
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("go");
+    });
+
+    it("reports an undetectable language for a whitespace-only field too", async () => {
+      const response = await handlerFor()(
+        postAnalyze({ sourceCode: "class Foo {}", language: "   " }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toContain(
+        "Could not detect the programming language. Please enter one explicitly.",
+      );
+    });
+
+    it("reports the empty source rather than a detection failure when both apply", async () => {
+      const file = new File(["   "], "main.py", { type: "text/plain" });
+      const form = new FormData();
+      form.set("sourceFile", file);
+      const response = await handlerFor({ rules: [echoRule] })(
+        new Request("http://localhost/analyze", {
+          method: "POST",
+          body: form,
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toContain(
+        "sourceCode must not be empty.",
       );
     });
 
