@@ -178,6 +178,9 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
       - run: bun install --frozen-lockfile
+      # The handler zip embeds the client bundles (ADR-0029), so the client
+      # builds first — the same order as the gates and release scripts.
+      - run: bun run build:client
       - run: bun run build:lambda
       # The edge signer zip must exist before apply: the us-east-1 function
       # reads it via filebase64sha256 (ADR-0019).
