@@ -93,6 +93,16 @@ export {
 } from "./engine/application/analyze-subject.use-case.ts";
 export { InMemoryRuleCatalog } from "./engine/infrastructure/in-memory-rule-catalog.ts";
 
+// Privacy, telemetry and sensitive-data baseline (#28).
+export {
+  assertTelemetrySafe,
+  findForbiddenKeys,
+  FORBIDDEN_TELEMETRY_KEYS,
+  resolveTelemetryOptIn,
+  TelemetryContainsSensitiveDataError,
+  TELEMETRY_ENABLED_BY_DEFAULT,
+} from "./compliance/domain/sensitive-data.ts";
+
 // Single Responsibility Principle rule (#10, ADR-0022).
 export { SRP_RULE_ID, SrpRule } from "./principles/srp/infrastructure/srp-rule.ts";
 
