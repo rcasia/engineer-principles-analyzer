@@ -245,7 +245,10 @@ export class FindingLifecycleDecider
     verb: string,
     allowed: readonly FindingStatus[],
   ): string {
-    if (state.status === "nonexistent" || !allowed.includes(state.status)) {
+    // "nonexistent" needs no special case: it never appears in `allowed`,
+    // so the membership check below already rejects it. The cast only
+    // recovers the narrowing the removed disjunct used to provide.
+    if (!allowed.includes(state.status as FindingStatus)) {
       throw new InvalidFindingCommandError(
         `cannot ${verb} a finding that is "${state.status}".`,
       );

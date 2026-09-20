@@ -37,6 +37,15 @@ describe("FindingRetentionPolicy", () => {
     },
   );
 
+  it("accepts a single retention day as the smallest useful policy", () => {
+    const policy = unwrap(
+      FindingRetentionPolicy.of({ historyRetentionDays: 1, artifactDeletionDays: 1 }),
+    );
+
+    expect(policy.historyRetentionDays).toBe(1);
+    expect(policy.artifactDeletionDays).toBe(1);
+  });
+
   it.each([0, -1, 2.5])(
     "rejects %p as artifactDeletionDays",
     (artifactDeletionDays) => {
@@ -69,6 +78,17 @@ describe("isFindingHistoryExpired", () => {
   it("is true exactly at the deadline", () => {
     expect(isFindingHistoryExpired(0, 90 * FINDING_MS_PER_DAY, policy())).toBe(true);
   });
+
+  it("measures elapsed time from a nonzero origin, not wall-clock sums", () => {
+    const storedAt = 1_000;
+
+    expect(
+      isFindingHistoryExpired(storedAt, storedAt + 90 * FINDING_MS_PER_DAY - 1, policy()),
+    ).toBe(false);
+    expect(
+      isFindingHistoryExpired(storedAt, storedAt + 90 * FINDING_MS_PER_DAY, policy()),
+    ).toBe(true);
+  });
 });
 
 describe("isFindingArtifactDeletionDue", () => {
@@ -82,5 +102,16 @@ describe("isFindingArtifactDeletionDue", () => {
     expect(isFindingArtifactDeletionDue(0, 30 * FINDING_MS_PER_DAY, policy())).toBe(
       true,
     );
+  });
+
+  it("measures elapsed time from a nonzero origin, not wall-clock sums", () => {
+    const storedAt = 1_000;
+
+    expect(
+      isFindingArtifactDeletionDue(storedAt, storedAt + 30 * FINDING_MS_PER_DAY - 1, policy()),
+    ).toBe(false);
+    expect(
+      isFindingArtifactDeletionDue(storedAt, storedAt + 30 * FINDING_MS_PER_DAY, policy()),
+    ).toBe(true);
   });
 });

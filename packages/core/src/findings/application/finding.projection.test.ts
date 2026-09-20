@@ -68,9 +68,20 @@ function history(): EventEnvelope[] {
   ];
 }
 
+describe("finding lifecycle event names", () => {
+  it("keeps the stable Finding* names the decider and projection switch on", () => {
+    expect(FINDING_DETECTED_EVENT).toBe("FindingDetected");
+    expect(FINDING_ACCEPTED_EVENT).toBe("FindingAccepted");
+    expect(FINDING_SUPPRESSED_EVENT).toBe("FindingSuppressed");
+    expect(FINDING_RESOLVED_EVENT).toBe("FindingResolved");
+    expect(FINDING_REOPENED_EVENT).toBe("FindingReopened");
+  });
+});
+
 describe("FindingProjection", () => {
   it("starts from a nonexistent view with no history", () => {
     expect(new FindingProjection().initial).toEqual(INITIAL_FINDING_VIEW);
+    expect(INITIAL_FINDING_VIEW.status).toBe("nonexistent");
     expect(INITIAL_FINDING_VIEW.eventCount).toBe(0);
   });
 
@@ -87,6 +98,28 @@ describe("FindingProjection", () => {
       status: "open",
       suppression: undefined,
       eventCount: 1,
+    });
+  });
+
+  it("marks a finding accepted, keeping its identity", () => {
+    const projection = new FindingProjection();
+    const detected = projection.apply(INITIAL_FINDING_VIEW, history()[0]!);
+    const accepted = projection.apply(
+      detected,
+      envelope(
+        FINDING_ACCEPTED_EVENT,
+        { findingId: "finding-1", reason: "confirmed", acceptedBy: "bo" },
+        2,
+      ),
+    );
+
+    expect(accepted).toEqual({
+      findingId: "finding-1",
+      ruleId: "acme.no-console",
+      ruleVersion: "1.2.0",
+      status: "accepted",
+      suppression: undefined,
+      eventCount: 2,
     });
   });
 

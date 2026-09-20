@@ -72,6 +72,7 @@ describe("FindingLifecycleDecider", () => {
     [{ findingId: "  " }, "findingId must not be empty."],
     [{ ruleId: "  " }, "ruleId must not be empty."],
     [{ findingHash: "" }, "findingHash must not be empty."],
+    [{ findingHash: "   " }, "findingHash must not be empty."],
   ])("rejects detection with %p", (override, message) => {
     expect(() =>
       decider.decide(
@@ -147,6 +148,74 @@ describe("FindingLifecycleDecider", () => {
       decider.decide({ kind: "suppress", reason: "   " }, detected),
     ).toThrow(
       new InvalidFindingCommandError("suppression reason must not be empty."),
+    );
+  });
+
+  it("suppresses an accepted finding, not just an open one", () => {
+    const detected = decider.evolve(INITIAL_FINDING_STATE, detect()[0]!);
+    const [accepted] = decider.decide({ kind: "accept" }, detected);
+    const acceptedState = decider.evolve(detected, accepted!);
+
+    const [suppressed] = decider.decide(
+      { kind: "suppress", reason: "needs a ticket" },
+      acceptedState,
+    );
+
+    expect(suppressed?.eventType).toBe(FINDING_SUPPRESSED_EVENT);
+    expect(decider.evolve(acceptedState, suppressed!).status).toBe(
+      "suppressed",
+    );
+  });
+
+  it("resolves from accepted and suppressed alike", () => {
+    const detected = decider.evolve(INITIAL_FINDING_STATE, detect()[0]!);
+    const [accepted] = decider.decide({ kind: "accept" }, detected);
+    const acceptedState = decider.evolve(detected, accepted!);
+
+    const [resolvedFromAccepted] = decider.decide(
+      { kind: "resolve", reason: "fixed" },
+      acceptedState,
+    );
+    expect(resolvedFromAccepted?.eventType).toBe(FINDING_RESOLVED_EVENT);
+
+    const [suppressed] = decider.decide(
+      { kind: "suppress", reason: "false positive" },
+      detected,
+    );
+    const suppressedState = decider.evolve(detected, suppressed!);
+    const [resolvedFromSuppressed] = decider.decide(
+      { kind: "resolve", reason: "fixed" },
+      suppressedState,
+    );
+    expect(resolvedFromSuppressed?.eventType).toBe(FINDING_RESOLVED_EVENT);
+  });
+
+  it("reopens an accepted or resolved finding with its reason", () => {
+    const detected = decider.evolve(INITIAL_FINDING_STATE, detect()[0]!);
+    const [accepted] = decider.decide({ kind: "accept" }, detected);
+    const acceptedState = decider.evolve(detected, accepted!);
+
+    const [reopenedFromAccepted] = decider.decide(
+      { kind: "reopen", reason: "regressed" },
+      acceptedState,
+    );
+    expect(reopenedFromAccepted).toEqual({
+      eventType: FINDING_REOPENED_EVENT,
+      payload: { findingId: "finding-1", reason: "regressed" },
+    });
+
+    const [resolved] = decider.decide({ kind: "resolve" }, detected);
+    const resolvedState = decider.evolve(detected, resolved!);
+    const [reopenedFromResolved] = decider.decide(
+      { kind: "reopen" },
+      resolvedState,
+    );
+    expect(reopenedFromResolved).toEqual({
+      eventType: FINDING_REOPENED_EVENT,
+      payload: { findingId: "finding-1", reason: undefined },
+    });
+    expect(decider.evolve(resolvedState, reopenedFromResolved!).status).toBe(
+      "open",
     );
   });
 
