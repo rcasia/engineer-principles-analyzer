@@ -1,3 +1,10 @@
+## [1.17.2](https://github.com/rcasia/principled/compare/v1.17.1...v1.17.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** build the client before the Lambda bundle on deploy ([05fb4d5](https://github.com/rcasia/principled/commit/05fb4d56a145b1cc40aceca545c241d64501842f))
+
 ## [1.17.1](https://github.com/rcasia/principled/compare/v1.17.0...v1.17.1) (2026-09-20)
 
 
