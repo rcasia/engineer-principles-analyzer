@@ -101,6 +101,17 @@ describe("DipRule", () => {
     expect(result.evidence).toEqual([]);
   });
 
+  test("attaches no evidence when the only signal spans several lines", async () => {
+    const source = 'import {\n  Pool\n} from "pg";';
+    const result = await rule.evaluate(subjectOf(source));
+
+    expect(result.status).toBe("uncertain");
+    expect(result.evidence).toEqual([]);
+    expect(result.explanation).toBe(
+      "Could not confidently confirm or rule out a dependency-inversion violation. Found 1 inversion signal(s): 1 infrastructure import(s), 0 concrete instantiation(s).",
+    );
+  });
+
   test("always reports the language it was given, even when not_applicable", async () => {
     const result = await rule.evaluate(
       subjectOf('import fs from "node:fs";', "javascript"),
