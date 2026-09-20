@@ -63,4 +63,8 @@ describe("hashSource", () => {
     expect(hashSource("x = 1")).toBe(hashSource("x = 1"));
     expect(hashSource("x = 1")).not.toBe(hashSource("x = 2"));
   });
+
+  it("zero-pads short digests to eight hex characters", () => {
+    expect(hashSource("index")).toBe("090aa9ab");
+  });
 });

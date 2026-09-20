@@ -36,6 +36,14 @@ describe("RetentionPolicy", () => {
     },
   );
 
+  it("accepts a single retention day as the smallest useful policy", () => {
+    const value = unwrap(
+      RetentionPolicy.of({ artifactRetentionDays: 1, tenantId: "tenant-a" }),
+    );
+
+    expect(value.artifactRetentionDays).toBe(1);
+  });
+
   it.each(["", "   "])("rejects %p as tenantId", (tenantId) => {
     expect(
       unwrapErr(RetentionPolicy.of({ artifactRetentionDays: 30, tenantId })),
@@ -66,5 +74,16 @@ describe("isArtifactExpired", () => {
 
   it("is true after the deadline", () => {
     expect(isArtifactExpired(0, 31 * MS_PER_DAY, policy())).toBe(true);
+  });
+
+  it("measures elapsed time from a nonzero origin, not wall-clock sums", () => {
+    const storedAt = 1_000;
+
+    expect(
+      isArtifactExpired(storedAt, storedAt + 30 * MS_PER_DAY - 1, policy()),
+    ).toBe(false);
+    expect(
+      isArtifactExpired(storedAt, storedAt + 30 * MS_PER_DAY, policy()),
+    ).toBe(true);
   });
 });

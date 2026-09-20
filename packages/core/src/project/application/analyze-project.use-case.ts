@@ -123,8 +123,13 @@ export class AnalyzeProject {
       },
     };
 
-    if (request.retainArtifacts === true && request.artifactStore !== undefined) {
-      await request.artifactStore.put(
+    // The configuration guard above rejected `retainArtifacts` without a
+    // store, so reaching here with retention requested means the store
+    // below is configured.
+    const artifactStore =
+      request.retainArtifacts === true ? request.artifactStore : undefined;
+    if (artifactStore !== undefined) {
+      await artifactStore.put(
         request.tenantId,
         analysisId,
         request.project.files.map((file) => file.toReference()),

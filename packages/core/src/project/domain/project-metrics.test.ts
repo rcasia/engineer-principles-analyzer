@@ -80,6 +80,51 @@ describe("ProjectMetrics", () => {
     },
   );
 
+  it("rejects a non-integer cross-file evidence count", () => {
+    expect(
+      unwrapErr(
+        ProjectMetrics.of({
+          ...props(),
+          findingsWithCrossFileEvidence: 1.5,
+          totalFindings: 2,
+        }),
+      ),
+    ).toEqual(
+      new InvalidProjectMetricsError(
+        "findingsWithCrossFileEvidence must be a non-negative integer.",
+      ),
+    );
+    expect(
+      unwrapErr(
+        ProjectMetrics.of({
+          ...props(),
+          findingsWithCrossFileEvidence: -1,
+          totalFindings: 2,
+        }),
+      ),
+    ).toEqual(
+      new InvalidProjectMetricsError(
+        "findingsWithCrossFileEvidence must be a non-negative integer.",
+      ),
+    );
+  });
+
+  it("accepts the boundary values both predicates admit", () => {
+    const metrics = unwrap(
+      ProjectMetrics.of({
+        fileCount: 1,
+        analyzedFileCount: 1,
+        graphCoverage: 0,
+        findingsWithCrossFileEvidence: 0,
+        totalFindings: 0,
+        durationMs: 0,
+      }),
+    );
+
+    expect(metrics.fileCount).toBe(1);
+    expect(metrics.graphCoverage).toBe(0);
+  });
+
   it("rejects evidence counts above the finding total", () => {
     expect(
       unwrapErr(

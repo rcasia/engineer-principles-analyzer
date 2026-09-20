@@ -65,12 +65,27 @@ function failed(): EventEnvelope {
   };
 }
 
+describe("project analysis event names", () => {
+  it("keeps the stable ProjectAnalysis* names the use-case and projection share", () => {
+    expect(PROJECT_ANALYSIS_REQUESTED_EVENT).toBe("ProjectAnalysisRequested");
+    expect(PROJECT_ANALYSIS_COMPLETED_EVENT).toBe("ProjectAnalysisCompleted");
+    expect(PROJECT_ANALYSIS_FAILED_EVENT).toBe("ProjectAnalysisFailed");
+  });
+});
+
 describe("ProjectAnalysisProjection", () => {
   it("starts from an empty pending view", () => {
     expect(new ProjectAnalysisProjection().initial).toEqual(
       INITIAL_PROJECT_ANALYSIS_VIEW,
     );
-    expect(INITIAL_PROJECT_ANALYSIS_VIEW.status).toBe("pending");
+    expect(INITIAL_PROJECT_ANALYSIS_VIEW).toEqual({
+      analysisId: undefined,
+      fileCount: undefined,
+      languages: [],
+      requestedRuleIds: [],
+      status: "pending",
+      outcomes: [],
+    });
   });
 
   it("records the request and stays pending until every rule settles", () => {

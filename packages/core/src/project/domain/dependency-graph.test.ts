@@ -46,6 +46,11 @@ describe("DependencyGraph", () => {
       new InvalidDependencyGraphError("node paths must not be empty."),
     );
     expect(
+      unwrapErr(DependencyGraph.of({ nodes: ["   "], edges: [] })),
+    ).toEqual(
+      new InvalidDependencyGraphError("node paths must not be empty."),
+    );
+    expect(
       unwrapErr(DependencyGraph.of({ nodes: ["a.ts", "a.ts"], edges: [] })),
     ).toEqual(new InvalidDependencyGraphError('duplicate node "a.ts".'));
   });
@@ -127,6 +132,21 @@ describe("dependencyPath", () => {
 
     expect(dependencyPath(cyclic, "a.ts", "b.ts")).toEqual(["a.ts", "b.ts"]);
     expect(dependencyPath(cyclic, "b.ts", "b.ts")).toEqual(["b.ts"]);
+  });
+
+  it("returns undefined for an unreachable target past a detached cycle", () => {
+    const cyclic = unwrap(
+      DependencyGraph.of({
+        nodes: ["a.ts", "b.ts", "c.ts"],
+        edges: [
+          { from: "a.ts", to: "b.ts" },
+          { from: "b.ts", to: "c.ts" },
+          { from: "c.ts", to: "b.ts" },
+        ],
+      }),
+    );
+
+    expect(dependencyPath(cyclic, "a.ts", "ghost.ts")).toBeUndefined();
   });
 });
 

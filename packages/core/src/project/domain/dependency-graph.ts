@@ -107,10 +107,9 @@ export function dependencyPath(
   const visited = new Set<string>([from]);
   const queue: string[][] = [[from]];
   for (let head = 0; head < queue.length; head += 1) {
-    const path = queue[head];
-    if (path === undefined) {
-      continue;
-    }
+    // `head` only ever indexes paths already appended above, so this is
+    // always defined — the same cast the architecture evaluation uses.
+    const path = queue[head] as string[];
     const current = path[path.length - 1];
     for (const edge of graph.edges) {
       if (edge.from !== current || visited.has(edge.to)) {
