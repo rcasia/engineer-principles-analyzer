@@ -122,7 +122,13 @@ jobs:
           fi
           if git diff --name-only "$BASE" HEAD -- '*.test.ts' '*.test.tsx' package.json bun.lock stryker.config.json | grep -q .; then
             echo "Test, dependency or config changes detected since $BASE; forcing a full mutation run."
-            bunx stryker run --incremental --force
+            # No --incremental here: at this suite size Stryker 10 crashes
+            # serializing the full incremental report (RangeError: Invalid
+            # string length in writeIncrementalReport), which fails the gate
+            # after every mutant already passed. A plain full run retests
+            # everything and still writes the HTML report; later incremental
+            # runs keep reusing the last good cache.
+            bunx stryker run --force
           else
             bun run test:mutation:incremental
           fi
