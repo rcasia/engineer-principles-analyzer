@@ -37,8 +37,28 @@ describe("stripNoise", () => {
     expect(stripNoise('const s = "switch;')).toBe("const s =         ");
   });
 
+  test("does not mistake a division slash for a comment opener", () => {
+    expect(stripNoise("a / b")).toBe("a / b");
+  });
+
+  test("does not mistake a multiplication star for a block comment", () => {
+    expect(stripNoise("a * b")).toBe("a * b");
+  });
+
+  test("skips an escaped backtick inside a template literal", () => {
+    expect(stripNoise("const s = `a\\`b`;")).toBe("const s =       ;");
+  });
+
   test("an unterminated block comment blanks to the end of input", () => {
     expect(stripNoise("a(); /* switch")).toBe("a();          ");
+  });
+
+  test("an unterminated line comment blanks to the end of input", () => {
+    expect(stripNoise("a(); // switch")).toBe("a();          ");
+  });
+
+  test("does not let a second block comment's search run backward into the first comment's closer", () => {
+    expect(stripNoise("/*A*//*B*/x")).toBe("          x");
   });
 });
 
@@ -70,6 +90,10 @@ describe("countBranchSignals", () => {
 
   test("counts an else-if split across a newline", () => {
     expect(countBranchSignals("if (a) {}\nelse\nif (b) {}").elseIfs).toBe(1);
+  });
+
+  test("counts an else-if separated by more than one whitespace character", () => {
+    expect(countBranchSignals("if (a) {} else  if (b) {}").elseIfs).toBe(1);
   });
 
   test("does not count a bare else without an if", () => {
@@ -124,6 +148,15 @@ describe("locateFirstSignal", () => {
     expect(locateFirstSignal(source)).toEqual({
       startLine: 2,
       excerpt: "if (y instanceof Foo) {}",
+    });
+  });
+
+  test("finds an else-if separated by more than one whitespace character", () => {
+    const source = "if (a) {} else  if (b) {}";
+
+    expect(locateFirstSignal(source)).toEqual({
+      startLine: 1,
+      excerpt: "if (a) {} else  if (b) {}",
     });
   });
 

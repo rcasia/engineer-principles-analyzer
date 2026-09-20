@@ -78,7 +78,9 @@ function blanked(source: string, start: number, end: number): string {
 function skipQuoted(source: string, start: number, quote: string): number {
   let i = start + 1;
 
-  while (i < source.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (source[i] !== undefined) {
     if (source[i] === "\\") {
       i += 2;
       continue;
@@ -97,7 +99,9 @@ function skipQuoted(source: string, start: number, quote: string): number {
 function skipTemplate(source: string, start: number): number {
   let i = start + 1;
 
-  while (i < source.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (source[i] !== undefined) {
     if (source[i] === "\\") {
       i += 2;
       continue;
@@ -164,8 +168,8 @@ export function locateFirstSignal(
   const strippedLines = stripNoise(sourceCode).split("\n");
   const originalLines = sourceCode.split("\n");
 
-  for (let i = 0; i < strippedLines.length; i += 1) {
-    if (SIGNAL_LINE_PATTERN.test(strippedLines[i] as string)) {
+  for (const [i, stripped] of strippedLines.entries()) {
+    if (SIGNAL_LINE_PATTERN.test(stripped)) {
       const text = (originalLines[i] as string).trim();
 
       return { startLine: i + 1, excerpt: text.slice(0, MAX_EXCERPT_LENGTH) };
