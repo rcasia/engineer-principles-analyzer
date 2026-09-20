@@ -99,6 +99,8 @@ export { SRP_RULE_ID, SrpRule } from "./principles/srp/infrastructure/srp-rule.t
 
 // Jev adapter: AI-assisted judgments behind an injected port (ADR-0024).
 export type {
+  ChoiceJudgment,
+  ChoiceQuestion,
   JevClient,
   NoulJudgment,
   NoulQuestion,
@@ -107,20 +109,28 @@ export { JevTransportError } from "./jev/application/jev-client.port.ts";
 export { excerptForEvidence } from "./jev/domain/evidence-excerpt.ts";
 export type { SourceExcerpt } from "./jev/domain/evidence-excerpt.ts";
 export {
+  buildChoiceRequestBody,
   buildNoulRequestBody,
+  JEV_CHOICE_QUESTION_ID,
   JEV_ENDPOINT,
   JEV_MODEL,
   JEV_NOUL_QUESTION_ID,
 } from "./jev/domain/jev-request.ts";
 export type {
+  ChoiceQuestionShape,
+  JevChoiceRequestBody,
   JevNoulRequestBody,
   NoulQuestionShape,
 } from "./jev/domain/jev-request.ts";
 export {
   InvalidJevResponseError,
+  parseChoiceAnswerBody,
   parseNoulAnswerBody,
 } from "./jev/domain/jev-response.ts";
-export type { ParsedNoulAnswer } from "./jev/domain/jev-response.ts";
+export type {
+  ParsedChoiceAnswer,
+  ParsedNoulAnswer,
+} from "./jev/domain/jev-response.ts";
 export {
   COMPLIANT_AT_OR_BELOW,
   InvalidNoulValueError,
@@ -136,7 +146,10 @@ export {
   type FetchResponseLike,
 } from "./jev/infrastructure/http-jev-client.ts";
 export { InMemoryJevClient } from "./jev/infrastructure/in-memory-jev-client.ts";
-export type { ScriptedNoulJudgment } from "./jev/infrastructure/in-memory-jev-client.ts";
+export type {
+  ScriptedChoiceJudgment,
+  ScriptedNoulJudgment,
+} from "./jev/infrastructure/in-memory-jev-client.ts";
 export { JEV_SRP_RULE_ID, JevSrpRule } from "./principles/srp/infrastructure/jev-srp-rule.ts";
 
 // Analyze a single source file on the web (#34).

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   JevTransportError,
+  type ChoiceQuestion,
   type NoulQuestion,
 } from "../application/jev-client.port.ts";
 import { InvalidJevResponseError } from "../domain/jev-response.ts";
@@ -14,6 +15,11 @@ import {
 const QUESTION: NoulQuestion = {
   instructions: "Does this violate SRP?",
   criteria: { true: "Several jobs.", false: "One job." },
+};
+
+const CHOICE_QUESTION: ChoiceQuestion = {
+  instructions: "What programming language is this?",
+  criteria: { go: "Go source.", python: "Python source." },
 };
 
 const STATE = { sourceCode: "class Foo {}", language: "typescript" };
@@ -192,6 +198,138 @@ describe("HttpJevClient", () => {
 
     expect(() => new HttpJevClient({ apiKey: "  ", fetchFn })).toThrow(
       "HttpJevClient requires a non-empty apiKey.",
+    );
+  });
+});
+
+describe("HttpJevClient.evaluateChoice", () => {
+  test("sends the exact SystemOne request and returns the parsed judgment", async () => {
+    const { fetchFn, calls } = stubFetch(() =>
+      okResponse({
+        model: "jev-1.13.0",
+        answers: {
+          choice: {
+            type: "choice",
+            choice: "go",
+            probabilities: { go: 0.85, python: 0.15 },
+            confidence: 0.82,
+          },
+        },
+        usage: { input_tokens: 312, output_tokens: 48 },
+      }),
+    );
+    const client = new HttpJevClient({ apiKey: "test-key", fetchFn });
+
+    const judgment = await client.evaluateChoice({
+      state: STATE,
+      question: CHOICE_QUESTION,
+    });
+
+    expect(judgment).toEqual({
+      choice: "go",
+      probabilities: { go: 0.85, python: 0.15 },
+      confidence: 0.82,
+      model: "jev-1.13.0",
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toBe("https://api.typesafe.ai/v1/systemone");
+    expect(calls[0]?.init.method).toBe("POST");
+    expect(calls[0]?.init.headers).toEqual({
+      Authorization: "Bearer test-key",
+      "Content-Type": "application/json",
+    });
+    expect(calls[0]?.init.body).toBe(
+      JSON.stringify({
+        state: STATE,
+        model: "jev-latest",
+        questions: {
+          choice: {
+            type: "choice",
+            instructions: "What programming language is this?",
+            criteria: { go: "Go source.", python: "Python source." },
+          },
+        },
+      }),
+    );
+  });
+
+  test("wraps a network failure without leaking state or key", async () => {
+    const fetchFn: FetchFn = () =>
+      Promise.reject(new Error("connection reset"));
+    const client = new HttpJevClient({ apiKey: "test-key", fetchFn });
+
+    const error = await client
+      .evaluateChoice({ state: STATE, question: CHOICE_QUESTION })
+      .catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(JevTransportError);
+    expect((error as Error).message).toBe(
+      "Jev request failed: connection reset",
+    );
+    expect((error as Error).message).not.toContain("test-key");
+    expect((error as Error).message).not.toContain("class Foo {}");
+  });
+
+  test("reports the status code, not the body, for error responses", async () => {
+    const { fetchFn } = stubFetch(() => ({
+      ok: false,
+      status: 529,
+      json: async () => ({ detail: "overloaded" }),
+    }));
+    const client = new HttpJevClient({ apiKey: "test-key", fetchFn });
+
+    const error = await client
+      .evaluateChoice({ state: STATE, question: CHOICE_QUESTION })
+      .catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(JevTransportError);
+    expect((error as Error).message).toBe(
+      "Jev request failed with status 529.",
+    );
+  });
+
+  test("fails loudly on an unreadable response body", async () => {
+    const { fetchFn } = stubFetch(() => ({
+      ok: true,
+      status: 200,
+      json: async (): Promise<unknown> => {
+        throw new Error("unexpected token");
+      },
+    }));
+    const client = new HttpJevClient({ apiKey: "test-key", fetchFn });
+
+    const error = await client
+      .evaluateChoice({ state: STATE, question: CHOICE_QUESTION })
+      .catch((thrown: unknown) => thrown);
+
+    expect((error as Error).message).toBe(
+      "Jev returned a response that could not be parsed.",
+    );
+  });
+
+  test("propagates an invalid wire shape as InvalidJevResponseError", async () => {
+    const { fetchFn } = stubFetch(() =>
+      okResponse({
+        model: "jev-1.13.0",
+        answers: {
+          choice: {
+            type: "choice",
+            choice: "cobol",
+            probabilities: { go: 0, python: 1 },
+            confidence: 1,
+          },
+        },
+      }),
+    );
+    const client = new HttpJevClient({ apiKey: "test-key", fetchFn });
+
+    const error = await client
+      .evaluateChoice({ state: STATE, question: CHOICE_QUESTION })
+      .catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(InvalidJevResponseError);
+    expect((error as Error).message).toBe(
+      "Jev answer choice for question \"choice\" must be one of: go, python.",
     );
   });
 });

@@ -1,12 +1,19 @@
 import {
+  buildChoiceRequestBody,
   buildNoulRequestBody,
+  JEV_CHOICE_QUESTION_ID,
   JEV_ENDPOINT,
   JEV_MODEL,
   JEV_NOUL_QUESTION_ID,
 } from "../domain/jev-request.ts";
-import { parseNoulAnswerBody } from "../domain/jev-response.ts";
+import {
+  parseChoiceAnswerBody,
+  parseNoulAnswerBody,
+} from "../domain/jev-response.ts";
 import {
   JevTransportError,
+  type ChoiceJudgment,
+  type ChoiceQuestion,
   type JevClient,
   type NoulJudgment,
   type NoulQuestion,
@@ -75,6 +82,47 @@ export class HttpJevClient implements JevClient {
       ),
     );
 
+    const parsed = await this.post(body);
+    const answer = parseNoulAnswerBody(parsed, JEV_NOUL_QUESTION_ID);
+    if (!answer.ok) {
+      throw answer.error;
+    }
+
+    return answer.value;
+  }
+
+  async evaluateChoice(input: {
+    readonly state: unknown;
+    readonly question: ChoiceQuestion;
+  }): Promise<ChoiceJudgment> {
+    const body = JSON.stringify(
+      buildChoiceRequestBody(
+        input.state,
+        this.model,
+        JEV_CHOICE_QUESTION_ID,
+        input.question,
+      ),
+    );
+
+    const parsed = await this.post(body);
+    const answer = parseChoiceAnswerBody(
+      parsed,
+      JEV_CHOICE_QUESTION_ID,
+      Object.keys(input.question.criteria),
+    );
+    if (!answer.ok) {
+      throw answer.error;
+    }
+
+    return answer.value;
+  }
+
+  /**
+   * Posts one serialised SystemOne body and returns the untrusted response
+   * JSON. Shared by both primitives so the key handling, the status mapping
+   * and the no-leak guarantee hold byte-for-byte for Noul and Choice alike.
+   */
+  private async post(body: string): Promise<unknown> {
     let response: FetchResponseLike;
     try {
       response = await this.fetchFn(this.endpoint, {
@@ -95,21 +143,13 @@ export class HttpJevClient implements JevClient {
       );
     }
 
-    let parsed: unknown;
     try {
-      parsed = await response.json();
+      return await response.json();
     } catch {
       throw new JevTransportError(
         "Jev returned a response that could not be parsed.",
       );
     }
-
-    const answer = parseNoulAnswerBody(parsed, JEV_NOUL_QUESTION_ID);
-    if (!answer.ok) {
-      throw answer.error;
-    }
-
-    return answer.value;
   }
 }
 

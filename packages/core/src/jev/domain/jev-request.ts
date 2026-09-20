@@ -17,6 +17,9 @@ export const JEV_MODEL = "jev-latest";
 /** Wire id of the single Noul question v1 asks. */
 export const JEV_NOUL_QUESTION_ID = "noul";
 
+/** Wire id of the single Choice question v1 asks. */
+export const JEV_CHOICE_QUESTION_ID = "choice";
+
 export interface NoulQuestionShape {
   readonly instructions: string;
   readonly criteria?: {
@@ -51,6 +54,38 @@ export function buildNoulRequestBody(
     model,
     questions: {
       [questionId]: { type: "noul" as const, ...question },
+    },
+  };
+}
+
+export interface ChoiceQuestionShape {
+  readonly instructions: string;
+  readonly criteria: Readonly<Record<string, string | null>>;
+}
+
+export interface JevChoiceRequestBody {
+  readonly state: unknown;
+  readonly model: string;
+  readonly questions: {
+    readonly [questionId: string]: {
+      readonly type: "choice";
+      readonly instructions: string;
+      readonly criteria: Readonly<Record<string, string | null>>;
+    };
+  };
+}
+
+export function buildChoiceRequestBody(
+  state: unknown,
+  model: string,
+  questionId: string,
+  question: ChoiceQuestionShape,
+): JevChoiceRequestBody {
+  return {
+    state,
+    model,
+    questions: {
+      [questionId]: { type: "choice" as const, ...question },
     },
   };
 }
