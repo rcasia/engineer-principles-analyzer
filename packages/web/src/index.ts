@@ -16,7 +16,7 @@ export {
 } from "./presentation/principles-page.ts";
 export {
   ANALYZE_PAGE_TITLE,
-  DEFAULT_LANGUAGE,
+  AUTO_DETECT_LABEL,
   NO_FINDINGS_MESSAGE,
   renderAnalyzePage,
 } from "./presentation/analyze-page.ts";

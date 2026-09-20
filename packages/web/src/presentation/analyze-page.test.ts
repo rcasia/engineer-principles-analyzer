@@ -9,7 +9,7 @@ import {
 import type { AnalysisStatus } from "@principled/core";
 import {
   ANALYZE_PAGE_TITLE,
-  DEFAULT_LANGUAGE,
+  AUTO_DETECT_LABEL,
   NO_FINDINGS_MESSAGE,
   renderAnalyzePage,
   type AnalyzeView,
@@ -68,7 +68,7 @@ function blankForm(): AnalyzeView {
   return {
     kind: "form",
     sourceCode: "",
-    language: "typescript",
+    language: "",
     exampleId: null,
   };
 }
@@ -142,15 +142,18 @@ describe("renderAnalyzePage", () => {
       expect(html).not.toContain("Paste or submit exactly one file");
     });
 
-    it("renders an empty editor with a derived filename and the default language", () => {
+    it("renders an empty editor with auto-detect and no language input", () => {
       const html = renderAnalyzePage(blankForm());
 
-      expect(html).toContain('<span class="editor__filename">snippet.ts</span>');
+      expect(html).toContain('<span class="editor__filename">snippet.txt</span>');
       expect(html).toContain(
         '<textarea class="editor__input" id="sourceCode" name="sourceCode" rows="16" spellcheck="false" placeholder="Paste exactly one source file"></textarea>',
       );
-      expect(html).toContain('value="typescript"');
-      expect(DEFAULT_LANGUAGE).toBe("typescript");
+      expect(html).toContain(
+        '<span class="editor__language" aria-label="Language is detected automatically">Auto-detect</span>',
+      );
+      expect(html).not.toContain('name="language"');
+      expect(AUTO_DETECT_LABEL).toBe("Auto-detect");
     });
 
     it("numbers enough gutter lines to fill the empty editor", () => {
@@ -211,7 +214,7 @@ describe("renderAnalyzePage", () => {
       const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain(
-        '<p class="analyze-toolbar__meta">TypeScript · 0 lines</p>',
+        '<p class="analyze-toolbar__meta">Auto-detect · 0 lines</p>',
       );
       expect(html).toContain(
         '<button class="button button--primary" type="submit">Analyze →</button>',
@@ -286,11 +289,11 @@ describe("renderAnalyzePage", () => {
       const html = renderAnalyzePage({
         kind: "form",
         sourceCode: "",
-        language: "typescript",
+        language: "",
         exampleId: "bogus",
       });
 
-      expect(html).toContain('<span class="editor__filename">snippet.ts</span>');
+      expect(html).toContain('<span class="editor__filename">snippet.txt</span>');
       expect(html).not.toContain('aria-current="true"');
     });
   });
@@ -339,16 +342,16 @@ describe("renderAnalyzePage", () => {
       },
     );
 
-    it("echoes an unlisted language untouched with a plain text filename", () => {
+    it("names an unknown language as auto-detect with a plain text filename", () => {
       const html = renderAnalyzePage({
         kind: "form",
         sourceCode: "",
-        language: "haskell",
+        language: "",
         exampleId: null,
       });
 
       expect(html).toContain(
-        '<p class="analyze-toolbar__meta">haskell · 0 lines</p>',
+        '<p class="analyze-toolbar__meta">Auto-detect · 0 lines</p>',
       );
       expect(html).toContain('<span class="editor__filename">snippet.txt</span>');
     });
@@ -370,7 +373,7 @@ describe("renderAnalyzePage", () => {
       );
     });
 
-    it("escapes a hostile language in both the input value and the status bar", () => {
+    it("escapes a hostile detected language in the status bar and offers no input", () => {
       const html = renderAnalyzePage({
         kind: "form",
         sourceCode: "",
@@ -378,9 +381,9 @@ describe("renderAnalyzePage", () => {
         exampleId: null,
       });
 
-      expect(html).toContain('value="a&quot;b&lt;c&gt;"');
       expect(html).toContain("a&quot;b&lt;c&gt; · 0 lines");
       expect(html).not.toContain('a"b<c>');
+      expect(html).not.toContain('name="language"');
     });
   });
 
@@ -389,7 +392,7 @@ describe("renderAnalyzePage", () => {
       kind: "invalid",
       message: "sourceCode must not be empty.",
       sourceCode: "",
-      language: "typescript",
+      language: "",
     };
 
     it("shows the validation message in an alert", () => {

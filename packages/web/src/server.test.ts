@@ -167,6 +167,7 @@ describe("createRequestHandler", () => {
       expect(body).toContain(
         '<a class="button" href="/analyze?example=single-responsibility" aria-current="true">',
       );
+      expect(body).toContain("TypeScript · 7 lines");
     });
 
     it("never caches a prefilled example, as the cdn cache key ignores the query", async () => {
@@ -179,6 +180,21 @@ describe("createRequestHandler", () => {
       );
     });
 
+    it("renders the blank form with auto-detect and no language input", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/analyze"),
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain(
+        '<span class="editor__language" aria-label="Language is detected automatically">Auto-detect</span>',
+      );
+      expect(body).toContain('<span class="editor__filename">snippet.txt</span>');
+      expect(body).toContain("Auto-detect · 0 lines");
+      expect(body).not.toContain('name="language"');
+    });
+
     it("falls back to the blank form for an unknown example", async () => {
       const response = await handlerFor()(
         new Request("http://localhost/analyze?example=bogus"),
@@ -186,7 +202,7 @@ describe("createRequestHandler", () => {
 
       expect(response.status).toBe(200);
       const body = await response.text();
-      expect(body).toContain('<span class="editor__filename">snippet.ts</span>');
+      expect(body).toContain('<span class="editor__filename">snippet.txt</span>');
       expect(body).not.toContain('aria-current="true"');
       expect(response.headers.get("cache-control")).toBe(
         "public, max-age=60, stale-while-revalidate=600",
@@ -210,18 +226,18 @@ describe("createRequestHandler", () => {
 
     it("runs the pasted source through every registered rule and renders the findings", async () => {
       const response = await handlerFor({ rules: [echoRule] })(
-        postAnalyze({ sourceCode: "class Foo {}", language: "typescript" }),
+        postAnalyze({ sourceCode: "interface Foo { readonly name: string }" }),
       );
 
       expect(response.status).toBe(200);
       await expect(response.text()).resolves.toContain(
-        "Received: class Foo {}",
+        "Received: interface Foo { readonly name: string }",
       );
     });
 
     it("never caches a submitted analysis", async () => {
       const response = await handlerFor({ rules: [echoRule] })(
-        postAnalyze({ sourceCode: "class Foo {}", language: "typescript" }),
+        postAnalyze({ sourceCode: "interface Foo { readonly name: string }" }),
       );
 
       expect(response.headers.get("cache-control")).toBe("no-store");
@@ -236,7 +252,6 @@ describe("createRequestHandler", () => {
         postAnalyze({
           sourceCode: "from the textarea",
           sourceFile: file,
-          language: "typescript",
         }),
       );
 
@@ -247,61 +262,72 @@ describe("createRequestHandler", () => {
 
     it("falls back to the pasted text when no file is given", async () => {
       const response = await handlerFor({ rules: [echoRule] })(
-        postAnalyze({ sourceCode: "pasted only", language: "typescript" }),
+        postAnalyze({ sourceCode: "def greet(name):\n    print(name)" }),
       );
 
       await expect(response.text()).resolves.toContain(
-        "Received: pasted only",
+        "Received: def greet(name):",
       );
     });
 
-    it("rejects an empty submission with a 400 and echoes the language back", async () => {
-      const response = await handlerFor()(
-        postAnalyze({ sourceCode: "", language: "typescript" }),
-      );
+    it("rejects an empty submission with a 400 and shows auto-detect", async () => {
+      const response = await handlerFor()(postAnalyze({ sourceCode: "" }));
 
       expect(response.status).toBe(400);
       const body = await response.text();
       expect(body).toContain("sourceCode must not be empty.");
-      expect(body).toContain('value="typescript"');
+      expect(body).toContain("Auto-detect · 0 lines");
+      expect(body).not.toContain('name="language"');
     });
 
     it("never caches a rejected submission either", async () => {
-      const response = await handlerFor()(
-        postAnalyze({ sourceCode: "", language: "typescript" }),
-      );
+      const response = await handlerFor()(postAnalyze({ sourceCode: "" }));
 
       expect(response.headers.get("cache-control")).toBe(
         ANALYSIS_CACHE_CONTROL,
       );
     });
 
-    it("rejects a submission with no language it cannot detect", async () => {
+    it("rejects a submission it cannot detect", async () => {
       const response = await handlerFor()(
-        postAnalyze({ sourceCode: "class Foo {}", language: "" }),
+        postAnalyze({ sourceCode: "class Foo {}" }),
       );
 
       expect(response.status).toBe(400);
       await expect(response.text()).resolves.toContain(
-        "Could not detect the programming language. Please enter one explicitly.",
+        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
       );
     });
 
-    it("treats a wholly missing language field the same as an empty one", async () => {
+    it("reports the empty source rather than a detection failure for whitespace", async () => {
+      const response = await handlerFor()(postAnalyze({ sourceCode: "   " }));
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toContain(
+        "sourceCode must not be empty.",
+      );
+    });
+
+    it("treats a non-text sourceCode field as empty", async () => {
       const form = new FormData();
-      form.set("sourceCode", "class Foo {}");
-      // "language" is deliberately never set.
+      form.set(
+        "sourceCode",
+        new File(["def greet(name):\n    print(name)"], "pasted.txt"),
+      );
       const response = await handlerFor()(
-        new Request("http://localhost/analyze", { method: "POST", body: form }),
+        new Request("http://localhost/analyze", {
+          method: "POST",
+          body: form,
+        }),
       );
 
       expect(response.status).toBe(400);
       await expect(response.text()).resolves.toContain(
-        "Could not detect the programming language. Please enter one explicitly.",
+        "sourceCode must not be empty.",
       );
     });
 
-    it("detects the language from pasted content when none is given", async () => {
+    it("detects the language from pasted content", async () => {
       const eventStore = new InMemoryEventStore();
       const response = await handlerFor({ rules: [echoRule], eventStore })(
         postAnalyze({ sourceCode: "def greet(name):\n    print(name)" }),
@@ -336,7 +362,7 @@ describe("createRequestHandler", () => {
       ).toBe("python");
     });
 
-    it("prefers an explicitly entered language over detection", async () => {
+    it("ignores a language field when one is sent and detects instead", async () => {
       const eventStore = new InMemoryEventStore();
       const file = new File(["def greet(name):\n    print(name)"], "main.py", {
         type: "text/plain",
@@ -354,13 +380,13 @@ describe("createRequestHandler", () => {
       const history = await eventStore.readAll();
       expect(
         (history[0]?.payload as { language?: string }).language,
-      ).toBe("go");
+      ).toBe("python");
     });
 
-    it("detects the language when the field holds only whitespace", async () => {
+    it("detects go from content without a language field", async () => {
       const eventStore = new InMemoryEventStore();
       const response = await handlerFor({ rules: [echoRule], eventStore })(
-        postAnalyze({ sourceCode: "package main", language: "   " }),
+        postAnalyze({ sourceCode: "package main" }),
       );
 
       expect(response.status).toBe(200);
@@ -370,14 +396,14 @@ describe("createRequestHandler", () => {
       ).toBe("go");
     });
 
-    it("reports an undetectable language for a whitespace-only field too", async () => {
+    it("reports an undetectable snippet without a language field", async () => {
       const response = await handlerFor()(
-        postAnalyze({ sourceCode: "class Foo {}", language: "   " }),
+        postAnalyze({ sourceCode: "hello world" }),
       );
 
       expect(response.status).toBe(400);
       await expect(response.text()).resolves.toContain(
-        "Could not detect the programming language. Please enter one explicitly.",
+        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
       );
     });
 
@@ -402,20 +428,19 @@ describe("createRequestHandler", () => {
       const emptyFile = new File([], "empty.ts", { type: "text/plain" });
       const response = await handlerFor({ rules: [echoRule] })(
         postAnalyze({
-          sourceCode: "from the textarea",
+          sourceCode: "def greet(name):\n    print(name)",
           sourceFile: emptyFile,
-          language: "typescript",
         }),
       );
 
       await expect(response.text()).resolves.toContain(
-        "Received: from the textarea",
+        "Received: def greet(name):",
       );
     });
 
     it("shows an empty-findings state when the catalog has no rules", async () => {
       const response = await handlerFor()(
-        postAnalyze({ sourceCode: "class Foo {}", language: "typescript" }),
+        postAnalyze({ sourceCode: "interface Foo { readonly name: string }" }),
       );
 
       expect(response.status).toBe(200);
@@ -428,7 +453,7 @@ describe("createRequestHandler", () => {
       const eventStore = new InMemoryEventStore();
 
       await handlerFor({ rules: [echoRule], eventStore })(
-        postAnalyze({ sourceCode: "class Foo {}", language: "typescript" }),
+        postAnalyze({ sourceCode: "interface Foo { readonly name: string }" }),
       );
 
       const history = await eventStore.readAll();
@@ -437,15 +462,15 @@ describe("createRequestHandler", () => {
         "AnalysisRequested",
         "AnalysisCompleted",
       ]);
-      expect(JSON.stringify(history)).not.toContain("class Foo {}");
+      expect(JSON.stringify(history)).not.toContain(
+        "interface Foo { readonly name: string }",
+      );
     });
 
     it("does not append anything for a rejected submission", async () => {
       const eventStore = new InMemoryEventStore();
 
-      await handlerFor({ eventStore })(
-        postAnalyze({ sourceCode: "", language: "typescript" }),
-      );
+      await handlerFor({ eventStore })(postAnalyze({ sourceCode: "" }));
 
       await expect(eventStore.readAll()).resolves.toEqual([]);
     });

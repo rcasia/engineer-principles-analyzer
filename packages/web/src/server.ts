@@ -1,9 +1,6 @@
 import type { AnalyzeSubject, EventStore, ListPrinciples } from "@principled/core";
 import { detectLanguage, Subject } from "@principled/core";
-import {
-  DEFAULT_LANGUAGE,
-  renderAnalyzePage,
-} from "./presentation/analyze-page.ts";
+import { renderAnalyzePage } from "./presentation/analyze-page.ts";
 import { exampleFor } from "./presentation/code-examples.ts";
 import { renderDesignPlayground } from "./presentation/design-playground.ts";
 import { renderPrinciplesPage } from "./presentation/principles-page.ts";
@@ -35,9 +32,9 @@ export const ANALYSIS_CACHE_CONTROL = "no-store";
 export const CLIENT_ASSET_CACHE_CONTROL =
   "public, max-age=31536000, immutable";
 
-/** Shown when neither the `language` field nor detection produced a language. */
+/** Shown when detection produced no language. The visitor cannot override it. */
 export const UNDETECTED_LANGUAGE_MESSAGE =
-  "Could not detect the programming language. Please enter one explicitly.";
+  "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.";
 
 /** What `createRequestHandler` needs to serve every route. */
 export interface RequestHandlerDependencies {
@@ -98,47 +95,33 @@ async function sourceCodeOf(form: FormData): Promise<SubmittedSource> {
   };
 }
 
-/**
- * Resolves the language a submission should be analyzed as: what the
- * visitor typed when they typed anything, otherwise what detection infers
- * from the uploaded filename and the source itself. An empty string means
- * detection found nothing the analyzer recognises.
- */
-function languageOf(
-  rawLanguage: string,
-  sourceCode: string,
-  filename: string | undefined,
-): string {
-  if (rawLanguage.trim().length > 0) {
-    return rawLanguage;
-  }
-
-  return detectLanguage(sourceCode, filename) ?? "";
-}
-
 async function handleAnalyzeSubmission(
   request: Request,
   deps: Pick<RequestHandlerDependencies, "analyzeSubject" | "eventStore">,
 ): Promise<Response> {
   const form = await request.formData();
   const { sourceCode, filename } = await sourceCodeOf(form);
-  const rawLanguage = textFieldOf(form.get("language"));
-  const language = languageOf(rawLanguage, sourceCode, filename);
+  // Fully automatic: any `language` field in the form is ignored and the
+  // effective language always comes from the filename and content.
+  const language = detectLanguage(sourceCode, filename) ?? "";
 
   const subject = Subject.of({ sourceCode, language });
 
   if (!subject.ok) {
+    // A failed Subject with non-empty source can only mean detection drew
+    // a blank (language ""), so the visitor needs the detection guidance;
+    // an empty source always reports itself, whichever language came out.
     const message =
-      rawLanguage.trim().length === 0 && language === ""
-        ? UNDETECTED_LANGUAGE_MESSAGE
-        : subject.error.message;
+      sourceCode.trim().length === 0
+        ? subject.error.message
+        : UNDETECTED_LANGUAGE_MESSAGE;
 
     return htmlResponse(
       renderAnalyzePage({
         kind: "invalid",
         message,
         sourceCode,
-        language: rawLanguage,
+        language,
       }),
       400,
       ANALYSIS_CACHE_CONTROL,
@@ -182,7 +165,7 @@ export function createRequestHandler(
           renderAnalyzePage({
             kind: "form",
             sourceCode: "",
-            language: DEFAULT_LANGUAGE,
+            language: "",
             exampleId: null,
           }),
           200,
@@ -196,7 +179,7 @@ export function createRequestHandler(
         renderAnalyzePage({
           kind: "form",
           sourceCode: example.source,
-          language: example.language,
+          language: detectLanguage(example.source, example.filename) ?? "",
           exampleId: example.id,
         }),
         200,

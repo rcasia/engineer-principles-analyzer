@@ -10,7 +10,8 @@ import { escapeHtml } from "./principles-page.ts";
 import { VERSION } from "../version.ts";
 
 export const ANALYZE_PAGE_TITLE = "Analyze | Principled";
-export const DEFAULT_LANGUAGE = "typescript";
+/** Shown wherever a language would appear but detection has nothing to show yet. */
+export const AUTO_DETECT_LABEL = "Auto-detect";
 export const NO_FINDINGS_MESSAGE =
   "The analysis completed, but no rules were available to evaluate this submission.";
 
@@ -21,6 +22,9 @@ export const NO_FINDINGS_MESSAGE =
  * what the visitor typed, or the structured findings from a completed run.
  * There is deliberately no fourth "loading" variant — see ADR-0015 for why
  * a page with no client-side JavaScript (ADR-0004) does not need one.
+ *
+ * `language` is display-only and always detector-produced ("" means
+ * unknown): the visitor has no language control (ADR-0026).
  */
 export type AnalyzeView =
   | {
@@ -161,8 +165,12 @@ function canonicalLanguage(language: string): string {
   return language.trim().toLowerCase();
 }
 
-/** Raw display name; the single `escapeHtml` at the render site handles user input. */
+/** Display name for a detector-produced language; "" renders as auto-detect. */
 function languageLabel(language: string): string {
+  if (canonicalLanguage(language) === "") {
+    return AUTO_DETECT_LABEL;
+  }
+
   return LANGUAGE_DETAILS[canonicalLanguage(language)]?.label ?? language;
 }
 
@@ -301,7 +309,7 @@ function renderPlayground(options: {
         <span class="editor__actions">
           <label class="button" for="sourceFile" title="If a file is chosen it is used instead of the pasted text">Upload</label>
           <input class="visually-hidden" id="sourceFile" name="sourceFile" type="file">
-          <input class="editor__language" id="language" name="language" type="text" value="${escapeHtml(options.language)}" placeholder="auto-detect" spellcheck="false" autocomplete="off" aria-label="Language">
+          <span class="editor__language" aria-label="Language is detected automatically">Auto-detect</span>
         </span>
       </div>
       <div class="editor__body">
