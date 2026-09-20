@@ -96,6 +96,9 @@ export { InMemoryRuleCatalog } from "./engine/infrastructure/in-memory-rule-cata
 // Single Responsibility Principle rule (#10, ADR-0022).
 export { SRP_RULE_ID, SrpRule } from "./principles/srp/infrastructure/srp-rule.ts";
 
+// Open/Closed Principle rule (#11, ADR-0030).
+export { OCP_RULE_ID, OcpRule } from "./principles/ocp/infrastructure/ocp-rule.ts";
+
 // Jev adapter: AI-assisted judgments behind an injected port (ADR-0024).
 export type {
   ChoiceJudgment,

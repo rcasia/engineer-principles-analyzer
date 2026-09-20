@@ -39,6 +39,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0027](0027-detect-secrets-commit-hook.md) | Block new secrets with detect-secrets, at commit time and in CI | Accepted | 2026-09-20 |
 | [0028](0028-jev-language-detection.md) | Detect the submission language with Jev Choice | Accepted | 2026-09-20 |
 | [0029](0029-live-highlighting-analyze-editor.md) | Live language detection and syntax highlighting on /analyze | Accepted | 2026-09-20 |
+| [0030](0030-ocp-heuristic-rule.md) | Detect Open/Closed violations with a dependency-free branch-counting heuristic | Accepted | 2026-09-20 |
 
 ## Writing a new ADR
 

@@ -7,6 +7,7 @@ import {
   InMemoryRuleCatalog,
   JevLanguageDetector,
   ListPrinciples,
+  OcpRule,
   SrpRule,
 } from "@principled/core";
 import { createRequestHandler } from "./server.ts";
@@ -38,7 +39,9 @@ const server = Bun.serve({
   fetch: createRequestHandler({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
     // Seeded with the real SOLID rules as they land (#10 SRP first).
-    analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog([new SrpRule()])),
+    analyzeSubject: new AnalyzeSubject(
+      new InMemoryRuleCatalog([new SrpRule(), new OcpRule()]),
+    ),
     languageDetector: new JevLanguageDetector(
       new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),
     ),

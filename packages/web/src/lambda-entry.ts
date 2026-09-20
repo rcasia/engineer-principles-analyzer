@@ -6,6 +6,7 @@ import {
   InMemoryRuleCatalog,
   JevLanguageDetector,
   ListPrinciples,
+  OcpRule,
   SrpRule,
 } from "@principled/core";
 import { readdir, readFile } from "node:fs/promises";
@@ -44,7 +45,9 @@ const clientAssets = await loadClientAssets(
 export const handler = createLambdaHandler(
   createRequestHandler({
     listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
-    analyzeSubject: new AnalyzeSubject(new InMemoryRuleCatalog([new SrpRule()])),
+    analyzeSubject: new AnalyzeSubject(
+      new InMemoryRuleCatalog([new SrpRule(), new OcpRule()]),
+    ),
     languageDetector: new JevLanguageDetector(
       new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),
     ),
