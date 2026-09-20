@@ -39,4 +39,13 @@ Exit status: `0` analysis completed with no violations, `1` analysis
 completed with at least one violation, `2` no analysis happened (bad
 flags, unreadable input, or an unevaluable subject).
 
+## Run in CI
+
+`.github/workflows/principled.yml` runs the CLI over changed sources on
+pull requests and uploads findings as SARIF, so results attach to the
+change via code scanning. Permissions are minimal (`contents: read`,
+`security-events: write`); analysis itself needs no secrets. Violations
+are recorded as alerts without failing the job; an execution failure
+(exit 2) does fail it.
+
 See the [project README](https://github.com/rcasia/principled#readme).
