@@ -26,10 +26,24 @@ export function renderPrinciplesPage(principles: readonly Principle[]): string {
     title: PAGE_TITLE,
     path: "/principles",
     body: `<header class="page-header">
-<p class="eyebrow">Engineering reference</p>
+<p class="eyebrow">The engineering contract</p>
 <h1>Principles</h1>
-<p class="lede">Explicit principles for evaluating software decisions and the evidence behind them.</p>
+<p class="lede">Principles are the standards Principled measures code against. Each one is a written-down position on what good design is — and the rules the analyzer runs are its checkable form. What counts and what does not is decided here, before any file is judged.</p>
 </header>
+<ol class="principles__flow" aria-label="How principles become findings">
+  <li>
+    <h2>Principle</h2>
+    <p>The standard, written down: what it guards and why it matters.</p>
+  </li>
+  <li>
+    <h2>Rule</h2>
+    <p>The principle's checkable form, run against submitted code.</p>
+  </li>
+  <li>
+    <h2>Finding</h2>
+    <p>The result of the rule: verdict, evidence and confidence, naming its principle.</p>
+  </li>
+</ol>
 ${renderPrinciples(principles)}`,
   });
 }

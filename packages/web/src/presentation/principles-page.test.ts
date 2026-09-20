@@ -72,8 +72,26 @@ describe("renderPrinciplesPage", () => {
   it("shows an empty state when there are no principles", () => {
     const html = renderPrinciplesPage([]);
 
-    expect(html).toContain("<p>No principles are defined yet.</p>");
+    expect(html).toContain("<strong>Catalog is being drafted</strong>");
+    expect(html).toContain("<p>The standards behind the rules that already run");
     expect(html).not.toContain("<ul");
+  });
+
+  it("explains the principle → rule → finding chain that gives the page its purpose", () => {
+    const html = renderPrinciplesPage([]);
+
+    expect(html).toContain(
+      '<ol class="principles__flow" aria-label="How principles become findings">',
+    );
+    expect(html).toContain(
+      "<h2>Principle</h2>\n    <p>The standard, written down: what it guards and why it matters.</p>",
+    );
+    expect(html).toContain(
+      "<h2>Rule</h2>\n    <p>The principle's checkable form, run against submitted code.</p>",
+    );
+    expect(html).toContain(
+      "<h2>Finding</h2>\n    <p>The result of the rule: verdict, evidence and confidence, naming its principle.</p>",
+    );
   });
 
   it("renders principles as a labelled list", () => {
@@ -85,7 +103,7 @@ describe("renderPrinciplesPage", () => {
     expect(html).toContain("<h2>Test Driven Development</h2><p>tdd</p>");
     expect(html).toContain("<h2>Continuous Integration</h2><p>ci</p>");
     expect(html).toContain("</li><li");
-    expect(html).not.toContain("No principles are defined yet.");
+    expect(html).not.toContain("Catalog is being drafted");
   });
 
   it("escapes principle content", () => {

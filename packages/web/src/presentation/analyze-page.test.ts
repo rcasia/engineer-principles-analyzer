@@ -136,12 +136,12 @@ describe("renderAnalyzePage", () => {
   });
 
   describe("the blank playground", () => {
-    it("frames the page as testing code against a contract", () => {
+    it("says what the submission runs and what comes back", () => {
       const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain("<h1>Analyze</h1>");
       expect(html).toContain(
-        "<p class=\"lede\">Test your engineering principles against real code.</p>",
+        '<p class="lede">Paste or upload one source file and Principled runs it through the engineering contract beside the editor. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>',
       );
       expect(html).not.toContain("Paste or submit exactly one file");
     });
@@ -233,23 +233,22 @@ describe("renderAnalyzePage", () => {
       const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain('id="contract-heading">Engineering contract</h2>');
-      expect(html).toContain(">Architecture</h3>");
-      expect(html).toContain(">Design</h3>");
-      expect(html).toContain(">Testing</h3>");
-      expect(html).toContain("<span>Hexagonal Architecture</span>");
-      expect(html).toContain("<span>Dependency Direction</span>");
-      expect(html).toContain("<span>SOLID</span>");
-      // Scoped to the contract item: an example button shares this label.
+      expect(html).toContain(">SOLID</h3>");
       expect(html).toContain("<span>Single Responsibility</span>");
-      expect(html).toContain("<span>DTT</span>");
+      expect(html).toContain("<span>Open/Closed</span>");
+      expect(html).toContain("<span>Liskov Substitution</span>");
+      expect(html).toContain("<span>Interface Segregation</span>");
+      expect(html).toContain("<span>Dependency Inversion</span>");
       expect(html).toContain(
-        '<label class="contract__item"><input type="checkbox" checked disabled><span>SOLID</span></label>',
+        '<label class="contract__item"><input type="checkbox" checked disabled><span>Open/Closed</span></label>',
       );
       expect(html).toContain("</label><label class=\"contract__item\">");
-      expect(html).toContain("</div></div><div class=\"contract__group\">");
       expect(html.match(/type="checkbox" checked disabled/g)).toHaveLength(5);
       expect(html).toContain(
         '<p class="contract__count">5 principles enabled</p>',
+      );
+      expect(html).toContain(
+        '<p class="contract__help">The rules shown here run against your file. How principles become rules: <a href="/principles">the Principles page</a>.</p>',
       );
     });
 

@@ -256,21 +256,28 @@ function renderGutter(sourceCode: string): string {
 }
 
 /**
- * The engineering contract the code is tested against, as static display:
- * the rule catalog is still empty (no rule-selection backend exists yet),
- * so these are deliberately `checked disabled` — visibly on, not
- * configurable here, and never submitted with the form.
+ * The engineering contract the code is tested against, as static display.
+ * These are the rules `AnalyzeSubject` actually runs for the web adapter
+ * (the five SOLID heuristics, ADR-0022..0035) — listed here rather than
+ * fetched because no rule-selection backend exists yet — so the panel is
+ * deliberately `checked disabled`: visibly on, not configurable here, and
+ * never submitted with the form. The labels must stay in sync with the
+ * landing page's "5 SOLID heuristics" fact.
  */
 const CONTRACT_GROUPS: readonly {
   readonly title: string;
   readonly principles: readonly string[];
 }[] = [
   {
-    title: "Architecture",
-    principles: ["Hexagonal Architecture", "Dependency Direction"],
+    title: "SOLID",
+    principles: [
+      "Single Responsibility",
+      "Open/Closed",
+      "Liskov Substitution",
+      "Interface Segregation",
+      "Dependency Inversion",
+    ],
   },
-  { title: "Design", principles: ["SOLID", "Single Responsibility"] },
-  { title: "Testing", principles: ["DTT"] },
 ];
 
 function renderContractGroup(group: {
@@ -298,6 +305,7 @@ function renderContract(): string {
   <h2 class="panel__label" id="contract-heading">Engineering contract</h2>
   ${groups}
   <p class="contract__count">${total} principles enabled</p>
+  <p class="contract__help">The rules shown here run against your file. How principles become rules: <a href="/principles">the Principles page</a>.</p>
 </section>`;
 }
 
@@ -365,7 +373,7 @@ function renderPlaygroundHeader(): string {
   return `<header class="page-header">
 <p class="eyebrow">Code → principles → findings</p>
 <h1>Analyze</h1>
-<p class="lede">Test your engineering principles against real code.</p>
+<p class="lede">Paste or upload one source file and Principled runs it through the engineering contract beside the editor. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>
 </header>`;
 }
 

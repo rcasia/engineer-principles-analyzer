@@ -408,6 +408,12 @@ h1 {
 @keyframes progress { from { translate: -100%; } to { translate: 270%; } }
 
 .page-header { margin-bottom: var(--space-8); padding-bottom: var(--space-8); border-bottom: 1px solid var(--color-border); }
+.principles__flow { display: grid; margin: 0 0 var(--space-8); padding: 0; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); list-style: none; counter-reset: principle-flow; }
+.principles__flow li { counter-increment: principle-flow; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-2); background: var(--color-surface); }
+.principles__flow li::before { display: block; margin-bottom: var(--space-2); color: var(--color-text-muted); content: counter(principle-flow, decimal-leading-zero); font: 0.6875rem/1.4 var(--font-mono); }
+.principles__flow h2 { margin-bottom: var(--space-1); font-size: 0.875rem; }
+.principles__flow p { margin: 0; color: var(--color-text-secondary); font-size: 0.8125rem; }
+.contract__help { margin: var(--space-2) 0 0; color: var(--color-text-muted); font-size: 0.75rem; line-height: 1.45; }
 .principles-list { margin: 0; padding: 0; list-style: none; }
 .principle { padding: var(--space-6) 0; border-bottom: 1px solid var(--color-border); }
 .principle h2 { margin-bottom: var(--space-1); font-size: 1rem; }
@@ -496,6 +502,7 @@ h1 {
   .field-grid { grid-template-columns: 1fr; }
   .field--wide { grid-column: auto; }
   .swatches { grid-template-columns: repeat(2, 1fr); }
+  .principles__flow { grid-template-columns: 1fr; }
 }
 
 @media (forced-colors: active) {

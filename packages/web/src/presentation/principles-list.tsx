@@ -2,7 +2,8 @@ import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Principle } from "@principled/core";
 
-export const EMPTY_STATE = "No principles are defined yet.";
+export const EMPTY_STATE =
+  "The standards behind the rules that already run — like the SOLID checks in the analyzer — are written down here as they are drafted.";
 
 /**
  * The principles list as an SSR-only component (Phase 1, #49): rendered with
@@ -18,7 +19,7 @@ export function PrinciplesList(props: {
   if (props.principles.length === 0) {
     return (
       <div className="empty-state">
-        <strong>Catalog is empty</strong>
+        <strong>Catalog is being drafted</strong>
         <p>{EMPTY_STATE}</p>
       </div>
     );

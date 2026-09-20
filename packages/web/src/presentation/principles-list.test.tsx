@@ -12,7 +12,9 @@ function render(principles: readonly Principle[]): string {
 
 describe("EMPTY_STATE", () => {
   it("stays the sentence the page asserts literally", () => {
-    expect(EMPTY_STATE).toBe("No principles are defined yet.");
+    expect(EMPTY_STATE).toBe(
+      "The standards behind the rules that already run — like the SOLID checks in the analyzer — are written down here as they are drafted.",
+    );
   });
 });
 
@@ -21,8 +23,10 @@ describe("PrinciplesList", () => {
     const html = render([]);
 
     expect(html).toContain('<div class="empty-state">');
-    expect(html).toContain("<strong>Catalog is empty</strong>");
-    expect(html).toContain("<p>No principles are defined yet.</p>");
+    expect(html).toContain("<strong>Catalog is being drafted</strong>");
+    expect(html).toContain(
+      "<p>The standards behind the rules that already run",
+    );
     expect(html).not.toContain("<ul");
   });
 
@@ -38,7 +42,7 @@ describe("PrinciplesList", () => {
     expect(html).toContain(
       '<li class="principle"><h2>Continuous Integration</h2><p>ci</p></li>',
     );
-    expect(html).not.toContain("No principles are defined yet.");
+    expect(html).not.toContain("The standards behind the rules");
   });
 
   it("escapes principle content", () => {
