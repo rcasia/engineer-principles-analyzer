@@ -13,7 +13,10 @@ import type { ClientAssets } from "./client-assets.ts";
 import { renderAnalyzePage } from "./presentation/analyze-page.ts";
 import { exampleFor } from "./presentation/code-examples.ts";
 import { renderDesignPlayground } from "./presentation/design-playground.ts";
+import { UNDETECTED_LANGUAGE_MESSAGE } from "./presentation/language-display.ts";
 import { renderPrinciplesPage } from "./presentation/principles-page.ts";
+
+export { UNDETECTED_LANGUAGE_MESSAGE };
 
 export const HTML_CONTENT_TYPE = "text/html; charset=utf-8";
 export const NOT_FOUND_BODY = "Not found";
@@ -42,10 +45,6 @@ export const ANALYSIS_CACHE_CONTROL = "no-store";
  */
 export const CLIENT_ASSET_CACHE_CONTROL =
   "public, max-age=31536000, immutable";
-
-/** Shown when detection produced no language. The visitor cannot override it. */
-export const UNDETECTED_LANGUAGE_MESSAGE =
-  "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.";
 
 export const CLIENT_ASSET_CONTENT_TYPE = "text/javascript; charset=utf-8";
 

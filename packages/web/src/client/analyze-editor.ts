@@ -10,6 +10,12 @@
  * typing only re-highlights and re-counts locally, so the credential stays
  * server-side and one paste costs one call.
  *
+ * The Phase 2 validation echo (#50) rides on the same state: every render
+ * also syncs the server's rejection wording for the current buffer and
+ * language, so an empty or undetectable buffer is flagged without a submit
+ * round trip. The echo itself adds no network call; the server still
+ * re-validates every submission.
+ *
  * Everything DOM-touching degrades to `false` when its elements are absent
  * (SSR output, scripting disabled, other pages).
  */
@@ -25,6 +31,8 @@ import {
   languageLabel,
 } from "../presentation/language-display.ts";
 import { hydrateGutter } from "./gutter.ts";
+import { byTag } from "./dom.ts";
+import { syncValidationEcho } from "./validation-echo.ts";
 
 type LanguageDefinition = Parameters<typeof hljs.registerLanguage>[1];
 
@@ -128,6 +136,7 @@ function lineCountLabel(sourceCode: string): string {
 }
 
 interface EditorElements {
+  readonly form: HTMLFormElement;
   readonly textarea: HTMLTextAreaElement;
   readonly backdrop: HTMLElement;
   readonly badge: HTMLElement;
@@ -141,25 +150,6 @@ interface EditorElements {
 /** Mutable island state: the language the badge currently shows. */
 interface EditorState {
   language: string;
-}
-
-/**
- * Looks up one element by tag: `querySelector` alone cannot tell a
- * `<div id="sourceCode">` from the real textarea, and the island must not
- * wire the wrong node. Returns `null` for a missing or mistagged element.
- */
-function byTag<T extends Element>(
-  parent: Document | Element,
-  selector: string,
-  tag: string,
-): T | null {
-  const found = parent.querySelector(selector);
-
-  if (found === null || found.tagName !== tag) {
-    return null;
-  }
-
-  return found as T;
 }
 
 /** Uploaded filename, or `undefined` when no file is chosen. */
@@ -183,6 +173,7 @@ function render(elements: EditorElements, language: string): void {
   elements.meta.textContent = `${languageLabel(language)} · ${lineCountLabel(sourceCode)}`;
 
   hydrateGutter(elements.gutter, sourceCode);
+  syncValidationEcho(elements.form, sourceCode, language);
 
   elements.backdrop.scrollTop = elements.textarea.scrollTop;
   elements.backdrop.scrollLeft = elements.textarea.scrollLeft;
@@ -221,7 +212,7 @@ export function enhanceAnalyzeEditor(
   root: Document | Element,
   detect: DetectLanguage,
 ): boolean {
-  const form = byTag<HTMLElement>(root, "form#analyzeForm", "FORM");
+  const form = byTag<HTMLFormElement>(root, "form#analyzeForm", "FORM");
 
   if (form === null) {
     return false;
@@ -245,6 +236,7 @@ export function enhanceAnalyzeEditor(
 
   const state: EditorState = { language: badge.dataset["language"] ?? "" };
   const elements: EditorElements = {
+    form,
     textarea,
     backdrop,
     badge,

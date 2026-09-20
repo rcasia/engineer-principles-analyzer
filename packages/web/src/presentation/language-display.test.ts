@@ -3,12 +3,19 @@ import {
   AUTO_DETECT_LABEL,
   extensionFor,
   languageLabel,
+  UNDETECTED_LANGUAGE_MESSAGE,
 } from "./language-display.ts";
 
 describe("language-display", () => {
   it("names auto-detect for an unknown language", () => {
     expect(languageLabel("")).toBe("Auto-detect");
     expect(AUTO_DETECT_LABEL).toBe("Auto-detect");
+  });
+
+  it("explains a detection failure with the message the server renders", () => {
+    expect(UNDETECTED_LANGUAGE_MESSAGE).toBe(
+      "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
+    );
   });
 
   it.each([

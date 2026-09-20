@@ -771,3 +771,85 @@ describe("enhanceAnalyzeEditor", () => {
     }
   });
 });
+
+
+describe("validation echo", () => {
+  it("shows the server's empty message without a round trip or a lookup", () => {
+    const { window, document } = editorDom("");
+
+    try {
+      expect(enhanceAnalyzeEditor(document, neverDetect())).toBe(true);
+
+      const banner = document.querySelector("#analyze-error");
+      expect(banner?.tagName).toBe("DIV");
+      expect(banner?.getAttribute("role")).toBe("alert");
+      expect(banner?.textContent).toBe("sourceCode must not be empty.");
+
+      const textarea = document.querySelector("#sourceCode");
+      expect(textarea?.getAttribute("aria-invalid")).toBe("true");
+      expect(textarea?.getAttribute("aria-describedby")).toBe(
+        "analyze-error",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("echoes the detection failure once the lookup draws a blank", async () => {
+    const { window, document } = editorDom("class Foo {}");
+    const calls: RecordedCall[] = [];
+
+    try {
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("", calls)),
+      ).toBe(true);
+      await awaitTick();
+
+      expect(calls).toHaveLength(1);
+      expect(document.querySelector("#analyze-error")?.textContent).toBe(
+        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("clears the echo once a paste resolves to a language", async () => {
+    const { window, document, textarea } = editorDom("");
+    const calls: RecordedCall[] = [];
+
+    try {
+      expect(
+        enhanceAnalyzeEditor(document, scriptedDetect("python", calls)),
+      ).toBe(true);
+      expect(document.querySelector("#analyze-error")?.textContent).toBe(
+        "sourceCode must not be empty.",
+      );
+
+      textarea.value = "def greet(name):\n    print(name)";
+      textarea.dispatchEvent(pasteEvent(window));
+      await awaitTick();
+      await awaitTick();
+
+      expect(document.querySelector("#analyze-error")).toBe(null);
+      expect(textarea.hasAttribute("aria-invalid")).toBe(false);
+      expect(textarea.hasAttribute("aria-describedby")).toBe(false);
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("stays silent when the server rendered a known language", () => {
+    const { window, document } = editorDom(
+      "def greet(name):\n    print(name)",
+      "python",
+    );
+
+    try {
+      expect(enhanceAnalyzeEditor(document, neverDetect())).toBe(true);
+      expect(document.querySelector("#analyze-error")).toBe(null);
+    } finally {
+      void window.close();
+    }
+  });
+});
