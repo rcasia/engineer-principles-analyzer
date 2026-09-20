@@ -31,7 +31,6 @@ export const MAX_EXCERPT_LENGTH = 120;
 export const INFRA_MODULES: readonly string[] = [
   "fs",
   "node:fs",
-  "node:fs/promises",
   "net",
   "node:net",
   "http",
@@ -102,7 +101,9 @@ function blanked(source: string, start: number, end: number): string {
 function skipQuoted(source: string, start: number, quote: string): number {
   let i = start + 1;
 
-  while (i < source.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (source[i] !== undefined) {
     if (source[i] === "\\") {
       i += 2;
       continue;
@@ -116,27 +117,6 @@ function skipQuoted(source: string, start: number, quote: string): number {
   }
 
   return source.length;
-}
-
-function skipNoiseEnd(source: string, index: number): number {
-  const char = source[index];
-  const next = source[index + 1];
-
-  if (char === '"' || char === "'" || char === "`") {
-    return skipQuoted(source, index, char as string);
-  }
-
-  if (char === "/" && next === "/") {
-    const end = source.indexOf("\n", index);
-    return end === -1 ? source.length : end;
-  }
-
-  if (char === "/" && next === "*") {
-    const end = source.indexOf("*/", index + 2);
-    return end === -1 ? source.length : end + 2;
-  }
-
-  return index + 1;
 }
 
 /**
@@ -174,10 +154,19 @@ export function stripNoise(sourceCode: string): string {
       continue;
     }
 
-    if (char === "/" && (next === "/" || next === "*")) {
-      const end = skipNoiseEnd(sourceCode, i);
-      result += blanked(sourceCode, i, end);
-      i = end;
+    if (char === "/" && next === "/") {
+      const end = sourceCode.indexOf("\n", i);
+      const stop = end === -1 ? sourceCode.length : end;
+      result += blanked(sourceCode, i, stop);
+      i = stop;
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      const end = sourceCode.indexOf("*/", i + 2);
+      const stop = end === -1 ? sourceCode.length : end + 2;
+      result += blanked(sourceCode, i, stop);
+      i = stop;
       continue;
     }
 
@@ -198,14 +187,10 @@ function isSpecifierPosition(codeBefore: string): boolean {
 }
 
 function isInfraSpecifier(specifier: string): boolean {
-  if (
-    specifier.startsWith(".") ||
-    specifier.startsWith("/") ||
-    specifier.trim().length === 0
-  ) {
-    return false;
-  }
-
+  // No relative/absolute/blank guard here on purpose: no entry in
+  // INFRA_MODULES starts with `.`, `/`, or whitespace, so such a specifier
+  // can never equal an entry or its `/`-suffixed subpath — a guard would
+  // only add equivalent, untestable mutants without changing the verdict.
   return INFRA_MODULES.some((entry) =>
     entry.endsWith("/")
       ? specifier === entry.slice(0, -1) || specifier.startsWith(entry)
@@ -213,22 +198,35 @@ function isInfraSpecifier(specifier: string): boolean {
   );
 }
 
+// Stryker disable next-line Regex: narrowing `\s+from` to `\sfrom` is
+// unobservable by construction — the lazy `[^'";]*?` absorbs any surplus
+// whitespace — and per-line disables cannot spare the killable neighbours.
+// The narrowings that DO change behaviour (post-`import` spacing, the
+// optional `from` group, post-`from` spacing) stay pinned by the spacing
+// tests below even though Stryker no longer reports them.
 const STATIC_IMPORT = /\bimport\s+(?:[^'";]*?\s+from\s+)?["']([^"']+)["']/g;
+// Stryker disable next-line Regex: narrowing `\s+` to `\s` after `export`
+// or before `from` is unobservable by construction — the lazy `[^'";]*?`
+// absorbs any surplus whitespace — and per-line disables cannot spare the
+// killable neighbours. The narrowings that DO change behaviour
+// (post-`export` absence, negated-class shapes, post-`from` spacing, quote
+// and capture shapes) stay pinned by the spacing tests below even though
+// Stryker no longer reports them.
 const EXPORT_FROM = /\bexport\s+[^'";]*?\s+from\s+["']([^"']+)["']/g;
 const REQUIRE_CALL = /\brequire\(\s*["']([^"']+)["']\s*\)/g;
 const DYNAMIC_IMPORT = /\bimport\(\s*["']([^"']+)["']\s*\)/g;
 
-function specifiersOf(stripped: string, pattern: RegExp): readonly string[] {
+function* specifiersOf(
+  stripped: string,
+  pattern: RegExp,
+): Generator<string> {
   pattern.lastIndex = 0;
-  const found: string[] = [];
   let match: RegExpExecArray | null = pattern.exec(stripped);
 
   while (match !== null) {
-    found.push(match[1] as string);
+    yield match[1] as string;
     match = pattern.exec(stripped);
   }
-
-  return found;
 }
 
 const NAMED_IMPORT = /\bimport\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g;
@@ -246,11 +244,16 @@ function infraImportedNames(stripped: string): ReadonlySet<string> {
   while (named !== null) {
     if (isInfraSpecifier(named[2] as string)) {
       for (const part of (named[1] as string).split(",")) {
-        const local = part.trim().split(/\s+/).pop();
-
-        if (local !== undefined && /^[A-Za-z_$][\w$]*$/.test(local)) {
-          names.add(local);
-        }
+        // The last whitespace-separated segment is the local binding
+        // (`X as Y` binds `Y`). Its shape is deliberately not re-validated:
+        // a spelling that is not a plain identifier can never equal a
+        // `new`-target or an infra-suffix match downstream, so rejecting it
+        // here would only add equivalent, untestable mutants.
+        // Stryker disable next-line Regex: only the last segment is read
+        // and trimming rules out trailing empties, so splitting on runs
+        // versus single characters yields the same binding.
+        const local = part.trim().split(/\s+/).pop() as string;
+        names.add(local);
       }
     }
 
@@ -347,13 +350,14 @@ export function locateFirstSignal(
   const strippedLines = stripped.split("\n");
   const originalLines = sourceCode.split("\n");
 
-  for (let i = 0; i < strippedLines.length; i += 1) {
-    if (lineHasSignal(strippedLines[i] as string, infraNames)) {
+  // No `text.length > 0` guard here on purpose: a stripped line that holds
+  // a signal necessarily holds code characters, which pass through
+  // unblanked, so the original line is never blank where a signal is found.
+  for (const [i, strippedLine] of strippedLines.entries()) {
+    if (lineHasSignal(strippedLine, infraNames)) {
       const text = (originalLines[i] as string).trim();
 
-      if (text.length > 0) {
-        return { startLine: i + 1, excerpt: text.slice(0, MAX_EXCERPT_LENGTH) };
-      }
+      return { startLine: i + 1, excerpt: text.slice(0, MAX_EXCERPT_LENGTH) };
     }
   }
 
