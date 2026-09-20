@@ -51,6 +51,34 @@ describe("solid corpus v1", () => {
     expect(result.ok).toBe(true);
   });
 
+  test("pins every fixture's source exactly as the rules judged it", () => {
+    // Each rule's verdicts above depend on these exact characters: a
+    // dropped line or a collapsed newline would measure a different
+    // fixture, so the corpus pins its sources literally.
+    expect(SOLID_CORPUS.map((entry) => entry.sourceCode)).toEqual([
+      'class UserManager {\n  save(user) {}\n  load(id) {}\n  send(email) {}\n  notify(user) {}\n  render(user) {}\n  display(user) {}\n}',
+      'class AccountService {\n  validate(account) {}\n  check(account) {}\n  calculate(interest) {}\n  compute(fees) {}\n  authenticate(user) {}\n  authorize(user) {}\n}',
+      'class Calculator {\n  add(a, b) {}\n  subtract(a, b) {}\n  multiply(a, b) {}\n}',
+      'class UserStore {\n  save(user) {}\n  load(id) {}\n  fetch(id) {}\n  query(filter) {}\n}',
+      "function area(shape) {\n  switch (shape.kind) {\n    case 'circle': return 1;\n  }\n  if (typeof shape === 'string') {}\n  if (shape instanceof Circle) {}\n}",
+      'function route(event) {\n  switch (event.kind) {}\n  if (a) {} else if (b) {}\n  if (c) {} else if (d) {}\n}',
+      'const x = 1;\nreturn x + 1;',
+      "if (typeof x === 'string') { return x; }",
+      "class Animal {\n  speak() { return '...'; }\n  fly() { return '...'; }\n}\nclass Rock extends Animal {\n  speak() { throw new Error('silent'); }\n  fly() { throw new Error('heavy'); }\n}",
+      "class Animal {\n  speak() { return '...'; }\n  fly() { return '...'; }\n}\nclass Fish extends Animal {\n  fly() { throw new Error('no wings'); }\n}\nclass Stone extends Animal {\n  speak() { throw new Error('silent'); }\n}",
+      "class Animal {\n  speak() { return '...'; }\n}\nclass Dog extends Animal {\n  speak() { return 'woof'; }\n}",
+      "class Animal {\n  speak() { return '...'; }\n}\nclass Dog extends Animal {\n  bark() { return 'woof'; }\n}",
+      'interface God {\n  op0(): void;\n  op1(): void;\n  op2(): void;\n  op3(): void;\n  op4(): void;\n  op5(): void;\n  op6(): void;\n  op7(): void;\n}',
+      'type Config = {\n  host: string;\n  port: number;\n  retries: number;\n  timeout: number;\n  verbose: boolean;\n  format: string;\n  output: string;\n};',
+      'interface User {\n  name: string;\n  age: number;\n  email: string;\n}',
+      'type Point = {\n  x: number;\n  y: number;\n};',
+      'import { Pool } from "pg";\nexport class UserStore {\n  private pool = new Pool();\n}',
+      'import fs from "node:fs";\nimport axios from "axios";\nexport function load(url: string) {}',
+      'import { format } from "./format";\nconst cache = new Map();',
+      'export function add(a: number, b: number) { return a + b; }',
+    ]);
+  });
+
   test("every rule scores perfect precision and recall on its four fixtures", async () => {
     const { qualities } = await harness().execute({ entries: SOLID_CORPUS });
 
