@@ -113,6 +113,25 @@ export type {
   WebMetricsSummary,
 } from "./metrics/domain/web-metrics.ts";
 
+// Analysis quality and public evaluation (#30, story #45).
+export {
+  InvalidEvaluationCountsError,
+  summarizeRuleQuality,
+} from "./evaluation/domain/rule-quality.ts";
+export type {
+  ConfusionCounts,
+  RuleQuality,
+} from "./evaluation/domain/rule-quality.ts";
+export {
+  InvalidEvaluationSnapshotError,
+  publishSnapshot,
+} from "./evaluation/domain/evaluation-snapshot.ts";
+export type {
+  EvaluationSnapshot,
+  EvaluationSnapshotProps,
+  RuleLanguageQuality,
+} from "./evaluation/domain/evaluation-snapshot.ts";
+
 // Single Responsibility Principle rule (#10, ADR-0022).
 export { SRP_RULE_ID, SrpRule } from "./principles/srp/infrastructure/srp-rule.ts";
 
