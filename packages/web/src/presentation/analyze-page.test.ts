@@ -27,6 +27,8 @@ function resultFor(overrides: {
   remediation?: string;
   limitations?: readonly string[];
   humanReviewRecommended?: boolean;
+  language?: string;
+  analyzer?: { name: string; version: string };
 }): AnalysisResult {
   return unwrap(
     AnalysisResult.of({
@@ -36,8 +38,8 @@ function resultFor(overrides: {
       method: overrides.method ?? "deterministic",
       evidence: overrides.evidence ?? [],
       explanation: overrides.explanation ?? "Looks fine.",
-      language: "typescript",
-      analyzer,
+      language: overrides.language ?? "typescript",
+      analyzer: overrides.analyzer ?? analyzer,
       humanReviewRecommended:
         overrides.humanReviewRecommended ??
         (overrides.status === "uncertain" ? true : false),
@@ -889,8 +891,108 @@ describe("renderAnalyzePage", () => {
       const normalized = html.slice(start, end).replace(/\s+/g, " ").trim();
 
       expect(normalized).toBe(
-        '<ol aria-label="Analysis findings" class="findings-list"><li> <article class="panel finding" aria-labelledby="finding-0-heading"> <div class="status-row"> <span class="badge badge--success">Compliant</span> <span class="badge">deterministic</span> <span class="badge">100% confidence</span> </div> <h3 id="finding-0-heading" class="card-title">solid.srp</h3> <p class="card-copy">Looks fine.</p> </article> </li></ol>',
+        '<ol aria-label="Analysis findings" class="findings-list"><li> <article class="panel finding" aria-labelledby="finding-0-heading"> <div class="status-row"> <span class="badge badge--success">Compliant</span> <span class="badge">deterministic</span> <span class="badge">100% confidence</span> </div> <h3 id="finding-0-heading" class="card-title">solid.srp</h3> <p class="card-copy">Looks fine.</p> <p class="finding-meta">Analyzed as TypeScript · fake-analyzer v0.0.0</p> </article> </li></ol>',
       );
+    });
+
+    it("attributes each finding to its analysed language and analyzer version", () => {
+      const html = renderAnalyzePage({
+        kind: "completed",
+        results: [
+          resultFor({
+            language: "python",
+            analyzer: { name: "principled-solid-srp", version: "1" },
+          }),
+        ],
+      });
+
+      expect(html).toContain(
+        '<p class="finding-meta">Analyzed as Python · principled-solid-srp v1</p>',
+      );
+    });
+
+    it("escapes the provenance fields", () => {
+      const html = renderAnalyzePage({
+        kind: "completed",
+        results: [
+          resultFor({
+            language: "go",
+            analyzer: { name: "<analyzer>", version: "<version>" },
+          }),
+        ],
+      });
+
+      expect(html).toContain(
+        "Analyzed as Go · &lt;analyzer&gt; v&lt;version&gt;",
+      );
+      expect(html).not.toContain("<analyzer>");
+    });
+
+    it("summarises mixed findings with per-status counts", () => {
+      const html = renderAnalyzePage({
+        kind: "completed",
+        results: [
+          resultFor({ status: "compliant" }),
+          resultFor({
+            status: "violation",
+            evidence: [
+              unwrap(
+                Evidence.of({
+                  location: unwrap(SourceLocation.of({ startLine: 1 })),
+                  excerpt: "class Foo {}",
+                }),
+              ),
+            ],
+          }),
+          resultFor({
+            status: "uncertain",
+            confidence: 0.5,
+            method: "heuristic",
+            humanReviewRecommended: true,
+          }),
+        ],
+      });
+
+      expect(html).toContain(
+        '<p class="results-summary">3 findings: 1 compliant · 1 violation · 1 uncertain</p>',
+      );
+    });
+
+    it("uses the singular when exactly one finding exists", () => {
+      const html = renderAnalyzePage({
+        kind: "completed",
+        results: [resultFor({})],
+      });
+
+      expect(html).toContain(
+        '<p class="results-summary">1 finding: 1 compliant</p>',
+      );
+    });
+
+    it("shows no summary for an empty run", () => {
+      const html = renderAnalyzePage({ kind: "completed", results: [] });
+
+      expect(html).not.toContain("results-summary");
+    });
+
+    it("discloses the probabilistic nature of findings above the list", () => {
+      const html = renderAnalyzePage({
+        kind: "completed",
+        results: [resultFor({})],
+      });
+
+      expect(html).toContain(
+        '<p class="results-note">Findings are heuristic or AI-assisted judgments, not compiler errors. Confirm before acting.</p>',
+      );
+      expect(html.indexOf("results-note")).toBeLessThan(
+        html.indexOf('<ol aria-label="Analysis findings"'),
+      );
+    });
+
+    it("shows no probabilistic note when there is nothing to misread", () => {
+      const html = renderAnalyzePage({ kind: "completed", results: [] });
+
+      expect(html).not.toContain("results-note");
     });
   });
 });

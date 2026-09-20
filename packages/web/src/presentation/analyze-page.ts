@@ -112,6 +112,18 @@ function renderRemediation(remediation: string | undefined): string {
     : `<p><strong>Suggested fix:</strong> ${escapeHtml(remediation)}</p>`;
 }
 
+/**
+ * Where a finding came from, in plain display terms (#35): the language
+ * the subject was analysed as, and the exact analyzer name and version
+ * behind the verdict, so a finding is attributable to a versioned
+ * implementation rather than floating as an anonymous judgment. All three
+ * values originate in `AnalysisResult` fields the contract already
+ * carries — the page renders them, it does not invent them.
+ */
+function renderProvenance(result: AnalysisResult): string {
+  return `<p class="finding-meta">Analyzed as ${escapeHtml(languageLabel(result.language))} · ${escapeHtml(result.analyzer.name)} v${escapeHtml(result.analyzer.version)}</p>`;
+}
+
 function renderFinding(result: AnalysisResult, index: number): string {
   const headingId = `finding-${index}-heading`;
   const reviewBadge = result.humanReviewRecommended
@@ -131,6 +143,7 @@ function renderFinding(result: AnalysisResult, index: number): string {
   ${renderEvidence(result.evidence)}
   ${renderRemediation(result.remediation)}
   ${renderLimitations(result.limitations)}
+  ${renderProvenance(result)}
 </article>
 </li>`;
 }
@@ -141,6 +154,49 @@ function renderFindings(results: readonly AnalysisResult[]): string {
   }
 
   return `<ol aria-label="Analysis findings" class="findings-list">${results.map(renderFinding).join("")}</ol>`;
+}
+
+/**
+ * One line saying what the run produced overall (#17): total findings plus
+ * a per-status breakdown in first-seen order, so a mixed run reads as
+ * "3 findings: 1 violation · 1 uncertain · 1 compliant" at a glance.
+ * Rendered only when there is at least one finding — the empty state
+ * already says what an empty run means.
+ */
+function renderSummary(results: readonly AnalysisResult[]): string {
+  if (results.length === 0) {
+    return "";
+  }
+
+  const counts = new Map<AnalysisStatus, number>();
+
+  for (const result of results) {
+    counts.set(result.status, (counts.get(result.status) ?? 0) + 1);
+  }
+
+  const parts = [...counts.entries()].map(
+    ([status, count]) => `${count} ${STATUS_LABEL[status].toLowerCase()}`,
+  );
+  const total = results.length;
+
+  return `<p class="results-summary">${total} finding${total === 1 ? "" : "s"}: ${parts.join(" · ")}</p>`;
+}
+
+/**
+ * The probabilistic-finding disclosure (#35): heuristic and AI-assisted
+ * verdicts must never read as compiler errors. Shown above the findings on
+ * every completed run that produced at least one — with zero findings
+ * there is nothing to misread as a fact.
+ */
+const PROBABILISTIC_NOTE =
+  "Findings are heuristic or AI-assisted judgments, not compiler errors. Confirm before acting.";
+
+function renderProbabilisticNote(results: readonly AnalysisResult[]): string {
+  if (results.length === 0) {
+    return "";
+  }
+
+  return `<p class="results-note">${PROBABILISTIC_NOTE}</p>`;
 }
 
 function renderErrorBanner(message: string): string {
@@ -330,6 +386,8 @@ ${renderPlayground({ sourceCode: view.sourceCode, language: view.language, inval
 <h1>Analysis results</h1>
 <p class="lede">Findings are scoped to the file you submitted. Principled does not make claims about how it relates to the rest of a project.</p>
 </header>
+${renderSummary(view.results)}
+${renderProbabilisticNote(view.results)}
 ${renderFindings(view.results)}
 <p class="button-row"><a class="button" href="/analyze">Analyze another file</a></p>`;
     default: {
