@@ -19,6 +19,8 @@ describe("assessLsp", () => {
     expect(assessment.verdict).toBe("not_applicable");
     expect(assessment.reason).toBe("no_inheritance");
     expect(assessment.riskyOverrides).toEqual([]);
+    expect(assessment.unresolved).toEqual([]);
+    expect(assessment.resolvedSubclassCount).toBe(0);
   });
 
   test("is compliant when overrides never throw", () => {
