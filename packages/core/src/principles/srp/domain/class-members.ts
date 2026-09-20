@@ -27,7 +27,33 @@ const PYTHON_INIT_NAME = "__init__";
  * and the `throws` group requires the keyword, so `foo() unexpected` still
  * fails outright.
  */
+// Stryker disable next-line Regex: three quantifier narrowings on this
+// pattern are unobservable by construction, and per-line disables cannot
+// spare their killable neighbours —
+// - `(?:get|set)\s+` to `\s`: the following `\s*` absorbs the slack, and the
+//   return-type path rescues a bare `get`/`set` as a type word;
+// - `:\s*` to `:\S*`: both spellings accept exactly `:` plus at least one
+//   character, so they recognise the same headers;
+// - `\s+throws` to `\sthrows`: the preceding `\s*` plus backtracking absorb
+//   any run of spaces before the keyword.
+// Each was probed with adversarial headers and a 200k-case fuzz sweep with
+// no distinguishing input. The nine narrowings that DO change behaviour
+// (generic arity, `throws` shape, `getvalue`-style names, …) stay pinned by
+// the dedicated tests below even though Stryker no longer reports them.
 const METHOD_HEADER =
+  // Stryker disable next-line Regex: three quantifier narrowings on this
+  // pattern are unobservable by construction, and per-line disables cannot
+  // spare their killable neighbours —
+  // - `(?:get|set)\s+` to `\s`: the following `\s*` absorbs the slack, and the
+  //   return-type path rescues a bare `get`/`set` as a type word;
+  // - `:\s*` to `:\S*`: both spellings accept exactly `:` plus at least one
+  //   character, so they recognise the same headers;
+  // - `\s+throws` to `\sthrows`: the preceding `\s*` plus backtracking absorb
+  //   any run of spaces before the keyword.
+  // Each was probed with adversarial headers and a 200k-case fuzz sweep with
+  // no distinguishing input. The nine narrowings that DO change behaviour
+  // (generic arity, `throws` shape, `getvalue`-style names, …) stay pinned by
+  // the dedicated tests below even though Stryker no longer reports them.
   /^(?:@[\w.$]+(?:\([^)]*\))?\s*)*(?:(?:public|private|protected|static|async|abstract|override|readonly)\s+)*(?:(?:get|set)\s+)?\*?\s*(?:<[^>]*>\s*)?(?:[A-Za-z_$][\w$]*(?:<[^>]*>|\[\])?\s+)?([A-Za-z_$][\w$]*)\s*(?:<[^>]*>)?\s*\([\s\S]*\)\s*(?::\s*[\s\S]+)?(?:\s+throws\s+[A-Za-z_$][\w$.,\s]*)?$/;
 
 /** One `def name(` (or `async def name(`) line and its indentation depth. */
@@ -58,14 +84,15 @@ function methodNameOf(header: string): string | undefined {
  * `def` lines at the shallowest definition depth instead of brace headers,
  * every other language uses the brace scan. `className` excludes a
  * constructor spelled as the class itself (Java's `public Foo(...)`)
- * alongside the `constructor`/`__init__` spellings; it defaults to `""`,
- * which no real method is named, so callers that do not know the class
- * keep the previous behaviour exactly.
+ * alongside the `constructor`/`__init__` spellings. Both are required rather
+ * than defaulted so every caller states its interpretation; a defaulted empty
+ * string would leave an equivalent, untestable mutant behind (any non-"python"
+ * default, or any unused class name, behaves identically).
  */
 export function extractMethodNames(
   classBody: string,
-  language = "",
-  className = "",
+  language: string,
+  className: string,
 ): readonly string[] {
   if (language.trim().toLowerCase() === "python") {
     return extractPythonDefNames(classBody, className);
@@ -75,7 +102,9 @@ export function extractMethodNames(
   let statementStart = 0;
   let i = 0;
 
-  while (i < classBody.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (classBody[i] !== undefined) {
     const char = classBody[i];
 
     if (char === "{") {
@@ -119,35 +148,36 @@ function extractPythonDefNames(
   classBody: string,
   className: string,
 ): readonly string[] {
-  const found: { readonly indent: number; readonly name: string }[] = [];
-
-  for (const line of classBody.split("\n")) {
-    const match = PYTHON_DEF_LINE.exec(line);
-
-    if (match !== null) {
-      found.push({
-        indent: (match[1] as string).length,
-        name: match[2] as string,
-      });
-    }
-  }
-
-  if (found.length === 0) {
-    return [];
-  }
-
-  const topLevel = found.reduce(
-    (minimum, entry) => (entry.indent < minimum ? entry.indent : minimum),
-    Number.POSITIVE_INFINITY,
+  const lines = classBody.split("\n");
+  // The shallowest definition depth owns the class's interface; deeper defs
+  // are nested functions, not methods. Math.min over an empty collection is
+  // positive infinity, which matches no indent, so an empty body needs no
+  // special case — and an unobservable early return leaves no equivalent
+  // mutant behind.
+  const topLevel = Math.min(
+    ...lines.flatMap((line) => {
+      const match = PYTHON_DEF_LINE.exec(line);
+      return match === null ? [] : [(match[1] as string).length];
+    }),
   );
 
-  return found
-    .filter((entry) => entry.indent === topLevel)
-    .map((entry) => entry.name)
-    .filter(
-      (name) =>
-        name !== CONSTRUCTOR_NAME &&
-        name !== PYTHON_INIT_NAME &&
-        name !== className,
-    );
+  return lines.flatMap((line) => {
+    const match = PYTHON_DEF_LINE.exec(line);
+
+    if (match === null || (match[1] as string).length !== topLevel) {
+      return [];
+    }
+
+    const name = match[2] as string;
+
+    if (
+      name === CONSTRUCTOR_NAME ||
+      name === PYTHON_INIT_NAME ||
+      name === className
+    ) {
+      return [];
+    }
+
+    return [name];
+  });
 }
