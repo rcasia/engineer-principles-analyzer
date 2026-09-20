@@ -1,3 +1,40 @@
+# [1.17.0](https://github.com/rcasia/principled/compare/v1.16.0...v1.17.0) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** build the client before the Lambda bundle ([874c33a](https://github.com/rcasia/principled/commit/874c33a60af902a636f34da7837d6b8cb538b507))
+* **ci:** install detect-secrets in release jobs ([a284293](https://github.com/rcasia/principled/commit/a284293787a5ad1e4090a34a208db278b249fb54))
+* **ci:** let the mutation score step continue on error ([0ca3c8d](https://github.com/rcasia/principled/commit/0ca3c8de3d76c4ee81e1dcbd268a825fd01fbfc4))
+* **ci:** run forced full mutation without the incremental writer ([3386459](https://github.com/rcasia/principled/commit/3386459aba65664aab9038ae36acc54b6d97b3e7))
+* **ci:** run mutation standalone, never blocking delivery ([0d89f51](https://github.com/rcasia/principled/commit/0d89f51cf90eb0ba173f41629885d37196a80d5b))
+
+
+### Features
+
+* **ci:** block new secrets with detect-secrets hook ([f7d46a5](https://github.com/rcasia/principled/commit/f7d46a58eadbfa9489ba41a6df423597ee7e0df3))
+* **ci:** cover analyze in the cli-package gate ([df846a1](https://github.com/rcasia/principled/commit/df846a1ae155097839a6d3eba197ad56d6d986dc))
+* **ci:** run Principled on pull requests with SARIF upload ([aafdac1](https://github.com/rcasia/principled/commit/aafdac16cd637ba0c4a7330b8e1dae31e58cd501)), closes [#25](https://github.com/rcasia/principled/issues/25)
+* **cli:** analyze a file locally with versioned JSON and SARIF output ([a660694](https://github.com/rcasia/principled/commit/a660694e646a511d66fd21dea24653f12d87e2d0)), closes [#19](https://github.com/rcasia/principled/issues/19)
+* **core:** add architecture dependency rules with project evaluation ([59839b5](https://github.com/rcasia/principled/commit/59839b5ca22e8eb76e5d3bcc45cb9b4cb5425be9)), closes [#23](https://github.com/rcasia/principled/issues/23)
+* **core:** add custom rules and rulesets with versioned evaluation ([a51a7ce](https://github.com/rcasia/principled/commit/a51a7ce50fd7d34db360d1feec7c1d3332b79128)), closes [#24](https://github.com/rcasia/principled/issues/24)
+* **core:** add finding lifecycle with event-sourced transitions ([5eb8398](https://github.com/rcasia/principled/commit/5eb8398754247cee5997f9283e1c1aa0a65ffa3a)), closes [#26](https://github.com/rcasia/principled/issues/26)
+* **core:** add project analysis use case with events and projection ([df41089](https://github.com/rcasia/principled/commit/df4108958254334529ad80831fdb77d6d512938a)), closes [#22](https://github.com/rcasia/principled/issues/22)
+* **core:** add project model with dependency graph and metrics ([0088681](https://github.com/rcasia/principled/commit/00886816030d2befa7d57ec47d39ad55ad8c6031)), closes [#22](https://github.com/rcasia/principled/issues/22)
+* **core:** aggregate privacy-safe web product metrics ([8ed2d18](https://github.com/rcasia/principled/commit/8ed2d181160210ef44cdefec6027694275b8efd6)), closes [#28](https://github.com/rcasia/principled/issues/28)
+* **core:** ask Jev Choice questions through the client port ([091210b](https://github.com/rcasia/principled/commit/091210b11468641e8b4d4ef83b0f2c4ac205ce54))
+* **core:** detect Dependency Inversion violations with DipRule ([d1a0f4e](https://github.com/rcasia/principled/commit/d1a0f4eb0c0e553a62faeb8f80ffc7706a773fb6)), closes [#14](https://github.com/rcasia/principled/issues/14) [hi#level](https://github.com/hi/issues/level) [#8](https://github.com/rcasia/principled/issues/8) [#9](https://github.com/rcasia/principled/issues/9) [#28](https://github.com/rcasia/principled/issues/28) [#27](https://github.com/rcasia/principled/issues/27) [#30](https://github.com/rcasia/principled/issues/30) [#14](https://github.com/rcasia/principled/issues/14)
+* **core:** detect Interface Segregation violations with IspRule ([ef72e80](https://github.com/rcasia/principled/commit/ef72e80c07ee33533d7d1880c63bbf87844e14dc)), closes [#13](https://github.com/rcasia/principled/issues/13) [#8](https://github.com/rcasia/principled/issues/8) [#9](https://github.com/rcasia/principled/issues/9) [#28](https://github.com/rcasia/principled/issues/28) [#27](https://github.com/rcasia/principled/issues/27) [#30](https://github.com/rcasia/principled/issues/30) [#13](https://github.com/rcasia/principled/issues/13)
+* **core:** detect Liskov violations with LspRule ([f3f0378](https://github.com/rcasia/principled/commit/f3f037866e7e03c68e003212b5e5719a3062c696)), closes [#12](https://github.com/rcasia/principled/issues/12) [#8](https://github.com/rcasia/principled/issues/8) [#9](https://github.com/rcasia/principled/issues/9) [#28](https://github.com/rcasia/principled/issues/28) [#27](https://github.com/rcasia/principled/issues/27) [#30](https://github.com/rcasia/principled/issues/30) [#12](https://github.com/rcasia/principled/issues/12)
+* **core:** detect Open/Closed violations with OcpRule ([0c94bb4](https://github.com/rcasia/principled/commit/0c94bb46d3e8b82422529d639d4f85d3a1d0829a)), closes [#11](https://github.com/rcasia/principled/issues/11) [#8](https://github.com/rcasia/principled/issues/8) [#9](https://github.com/rcasia/principled/issues/9) [#28](https://github.com/rcasia/principled/issues/28) [#27](https://github.com/rcasia/principled/issues/27) [#30](https://github.com/rcasia/principled/issues/30) [#11](https://github.com/rcasia/principled/issues/11)
+* **core:** detect submission language with Jev Choice ([0c8c784](https://github.com/rcasia/principled/commit/0c8c7843f33cad7afd148957b23d21de0e66521e))
+* **core:** guard telemetry payloads against sensitive keys ([e887d4b](https://github.com/rcasia/principled/commit/e887d4b11b54f4fb52d12043b11fdf458bdd8817))
+* **core:** judge the SOLID rules against a versioned synthetic corpus ([a192b56](https://github.com/rcasia/principled/commit/a192b56cedf49bb2398866b12af9443f522c1ad3)), closes [#27](https://github.com/rcasia/principled/issues/27) [#28](https://github.com/rcasia/principled/issues/28) [#9](https://github.com/rcasia/principled/issues/9) [#30](https://github.com/rcasia/principled/issues/30) [#30](https://github.com/rcasia/principled/issues/30) [#27](https://github.com/rcasia/principled/issues/27)
+* **core:** publish opt-in public code exemplars ([1a022bb](https://github.com/rcasia/principled/commit/1a022bbdecab46ec1876abb63b28f1e395101ac6)), closes [#32](https://github.com/rcasia/principled/issues/32)
+* **core:** publish versioned evaluation snapshots per rule ([209f3cc](https://github.com/rcasia/principled/commit/209f3ccec6eddd980aebb5413fa7adfbe856fabf)), closes [#30](https://github.com/rcasia/principled/issues/30)
+* **core:** remediate uncertain SRP findings with hedged guidance ([14e13cd](https://github.com/rcasia/principled/commit/14e13cd3ab7c1e39a3cceeb5db0d3e1db67c897d)), closes [#21](https://github.com/rcasia/principled/issues/21) [#37](https://github.com/rcasia/principled/issues/37)
+* **core:** support java and python in the SRP heuristic ([b75d8b2](https://github.com/rcasia/principled/commit/b75d8b2276bb720708a3299e6adec9d44a151edd)), closes [#16](https://github.com/rcasia/principled/issues/16)
+
 # [1.16.0](https://github.com/rcasia/principled/compare/v1.15.0...v1.16.0) (2026-09-20)
 
 
