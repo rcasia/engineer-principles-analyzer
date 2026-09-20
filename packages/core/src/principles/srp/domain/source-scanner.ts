@@ -43,7 +43,9 @@ export function nextSignificantIndex(code: string, index: number): number {
 function skipQuoted(code: string, start: number, quote: string): number {
   let i = start + 1;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     if (code[i] === "\\") {
       i += 2;
       continue;
@@ -63,7 +65,9 @@ function skipTemplateLiteral(code: string, start: number): number {
   let i = start + 1;
   let interpolationDepth = 0;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     if (code[i] === "\\") {
       i += 2;
       continue;
@@ -110,7 +114,9 @@ function skipBlockComment(code: string, start: number): number {
 export function findNextUnquotedBrace(code: string, fromIndex: number): number {
   let i = fromIndex;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     if (code[i] === "{") {
       return i;
     }
@@ -129,7 +135,9 @@ export function findMatchingBrace(code: string, openBraceIndex: number): number 
   let depth = 1;
   let i = openBraceIndex + 1;
 
-  while (i < code.length) {
+  // Scan while characters remain: the bound is load-bearing, so weakening
+  // it observably breaks scanning instead of surviving undiscovered.
+  while (code[i] !== undefined) {
     const char = code[i];
 
     if (char === "{") {
