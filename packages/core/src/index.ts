@@ -268,3 +268,54 @@ export {
   ARCHITECTURE_DEPENDENCY_RULE_ID,
   ArchitectureDependencyRule,
 } from "./architecture/infrastructure/architecture-dependency-rule.ts";
+
+// Custom rules and rulesets (#24, #40).
+export {
+  InvalidRuleVersionError,
+  RuleVersion,
+} from "./custom-rules/domain/rule-version.ts";
+export {
+  CUSTOM_RULE_STATUSES,
+  CustomRuleDefinition,
+  InvalidCustomRuleError,
+  isCustomRuleStatus,
+  isPublicationAllowed,
+} from "./custom-rules/domain/custom-rule.ts";
+export type {
+  CustomRuleDefinitionProps,
+  CustomRuleStatus,
+  PublicationAuthorization,
+} from "./custom-rules/domain/custom-rule.ts";
+export {
+  InvalidRulesetError,
+  Ruleset,
+} from "./custom-rules/domain/ruleset.ts";
+export type { RulesetProps, RulesetRuleRef } from "./custom-rules/domain/ruleset.ts";
+export {
+  CUSTOM_RULE_COMPLETED_EVENT,
+  CUSTOM_RULE_FAILED_EVENT,
+} from "./custom-rules/domain/custom-rule-event.ts";
+export type {
+  CustomRuleCompletedPayload,
+  CustomRuleEventPayload,
+  CustomRuleFailedPayload,
+} from "./custom-rules/domain/custom-rule-event.ts";
+export type { VersionedRule } from "./custom-rules/application/versioned-rule.port.ts";
+export type { CustomRuleCatalog } from "./custom-rules/application/custom-rule-catalog.port.ts";
+export { EvaluateWithRuleset } from "./custom-rules/application/evaluate-with-ruleset.use-case.ts";
+export type {
+  RulesetEvaluation,
+  RulesetEvaluationRequest,
+} from "./custom-rules/application/evaluate-with-ruleset.use-case.ts";
+export { TestCustomRule } from "./custom-rules/application/test-rule-fixtures.use-case.ts";
+export type {
+  FixtureEvaluation,
+  FixtureEvaluationRequest,
+  FixtureOutcome,
+  RuleFixture,
+} from "./custom-rules/application/test-rule-fixtures.use-case.ts";
+export {
+  customRuleEntry,
+  InMemoryCustomRuleCatalog,
+} from "./custom-rules/infrastructure/in-memory-custom-rule-catalog.ts";
+export type { CustomRuleEntry } from "./custom-rules/infrastructure/in-memory-custom-rule-catalog.ts";
