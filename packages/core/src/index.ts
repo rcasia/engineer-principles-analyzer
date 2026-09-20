@@ -132,6 +132,21 @@ export type {
   RuleLanguageQuality,
 } from "./evaluation/domain/evaluation-snapshot.ts";
 
+// Public code exemplars and instructive cases (#32, story #46).
+export {
+  EXEMPLAR_CATEGORIES,
+  InvalidExemplarError,
+  requestCorrection,
+  requestPublication,
+  requestRemoval,
+} from "./exemplars/domain/exemplar.ts";
+export type {
+  ExemplarCategory,
+  ExemplarStatus,
+  ExemplarSubmission,
+  PublishedExemplar,
+} from "./exemplars/domain/exemplar.ts";
+
 // Single Responsibility Principle rule (#10, ADR-0022).
 export { SRP_RULE_ID, SrpRule } from "./principles/srp/infrastructure/srp-rule.ts";
 
