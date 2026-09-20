@@ -36,6 +36,15 @@ describe("renderDesignPlayground", () => {
     expect(html).toContain("@media (max-width: 44.99rem)");
   });
 
+  it("sizes the editor gutter to its line numbers instead of a fixed column", () => {
+    const html = renderDesignPlayground();
+
+    expect(html).toContain(
+      ".editor__body { display: grid; grid-template-columns: auto minmax(0, 1fr); }",
+    );
+    expect(html).toContain(".editor__gutter { min-width: 3.25rem;");
+  });
+
   it("shows the web version in the footer", () => {
     const html = renderDesignPlayground();
 

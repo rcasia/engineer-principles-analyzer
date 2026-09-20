@@ -156,15 +156,54 @@ describe("renderAnalyzePage", () => {
       expect(AUTO_DETECT_LABEL).toBe("Auto-detect");
     });
 
-    it("numbers enough gutter lines to fill the empty editor", () => {
+    it("renders an empty gutter for the empty editor, never filler numbers", () => {
       const gutter = gutterSectionOf(renderAnalyzePage(blankForm()));
 
-      expect(gutter).toStartWith(
+      expect(gutter).toBe('<div class="editor__gutter" aria-hidden="true">');
+    });
+
+    it("numbers a single line exactly once", () => {
+      const gutter = gutterSectionOf(
+        renderAnalyzePage({
+          kind: "form",
+          sourceCode: "class UserService {}",
+          language: "typescript",
+          exampleId: null,
+        }),
+      );
+
+      expect(gutter).toBe(
         '<div class="editor__gutter" aria-hidden="true"><span>1</span>',
       );
-      expect(gutter).toContain("</span><span>");
-      expect(gutter).toContain("<span>24</span>");
-      expect(gutter).not.toContain("<span>25</span>");
+    });
+
+    it("joins multi-line numbers with no separator", () => {
+      const gutter = gutterSectionOf(
+        renderAnalyzePage({
+          kind: "form",
+          sourceCode: "a\nb",
+          language: "typescript",
+          exampleId: null,
+        }),
+      );
+
+      expect(gutter).toBe(
+        '<div class="editor__gutter" aria-hidden="true"><span>1</span><span>2</span>',
+      );
+    });
+
+    it("counts a trailing newline as an open line", () => {
+      const gutter = gutterSectionOf(
+        renderAnalyzePage({
+          kind: "form",
+          sourceCode: "a\n",
+          language: "typescript",
+          exampleId: null,
+        }),
+      );
+
+      expect(gutter).toContain("<span>2</span>");
+      expect(gutter).not.toContain("<span>3</span>");
     });
 
     it("does not mark the editor invalid", () => {
@@ -312,8 +351,30 @@ describe("renderAnalyzePage", () => {
         }),
       );
 
+      expect(gutter).toStartWith(
+        '<div class="editor__gutter" aria-hidden="true"><span>1</span>',
+      );
       expect(gutter).toContain("<span>30</span>");
       expect(gutter).not.toContain("<span>31</span>");
+    });
+
+    it("numbers three-digit lines without dropping the first line", () => {
+      const source = Array.from(
+        { length: 150 },
+        (_, index) => `line ${index + 1}`,
+      ).join("\n");
+      const gutter = gutterSectionOf(
+        renderAnalyzePage({
+          kind: "form",
+          sourceCode: source,
+          language: "typescript",
+          exampleId: null,
+        }),
+      );
+
+      expect(gutter).toContain("<span>1</span>");
+      expect(gutter).toContain("<span>150</span>");
+      expect(gutter).not.toContain("<span>151</span>");
     });
 
     it.each([

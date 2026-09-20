@@ -19,19 +19,25 @@ export function lineNumbersOf(sourceCode: string): readonly number[] {
 
 /**
  * Writes line numbers into a gutter element and returns how many were
- * written. Returns `0` without touching anything when there is no gutter
- * element (SSR output, scripting disabled).
+ * written. Emits the same `<span>`-per-line markup the server renders, so
+ * hydrated output is identical to SSR output for the same buffer. Only the
+ * derived numbers are written — never the source text — so hostile input
+ * cannot inject markup. Returns `0` without touching anything when there
+ * is no gutter element (SSR output, scripting disabled).
  */
 export function hydrateGutter(gutter: unknown, sourceCode: string): number {
   if (
     typeof gutter !== "object" ||
     gutter === null ||
-    !("textContent" in gutter)
+    !("innerHTML" in gutter) ||
+    typeof (gutter as { innerHTML: unknown }).innerHTML !== "string"
   ) {
     return 0;
   }
 
   const numbers = lineNumbersOf(sourceCode);
-  (gutter as { textContent: string }).textContent = numbers.join("\n");
+  (gutter as { innerHTML: string }).innerHTML = numbers
+    .map((line) => `<span>${line}</span>`)
+    .join("");
   return numbers.length;
 }

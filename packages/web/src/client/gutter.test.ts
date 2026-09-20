@@ -25,7 +25,7 @@ describe("lineNumbersOf", () => {
 });
 
 describe("hydrateGutter", () => {
-  it("writes line numbers into a gutter element", () => {
+  it("writes one span per line, matching the server markup", () => {
     const window = new Window();
 
     try {
@@ -34,7 +34,25 @@ describe("hydrateGutter", () => {
       window.document.body.appendChild(gutter);
 
       expect(hydrateGutter(gutter, "a\nb\nc")).toBe(3);
-      expect(gutter.textContent).toBe("1\n2\n3");
+      expect(gutter.innerHTML).toBe(
+        "<span>1</span><span>2</span><span>3</span>",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("replaces stale spans when the buffer shrinks", () => {
+    const window = new Window();
+
+    try {
+      const gutter = window.document.createElement("div");
+      gutter.innerHTML =
+        "<span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>";
+      window.document.body.appendChild(gutter);
+
+      expect(hydrateGutter(gutter, "a\nb")).toBe(2);
+      expect(gutter.innerHTML).toBe("<span>1</span><span>2</span>");
     } finally {
       void window.close();
     }
@@ -45,11 +63,25 @@ describe("hydrateGutter", () => {
 
     try {
       const gutter = window.document.createElement("div");
-      gutter.textContent = "1\n2";
+      gutter.innerHTML = "<span>1</span><span>2</span>";
       window.document.body.appendChild(gutter);
 
       expect(hydrateGutter(gutter, "")).toBe(0);
-      expect(gutter.textContent).toBe("");
+      expect(gutter.innerHTML).toBe("");
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("never writes source text into the gutter", () => {
+    const window = new Window();
+
+    try {
+      const gutter = window.document.createElement("div");
+      window.document.body.appendChild(gutter);
+
+      expect(hydrateGutter(gutter, "<script>alert(1)</script>")).toBe(1);
+      expect(gutter.innerHTML).toBe("<span>1</span>");
     } finally {
       void window.close();
     }
@@ -60,8 +92,10 @@ describe("hydrateGutter", () => {
     expect(hydrateGutter(undefined, "a\nb")).toBe(0);
   });
 
-  it("is a no-op for a gutter without writable text", () => {
+  it("is a no-op for a gutter without writable markup", () => {
     expect(hydrateGutter(42, "a\nb")).toBe(0);
     expect(hydrateGutter("gutter", "a\nb")).toBe(0);
+    expect(hydrateGutter({ textContent: "1" }, "a\nb")).toBe(0);
+    expect(hydrateGutter({ innerHTML: 42 }, "a\nb")).toBe(0);
   });
 });

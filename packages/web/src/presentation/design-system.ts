@@ -426,12 +426,12 @@ h1 {
 .editor__actions .button { min-height: 1.75rem; padding: 0 var(--space-3); font-size: 0.75rem; }
 .editor__language { width: 7rem; min-height: 1.75rem; padding: 0 var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-2); color: var(--color-text-secondary); background: var(--color-surface-subtle); font: 0.75rem/1 var(--font-mono); }
 .editor__language:hover { border-color: var(--color-text-muted); }
-.editor__body { display: grid; grid-template-columns: 3.25rem minmax(0, 1fr); }
+.editor__body { display: grid; grid-template-columns: auto minmax(0, 1fr); }
 .editor__body > * { min-width: 0; }
 .editor__actions { flex-wrap: wrap; min-width: 0; }
 .editor__filename { min-width: 0; }
-.editor__gutter { padding: var(--space-3) 0; border-right: 1px solid var(--color-border); background: var(--color-surface-subtle); user-select: none; }
-.editor__gutter span { display: block; padding-right: var(--space-3); color: var(--color-text-muted); font: 0.8125rem/1.6 var(--font-mono); text-align: right; }
+.editor__gutter { min-width: 3.25rem; padding: var(--space-3) 0; border-right: 1px solid var(--color-border); background: var(--color-surface-subtle); font-variant-numeric: tabular-nums; user-select: none; }
+.editor__gutter span { display: block; padding-right: var(--space-3); color: var(--color-text-muted); font: 0.8125rem/1.6 var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
 .editor__input { width: 100%; min-height: 32rem; padding: var(--space-3); border: 0; border-radius: 0; color: var(--color-text); background: transparent; font: 0.8125rem/1.6 var(--font-mono); resize: vertical; }
 .contract__group { margin-bottom: var(--space-4); }
 .contract__group:last-child { margin-bottom: 0; }

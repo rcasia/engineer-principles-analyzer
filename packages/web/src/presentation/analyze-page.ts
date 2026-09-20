@@ -209,20 +209,21 @@ function lineCountLabel(sourceCode: string): string {
 }
 
 /**
- * Static line numbers beside the editor. Sized to the initial content with
- * a floor that fills the empty editor; with no client-side JavaScript
- * (ADR-0004) they cannot track typing, which is why they describe the
- * loaded buffer rather than pretend to be live.
+ * Static line numbers beside the editor. Exactly one `<span>` per line of
+ * the loaded buffer — empty means no spans, so the numbers never show
+ * content that is not there. The grid row stretches the empty gutter to the
+ * textarea height, so no filler numbers are needed to hold the geometry.
+ * With no client-side JavaScript (ADR-0004) they cannot track typing, which
+ * is why they describe the loaded buffer rather than pretend to be live;
+ * live updates are Phase 2 hydration reusing `client/gutter.ts` (ADR-0023).
  */
-const MIN_GUTTER_LINES = 24;
-
-function gutterLineCount(sourceCode: string): number {
-  return Math.max(sourceCode.split("\n").length, MIN_GUTTER_LINES);
-}
-
 function renderGutter(sourceCode: string): string {
+  if (sourceCode === "") {
+    return `<div class="editor__gutter" aria-hidden="true"></div>`;
+  }
+
   const lines: string[] = [];
-  const count = gutterLineCount(sourceCode);
+  const count = sourceCode.split("\n").length;
 
   for (let line = 1; line <= count; line += 1) {
     lines.push(`<span>${line}</span>`);
