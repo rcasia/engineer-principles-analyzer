@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { validateCorpus, type CorpusEntry } from "./corpus-entry.ts";
+import {
+  InvalidCorpusError,
+  validateCorpus,
+  type CorpusEntry,
+} from "./corpus-entry.ts";
 
 function entryOf(overrides: Partial<CorpusEntry> = {}): CorpusEntry {
   return {
@@ -113,6 +117,10 @@ describe("validateCorpus", () => {
         'duplicate corpus entry id "solid.srp.violation.god-class".',
       );
     }
+  });
+
+  test("names its error so callers can discriminate it", () => {
+    expect(new InvalidCorpusError("boom").name).toBe("InvalidCorpusError");
   });
 
   test("reports the index of the offending entry", () => {

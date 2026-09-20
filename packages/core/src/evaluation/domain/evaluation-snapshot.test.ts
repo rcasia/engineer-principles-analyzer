@@ -119,14 +119,20 @@ describe("publishSnapshot", () => {
     expect(unwrapErr(result)).toBeInstanceOf(InvalidEvaluationSnapshotError);
   });
 
-  it.each(["2026-9-20", "20-09-2026", "not-a-date", "2026/09/20", ""])(
-    "rejects %p, which is not a YYYY-MM-DD date",
-    (evaluatedAt) => {
-      expect(
-        unwrapErr(publishSnapshot(props({ evaluatedAt }))).message,
-      ).toBe("evaluatedAt must be a YYYY-MM-DD date.");
-    },
-  );
+  it.each([
+    "2026-9-20",
+    "20-09-2026",
+    "not-a-date",
+    "2026/09/20",
+    "",
+    "2026-09-20T00:00:00.000Z",
+    "run 2026-09-20",
+    "2026-09-20 (final)",
+  ])("rejects %p, which is not a YYYY-MM-DD date", (evaluatedAt) => {
+    expect(
+      unwrapErr(publishSnapshot(props({ evaluatedAt }))).message,
+    ).toBe("evaluatedAt must be a YYYY-MM-DD date.");
+  });
 
   it("rejects an empty entry list", () => {
     expect(unwrapErr(publishSnapshot(props({ entries: [] }))).message).toBe(
@@ -161,6 +167,34 @@ describe("publishSnapshot", () => {
         publishSnapshot(props({ entries: [entry({ recall: Number.NaN })] })),
       ).message,
     ).toBe("entries[0].recall must be between 0 and 1, or null.");
+    expect(
+      unwrapErr(
+        publishSnapshot(props({ entries: [entry({ falsePositiveRate: -0.5 })] })),
+      ).message,
+    ).toBe("entries[0].falsePositiveRate must be between 0 and 1, or null.");
+  });
+
+  it("rejects a non-numeric rate", () => {
+    expect(
+      unwrapErr(
+        publishSnapshot(
+          props({
+            entries: [entry({ precision: "0.8" as unknown as number })],
+          }),
+        ),
+      ).message,
+    ).toBe("entries[0].precision must be between 0 and 1, or null.");
+  });
+
+  it("rejects a calibration gap without a mean confidence behind it", () => {
+    const result = publishSnapshot(
+      props({ entries: [entry({ meanConfidence: null })] }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(unwrapErr(result).message).toBe(
+      "entries[0].calibrationGap requires precision and meanConfidence.",
+    );
   });
 
   it("rejects out-of-range evidence coverage", () => {
@@ -169,6 +203,43 @@ describe("publishSnapshot", () => {
         publishSnapshot(props({ entries: [entry({ evidenceCoverage: -0.1 })] })),
       ).message,
     ).toBe("entries[0].evidenceCoverage must be between 0 and 1.");
+    expect(
+      unwrapErr(
+        publishSnapshot(props({ entries: [entry({ evidenceCoverage: 1.5 })] })),
+      ).message,
+    ).toBe("entries[0].evidenceCoverage must be between 0 and 1.");
+  });
+
+  it("rejects a non-numeric evidence coverage", () => {
+    expect(
+      unwrapErr(
+        publishSnapshot(
+          props({
+            entries: [entry({ evidenceCoverage: "high" as unknown as number })],
+          }),
+        ),
+      ).message,
+    ).toBe("entries[0].evidenceCoverage must be between 0 and 1.");
+  });
+
+  it("accepts the boundary coverage 0", () => {
+    const snapshot = unwrap(
+      publishSnapshot(props({ entries: [entry({ evidenceCoverage: 0 })] })),
+    );
+
+    expect(snapshot.entries[0]?.evidenceCoverage).toBe(0);
+  });
+
+  it("rejects a limitation list that smuggles an empty limitation", () => {
+    expect(
+      unwrapErr(
+        publishSnapshot(
+          props({
+            limitations: ["", "Heuristic rules underperform on generated code."],
+          }),
+        ),
+      ).message,
+    ).toBe("limitations must state at least one known limitation.");
   });
 
   it.each([0, -3, 2.5])("rejects a sample size of %p", (sampleSize) => {

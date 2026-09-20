@@ -114,6 +114,33 @@ describe("requestPublication", () => {
     expect(
       unwrapErr(requestPublication(submission({ limitations: [] }))).message,
     ).toBe("limitations must state at least one known limitation.");
+    expect(
+      unwrapErr(requestPublication(submission({ limitations: ["  "] }))).message,
+    ).toBe("limitations must state at least one known limitation.");
+  });
+
+  it("rejects evidence with a blank entry hiding among real ones", () => {
+    expect(
+      unwrapErr(
+        requestPublication(
+          submission({
+            evidence: ["Each stage owns one transformation step.", "  "],
+          }),
+        ),
+      ).message,
+    ).toBe("evidence must state at least one finding description.");
+  });
+
+  it("rejects limitations with a blank entry hiding among real ones", () => {
+    expect(
+      unwrapErr(
+        requestPublication(
+          submission({
+            limitations: ["  ", "Single-file view; cross-file callers not assessed."],
+          }),
+        ),
+      ).message,
+    ).toBe("limitations must state at least one known limitation.");
   });
 
   it("holds no raw source, only a permalink to public code", () => {

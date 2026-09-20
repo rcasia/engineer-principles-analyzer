@@ -181,6 +181,25 @@ describe("EvaluateCorpus", () => {
     expect(qualities[0]?.evidenceCoverage).toBe(1);
   });
 
+  test("fails loudly when the engine returns no result for a rule", async () => {
+    const empty = new EvaluateCorpus({
+      execute: () => Promise.resolve({ results: [] }),
+    } as unknown as AnalyzeSubject);
+
+    const error = await empty
+      .execute({ entries: [entryOf("stub.missing", "violation")] })
+      .then(
+        () => {
+          throw new Error("expected EvaluateCorpus to throw");
+        },
+        (thrown: unknown) => thrown as Error,
+      );
+
+    expect(error.message).toBe(
+      'EvaluateCorpus: engine returned no result for rule "stub.missing".',
+    );
+  });
+
   test("leaves calibration gap null when precision is unmeasurable", async () => {
     const harness = harnessWith([
       stubRule("stub.rule", "uncertain", 0.4),
