@@ -6,7 +6,7 @@
  * from disk at startup and hand it here. Serving from memory keeps the
  * handler pure `(Request) -> Response` with no filesystem access per
  * request, and an absent bundle simply means no `<script>` tag — the
- * no-JS baseline keeps working (ADR-0027).
+ * no-JS baseline keeps working (ADR-0029).
  */
 export interface ClientAssets {
   /** Public path rendered into the `<script>` tag, e.g. `/assets/….js`. */

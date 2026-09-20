@@ -9,7 +9,7 @@
  * The released web version from packages/web/package.json is stamped over
  * the `0.0.0-dev` placeholder from packages/web/src/version.ts, mirroring
  * Client bundles from scripts/build-client.ts ship beside the handler in
- * the same zip (ADR-0027): only handler files are cleaned here, never the
+ * the same zip (ADR-0029): only handler files are cleaned here, never the
  * client directory, and the zip gains every built `*.js` asset.
  */
 import { $ } from "bun";

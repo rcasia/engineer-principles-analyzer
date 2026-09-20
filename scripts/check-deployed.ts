@@ -66,7 +66,7 @@ if (analyzePost.status !== 200) {
   );
 }
 
-// ADR-0027: the playground form ships the live-highlight bundle when one
+// ADR-0029: the playground form ships the live-highlight bundle when one
 // was built; the findings page has no editor so it carries no script. The
 // deploy is broken if the form references a script that 404s.
 const playground = await fetch(new URL("/analyze", url), {

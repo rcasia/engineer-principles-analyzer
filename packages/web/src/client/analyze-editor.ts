@@ -1,6 +1,6 @@
 /**
  * Live language detection and syntax highlighting for the `/analyze`
- * playground (ADR-0027, detection via POST /detect per ADR-0028).
+ * playground (ADR-0029, detection via POST /detect per ADR-0028).
  *
  * Progressive enhancement only: the form submits and the server detects
  * without any of this running. When the bundle loads, the island

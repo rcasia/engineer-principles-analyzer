@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Bundles the client islands into content-hashed files for immutable CDN
- * caching (ADR-0027).
+ * caching (ADR-0029).
  *
  * `gutter.ts` is the Phase 1 spike; `analyze-editor.ts` is the live
  * language detection and syntax highlighting for `/analyze`, loaded as a

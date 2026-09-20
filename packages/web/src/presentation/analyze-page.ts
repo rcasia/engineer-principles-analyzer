@@ -345,7 +345,7 @@ ${renderFindings(view.results)}
  * three full page renders, not three states of one script). The playground
  * gets the full content width; findings stay at reading width.
  *
- * `scriptSrc` is the hashed live-highlight bundle (ADR-0027). It is
+ * `scriptSrc` is the hashed live-highlight bundle (ADR-0029). It is
  * rendered only when a built bundle is available; without it the page is
  * the plain server-rendered form, so the no-JS baseline keeps working.
  */

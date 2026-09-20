@@ -1,4 +1,4 @@
-# ADR-0027: Live language detection and syntax highlighting on /analyze
+# ADR-0029: Live language detection and syntax highlighting on /analyze
 
 **Status**: Accepted (Partly supersedes [0004](0004-server-rendered-web-without-client-javascript.md))
 **Date**: 2026-09-20

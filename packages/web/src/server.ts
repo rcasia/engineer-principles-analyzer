@@ -92,7 +92,7 @@ export interface RequestHandlerDependencies {
    */
    readonly eventStore: EventStore;
   /**
-   * Hashed live-highlight bundle, when one was built (ADR-0027). Absent in
+   * Hashed live-highlight bundle, when one was built (ADR-0029). Absent in
    * development without a client build — the form then renders with no
    * `<script>` tag and the no-JS baseline holds.
    */
