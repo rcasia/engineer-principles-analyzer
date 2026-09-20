@@ -103,6 +103,16 @@ export {
   TELEMETRY_ENABLED_BY_DEFAULT,
 } from "./compliance/domain/sensitive-data.ts";
 
+// Privacy-safe web product metrics (#31, aggregates only).
+export {
+  INITIAL_WEB_METRICS_SUMMARY,
+  WebMetrics,
+} from "./metrics/domain/web-metrics.ts";
+export type {
+  WebMetricEvent,
+  WebMetricsSummary,
+} from "./metrics/domain/web-metrics.ts";
+
 // Single Responsibility Principle rule (#10, ADR-0022).
 export { SRP_RULE_ID, SrpRule } from "./principles/srp/infrastructure/srp-rule.ts";
 
