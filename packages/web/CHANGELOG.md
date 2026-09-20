@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/rcasia/principled/compare/web-v1.8.0...web-v1.8.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** move cache and artifact actions to Node 24 runtimes ([63b1943](https://github.com/rcasia/principled/commit/63b19439a35588318844c0f4599d975abec95c99))
+
 # [1.8.0](https://github.com/rcasia/principled/compare/web-v1.7.0...web-v1.8.0) (2026-09-20)
 
 
