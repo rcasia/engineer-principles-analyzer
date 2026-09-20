@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/rcasia/principled/compare/v1.17.0...v1.17.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** queue mutation runs instead of cancelling them ([5273c6c](https://github.com/rcasia/principled/commit/5273c6cc4c247bbec30dfe0acbf031a0f299f756))
+
 # [1.17.0](https://github.com/rcasia/principled/compare/v1.16.0...v1.17.0) (2026-09-20)
 
 
