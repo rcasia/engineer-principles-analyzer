@@ -85,6 +85,19 @@ describe("evaluateArchitecture", () => {
     ).toEqual([]);
   });
 
+  it("reports nothing past a cycle that never reaches the forbidden target", () => {
+    expect(
+      evaluateArchitecture(
+        [
+          { from: "ui/a.ts", to: "middle/b.ts" },
+          { from: "middle/b.ts", to: "middle/c.ts" },
+          { from: "middle/c.ts", to: "middle/b.ts" },
+        ],
+        [forbidden()],
+      ),
+    ).toEqual([]);
+  });
+
   it("reports allowlist edges that leave the permitted target", () => {
     expect(
       evaluateArchitecture(

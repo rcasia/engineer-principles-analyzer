@@ -58,6 +58,18 @@ describe("ArchitectureConstraint", () => {
       unwrapErr(
         ArchitectureConstraint.of({
           id: "x",
+          fromPattern: "   ",
+          toPattern: "db",
+          kind: "forbidden",
+        }),
+      ),
+    ).toEqual(
+      new InvalidArchitectureConstraintError("fromPattern must not be empty."),
+    );
+    expect(
+      unwrapErr(
+        ArchitectureConstraint.of({
+          id: "x",
           fromPattern: "ui",
           toPattern: "  ",
           kind: "forbidden",

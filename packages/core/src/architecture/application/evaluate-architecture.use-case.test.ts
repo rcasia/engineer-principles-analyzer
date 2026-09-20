@@ -52,7 +52,35 @@ describe("EvaluateArchitecture", () => {
         (evidence) => evidence.location.filePath,
       ),
     ).toEqual(["ui/a.ts"]);
+    // Strict: `toEqual` ignores `undefined` array items, so only
+    // `toStrictEqual` pins "no coverage note at full coverage" against a
+    // mutant that always wraps the (absent) note.
+    expect(result?.limitations).toStrictEqual([]);
     expect(result?.humanReviewRecommended).toBe(false);
+  });
+
+  it("attributes each violation to its own constraint only", () => {
+    const docs = unwrap(
+      ArchitectureConstraint.of({
+        id: "no-docs-to-db",
+        fromPattern: "docs",
+        toPattern: "db",
+        kind: "forbidden",
+      }),
+    );
+    const evaluation = new EvaluateArchitecture().execute({
+      nodes: ["ui/a.ts", "db/b.ts"],
+      edges: [{ from: "ui/a.ts", to: "db/b.ts" }],
+      constraints: [forbidden(), docs],
+      language: "project",
+    });
+
+    expect(evaluation.results.map((result) => result.status)).toEqual([
+      "violation",
+      "compliant",
+    ]);
+    expect(evaluation.results[1]?.ruleId).toBe("architecture.no-docs-to-db");
+    expect(evaluation.results[1]?.evidence).toEqual([]);
   });
 
   it("concludes compliant only at full graph coverage", () => {
@@ -67,6 +95,11 @@ describe("EvaluateArchitecture", () => {
     expect(evaluation.results[0]?.explanation).toBe(
       'No dependency violates constraint "no-ui-to-db" at graph coverage 1.',
     );
+    expect(evaluation.results[0]?.evidence).toEqual([]);
+    // Strict for the same reason as the violation case above: only
+    // `toStrictEqual` distinguishes `[]` from `[undefined]`.
+    expect(evaluation.results[0]?.limitations).toStrictEqual([]);
+    expect(evaluation.results[0]?.humanReviewRecommended).toBe(false);
   });
 
   it("reports uncertain when coverage is insufficient to conclude compliance", () => {
@@ -79,6 +112,7 @@ describe("EvaluateArchitecture", () => {
 
     expect(evaluation.graphCoverage).toBe(2 / 3);
     expect(evaluation.results[0]?.status).toBe("uncertain");
+    expect(evaluation.results[0]?.evidence).toEqual([]);
     expect(evaluation.results[0]?.humanReviewRecommended).toBe(true);
     expect(evaluation.results[0]?.explanation).toBe(
       'Cannot decide constraint "no-ui-to-db": graph coverage 0.6666666666666666 is below the required 1.',
@@ -113,6 +147,11 @@ describe("EvaluateArchitecture", () => {
     });
 
     expect(evaluation.results[0]?.status).toBe("compliant");
+    expect(evaluation.results[0]?.evidence).toEqual([]);
+    expect(evaluation.results[0]?.limitations).toEqual([
+      "Graph coverage is 0.6666666666666666: conclusions cover only observed edges.",
+    ]);
+    expect(evaluation.results[0]?.humanReviewRecommended).toBe(false);
   });
 
   it.each([0, -0.5, 1.5, Number.NaN])(

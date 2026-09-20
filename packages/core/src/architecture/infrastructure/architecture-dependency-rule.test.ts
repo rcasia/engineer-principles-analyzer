@@ -21,6 +21,7 @@ describe("ArchitectureDependencyRule", () => {
     expect(result.explanation).toBe(
       "Cross-file dependency rules require project scope with a dependency graph; a single file provides no observable dependency edges.",
     );
+    expect(result.evidence).toEqual([]);
     expect(result.limitations).toEqual([
       "Single-file analysis cannot observe cross-file dependencies; run project-level analysis for dependency conclusions.",
     ]);
