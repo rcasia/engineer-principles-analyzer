@@ -4,18 +4,14 @@
  * Progressive enhancement only: the server remains the single validation
  * path — the form always submits and `POST /analyze` re-validates from
  * scratch with its own Jev judgment. When the bundle loads, the island
- * mirrors what the server *would* say about the current buffer and the
- * island's current language on every render, so the visitor learns without
- * a submit round trip that an empty buffer or an undetectable language
- * cannot be submitted.
+ * mirrors what the server *would* say about the current buffer on every
+ * render, so the visitor learns without a submit round trip that an empty
+ * buffer cannot be submitted. An unidentified language never blocks
+ * (ADR-0040): it runs as `"unknown"`, so the echo stays silent for it.
  *
  * Agreement by construction, not by review: validity comes from the same
- * core `Subject.of` the submission path uses (empty source reports itself),
- * the detection-failure wording is the shared `UNDETECTED_LANGUAGE_MESSAGE`
- * the server renders, and the language echoed is the island state the
- * editor already keeps (server-rendered `data-language`, refreshed through
- * `POST /detect` on paste and unknown loads per ADR-0028 — never per
- * keystroke, so the credential stays server-side). The banner uses the
+ * core `Subject.of` the submission path uses, with the same
+ * `"unknown"` fallback for a blank language. The banner uses the
  * exact server markup (`div.field__error` with `role="alert"`, wired to
  * the textarea through `aria-invalid` / `aria-describedby`), so a
  * server-rendered banner is adopted in place and never duplicated.
@@ -27,35 +23,32 @@
  * never reaches markup: the message is set through `textContent`, never
  * `innerHTML`.
  */
-import { Subject } from "@principled/core";
-import { UNDETECTED_LANGUAGE_MESSAGE } from "../presentation/language-display.ts";
+import { Subject, UNKNOWN_LANGUAGE } from "@principled/core";
 import { byTag } from "./dom.ts";
 
 /** Element id the server gives its validation banner; the echo reuses it. */
 export const VALIDATION_ERROR_ID = "analyze-error";
 
 /**
- * The message the server would reject this buffer with under the given
- * language, or `undefined` when it would accept it. Mirrors
- * `handleAnalyzeSubmission`'s branching exactly: a `Subject` decides
- * validity, an empty buffer reports the `Subject` error, and a non-empty
- * buffer with no detected language gets the detection guidance.
+ * The message the server would reject this buffer with, or `undefined`
+ * when it would accept it. Mirrors `handleAnalyzeSubmission`'s branching
+ * exactly: a `Subject` decides validity with the same `"unknown"` fallback
+ * for a blank language, so only an empty buffer reports an error and an
+ * unidentified language stays submittable (ADR-0040).
  */
 export function validationMessageOf(
   sourceCode: string,
   language: string,
 ): string | undefined {
-  const subject = Subject.of({ sourceCode, language });
+  const effective =
+    language.trim().length === 0 ? UNKNOWN_LANGUAGE : language;
+  const subject = Subject.of({ sourceCode, language: effective });
 
   if (subject.ok) {
     return undefined;
   }
 
-  if (sourceCode.trim().length === 0) {
-    return subject.error.message;
-  }
-
-  return UNDETECTED_LANGUAGE_MESSAGE;
+  return subject.error.message;
 }
 
 function errorScopeOf(form: HTMLFormElement): Document | Element {

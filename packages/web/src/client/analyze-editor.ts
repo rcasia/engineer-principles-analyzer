@@ -11,10 +11,10 @@
  * server-side and one paste costs one call.
  *
  * The Phase 2 validation echo (#50) rides on the same state: every render
- * also syncs the server's rejection wording for the current buffer and
- * language, so an empty or undetectable buffer is flagged without a submit
- * round trip. The echo itself adds no network call; the server still
- * re-validates every submission.
+ * also syncs the server's rejection wording for the current buffer, so an
+ * empty buffer is flagged without a submit round trip. An unidentified
+ * language never blocks (ADR-0040) and carries no echo. The echo itself
+ * adds no network call; the server still re-validates every submission.
  *
  * Everything DOM-touching degrades to `false` when its elements are absent
  * (SSR output, scripting disabled, other pages).

@@ -135,7 +135,7 @@ describe("parseAnalyzeArgs", () => {
     expect(parseAnalyzeArgs(["--language"])).toEqual({
       ok: false,
       message:
-        "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java.",
+        "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java, unknown.",
     });
   });
 
@@ -143,7 +143,7 @@ describe("parseAnalyzeArgs", () => {
     expect(parseAnalyzeArgs(["--language", "--format", "json"])).toEqual({
       ok: false,
       message:
-        "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java.",
+        "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java, unknown.",
     });
   });
 

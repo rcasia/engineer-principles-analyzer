@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { LANGUAGE_GUIDANCE } from "./offline-language.ts";
 import { runAnalysis } from "./run-analysis.ts";
 
 const VIOLATING_TS =
@@ -62,16 +61,28 @@ describe("runAnalysis", () => {
     );
   });
 
-  test("asks for a language when nothing names one", async () => {
+  test("proceeds as unknown when nothing names one, instead of blocking", async () => {
     const outcome = await runAnalysis({ sourceCode: VIOLATING_TS });
 
-    expect(outcome.ok).toBe(false);
-    if (outcome.ok) return;
-    expect(outcome.failure.kind).toBe("unknown-language");
-    expect(outcome.failure.message).toBe(LANGUAGE_GUIDANCE);
-    expect(outcome.failure.message).toBe(
-      "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.",
-    );
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.language).toBe("unknown");
+    expect(outcome.run.results).toHaveLength(1);
+    expect(outcome.run.results[0]?.ruleId).toBe("solid.srp");
+    expect(outcome.run.results[0]?.status).toBe("not_applicable");
+    expect(outcome.run.results[0]?.language).toBe("unknown");
+  });
+
+  test("proceeds as unknown for a filename with no known extension", async () => {
+    const outcome = await runAnalysis({
+      sourceCode: VIOLATING_TS,
+      filename: "notes.txt",
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.language).toBe("unknown");
+    expect(outcome.run.results[0]?.status).toBe("not_applicable");
   });
 
   test("reports an empty subject without echoing any source", async () => {
@@ -88,7 +99,10 @@ describe("runAnalysis", () => {
 
   test("never includes submitted source in a failure message", async () => {
     const sensitive = "const greeting = 'zz-top-9999-quux';";
-    const outcome = await runAnalysis({ sourceCode: sensitive });
+    const outcome = await runAnalysis({
+      sourceCode: sensitive,
+      language: "haskell",
+    });
 
     expect(outcome.ok).toBe(false);
     if (outcome.ok) return;

@@ -16,7 +16,7 @@ export {
 } from "./analysis/schema-version.ts";
 export {
   KNOWN_LANGUAGES,
-  LANGUAGE_GUIDANCE,
+  UNKNOWN_LANGUAGE,
   languageForFilename,
   resolveLanguage,
 } from "./analysis/offline-language.ts";

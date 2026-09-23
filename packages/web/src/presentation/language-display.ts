@@ -15,19 +15,11 @@ const LANGUAGE_DETAILS: Readonly<
   go: { label: "Go", extension: "go" },
   rust: { label: "Rust", extension: "rs" },
   java: { label: "Java", extension: "java" },
+  unknown: { label: "Unknown", extension: "txt" },
 };
 
 /** Shown wherever a language would appear but detection has nothing yet. */
 export const AUTO_DETECT_LABEL = "Auto-detect";
-
-/**
- * Shown when detection produced no language for a non-empty buffer. The
- * visitor cannot override it. Lives here — not in `server.ts` — so the
- * server rejection path and the client validation echo read the same
- * literal, by construction rather than by review.
- */
-export const UNDETECTED_LANGUAGE_MESSAGE =
-  "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.";
 
 function canonicalLanguage(language: string): string {
   return language.trim().toLowerCase();

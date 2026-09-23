@@ -9,7 +9,6 @@
  * control, ADR-0009).
  */
 import { $ } from "bun";
-import { UNDETECTED_LANGUAGE_MESSAGE } from "../packages/web/src/presentation/language-display.ts";
 
 async function output(name: string): Promise<string> {
   return (await $`terraform -chdir=infra output -raw ${name}`.text()).trim();
@@ -62,22 +61,9 @@ const analyzePost = await fetch(new URL("/analyze", url), {
   signal: AbortSignal.timeout(60_000),
 });
 if (analyzePost.status !== 200) {
-  // Keyless deploys (LocalStack, the CI gate) cannot judge the snippet, so
-  // the handler answers the undetected-language 400 (ADR-0037). That 400
-  // still proves the POST body travelled through the edge signer to the
-  // function — a signing failure would be a 403 — so accept it only when
-  // the body carries exactly that guidance.
-  const analyzeBody = await analyzePost.text();
-  if (
-    analyzePost.status !== 400 ||
-    !analyzeBody.includes(UNDETECTED_LANGUAGE_MESSAGE)
-  ) {
-    fail(
-      `expected 200 for POST /analyze, got ${analyzePost.status} (is the edge signer failing to sign the body?)`,
-    );
-  } else {
-    console.log("POST /analyze answered the keyless undetected-language 400.");
-  }
+  fail(
+    `expected 200 for POST /analyze, got ${analyzePost.status} (is the edge signer failing to sign the body?)`,
+  );
 }
 
 // ADR-0029: the playground form ships the live-highlight bundle when one

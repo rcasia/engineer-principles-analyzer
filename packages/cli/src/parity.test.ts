@@ -6,9 +6,9 @@ import {
   JevLanguageDetector,
   SrpRule,
   Subject,
+  UNKNOWN_LANGUAGE,
 } from "@principled/core";
 import { unwrap } from "@principled/core";
-import { LANGUAGE_GUIDANCE } from "./analysis/offline-language.ts";
 import { runAnalysis } from "./analysis/run-analysis.ts";
 import { toPlainResult } from "./analysis/serialize-result.ts";
 
@@ -45,9 +45,9 @@ function webDetector(choice: string): JevLanguageDetector {
   );
 }
 
-/** The web adapter's path: judge, validate, run every rule. */
+/** The web adapter's path: judge, fall back to unknown, run every rule. */
 async function analyzeAsWeb(sourceCode: string, choice: string) {
-  const language = (await webDetector(choice).detectLanguage(sourceCode)) ?? "";
+  const language = (await webDetector(choice).detectLanguage(sourceCode)) ?? UNKNOWN_LANGUAGE;
   const subject = Subject.of({ sourceCode, language });
   if (!subject.ok) return subject;
   const analyze = new AnalyzeSubject(new InMemoryRuleCatalog([new SrpRule()]));
@@ -122,20 +122,20 @@ describe("web/CLI parity", () => {
     expect(cli.failure.message).toBe("sourceCode must not be empty.");
   });
 
-  test("an undetectable language fails loudly in both, with adapter wording", async () => {
+  test("an unidentified language proceeds as unknown in both, without blocking", async () => {
     const web = await analyzeAsWeb("hello world", "other");
     const cli = await runAnalysis({ sourceCode: "hello world" });
 
-    expect(web.ok).toBe(false);
-    expect(cli.ok).toBe(false);
-    if (cli.ok) return;
-    expect(cli.failure.kind).toBe("unknown-language");
-    // Same failure, different presentation: the web renders its guidance
-    // page, the CLI prints offline guidance to stderr.
-    expect(cli.failure.message).toBe(LANGUAGE_GUIDANCE);
-    expect(cli.failure.message).toBe(
-      "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.",
+    expect(cli.ok).toBe(true);
+    if (!cli.ok) return;
+    expect(web.ok).toBe(true);
+    if (web === undefined || !("run" in web)) return;
+    expect(cli.language).toBe("unknown");
+    expect(web.language).toBe("unknown");
+    expect(cli.run.results.map(toPlainResult)).toEqual(
+      web.run.results.map(toPlainResult),
     );
+    expect(cli.run.results[0]?.status).toBe("not_applicable");
   });
 
   test("rule selection produces identical findings in both", async () => {

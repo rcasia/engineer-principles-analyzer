@@ -11,16 +11,14 @@ import {
   InvalidJevResponseError,
   JevTransportError,
   Subject,
+  UNKNOWN_LANGUAGE,
 } from "@principled/core";
 import type { ClientAssets } from "./client-assets.ts";
 import { renderAnalyzePage } from "./presentation/analyze-page.ts";
 import { exampleFor } from "./presentation/code-examples.ts";
 import { renderDesignPlayground } from "./presentation/design-playground.tsx";
-import { UNDETECTED_LANGUAGE_MESSAGE } from "./presentation/language-display.ts";
 import { renderLandingPage } from "./presentation/landing-page.ts";
 import { renderPrinciplesPage } from "./presentation/principles-page.ts";
-
-export { UNDETECTED_LANGUAGE_MESSAGE };
 
 export const HTML_CONTENT_TYPE = "text/html; charset=utf-8";
 export const NOT_FOUND_BODY = "Not found";
@@ -53,11 +51,12 @@ export const CLIENT_ASSET_CACHE_CONTROL =
   "public, max-age=31536000, immutable";
 
 /**
- * Bucket for metric events whose language could not be detected (#31): the
- * public summary must never carry an empty-string language key.
+ * Bucket for metric events whose language could not be detected (#31,
+ * ADR-0040): the public summary must never carry an empty-string language
+ * key. Undetected submissions run as `"unknown"`, so both map there.
  */
 export function metricLanguageOf(language: string): string {
-  return language === "" ? "undetected" : language;
+  return language === "" ? UNKNOWN_LANGUAGE : language;
 }
 
 export const CLIENT_ASSET_CONTENT_TYPE = "text/javascript; charset=utf-8";
@@ -210,13 +209,15 @@ async function handleAnalyzeSubmission(
   const { sourceCode, filename } = await sourceCodeOf(form);
   // Fully automatic: any `language` field in the form is ignored and the
   // effective language always comes from Jev over the source and filename.
-  // A Jev failure degrades to "undetected" rather than a 500: the visitor
-  // gets the same guidance as for an ambiguous snippet.
+  // An unidentified language never blocks (ADR-0040): Jev's `other`,
+  // a Jev failure, or a missing key all degrade to `"unknown"` and the run
+  // proceeds — heuristic rules report `not_applicable` for it while
+  // Jev-backed rules judge the source generically.
   const language = (await detectedLanguage(
     deps.languageDetector,
     sourceCode,
     filename,
-  )) ?? "";
+  )) ?? UNKNOWN_LANGUAGE;
 
   recordMetric({ kind: "analysis-requested" });
 
@@ -229,19 +230,13 @@ async function handleAnalyzeSubmission(
       ruleIds: [],
       durationMs: Date.now() - startedAt,
     });
-    // A failed Subject with non-empty source can only mean detection drew
-    // a blank (language ""), so the visitor needs the detection guidance;
-    // an empty source always reports itself, whichever language came out.
-    const message =
-      sourceCode.trim().length === 0
-        ? subject.error.message
-        : UNDETECTED_LANGUAGE_MESSAGE;
-
+    // The language above is always non-blank by construction, so a failed
+    // Subject can only mean the source itself is blank.
     return htmlResponse(
       renderAnalyzePage(
         {
           kind: "invalid",
-          message,
+          message: subject.error.message,
           sourceCode,
           language,
         },

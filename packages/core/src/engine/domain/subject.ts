@@ -4,10 +4,23 @@ export class InvalidSubjectError extends Error {
   override readonly name = "InvalidSubjectError";
 }
 
+/**
+ * Sentinel language for submissions whose language could not be identified
+ * (ADR-0040). It is a valid, non-empty `Subject.language`: analysis proceeds
+ * instead of blocking — heuristic rules report `not_applicable` for it and
+ * Jev-backed rules judge the source generically, since the underlying
+ * concepts hold across languages.
+ */
+export const UNKNOWN_LANGUAGE = "unknown";
+
 export interface SubjectProps {
   /** The code being analyzed. Never persisted by the engine itself (#9, #28). */
   readonly sourceCode: string;
-  /** The language to analyze `sourceCode` as, e.g. `"typescript"`. */
+  /**
+   * The language to analyze `sourceCode` as, e.g. `"typescript"`.
+   * `"unknown"` (see {@link UNKNOWN_LANGUAGE}) means detection drew a blank
+   * and the run proceeds generically instead of blocking (ADR-0040).
+   */
   readonly language: string;
 }
 

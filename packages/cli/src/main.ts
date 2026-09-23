@@ -41,7 +41,7 @@ export const EXIT_OK = 0;
 export const EXIT_FINDINGS = 1;
 /**
  * No analysis happened: bad flags, missing input, an unreadable file, or
- * a subject the engine cannot evaluate (empty source, unknown language).
+ * an empty source.
  */
 export const EXIT_USAGE = 2;
 

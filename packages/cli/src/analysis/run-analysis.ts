@@ -5,9 +5,7 @@ import {
   Subject,
 } from "@principled/core";
 import type { AnalysisRun } from "@principled/core";
-import { LANGUAGE_GUIDANCE, resolveLanguage } from "./offline-language.ts";
-
-export { LANGUAGE_GUIDANCE };
+import { resolveLanguage } from "./offline-language.ts";
 
 export interface AnalysisInput {
   /** The code under analysis. Never echoed back in errors (#43). */
@@ -35,9 +33,11 @@ export function createRuleCatalog(): InMemoryRuleCatalog {
 
 /**
  * Runs the shared engine over one subject, resolving the language offline:
- * an explicit language first, then the filename extension (see
- * `offline-language.ts` for why content is never guessed here). No
- * account, no network, no telemetry — local only (#43).
+ * an explicit language first, then the filename extension, otherwise
+ * `"unknown"` (see `offline-language.ts` for why content is never guessed
+ * here). No account, no network, no telemetry — local only (#43).
+ * An unidentified language never blocks: heuristic rules report
+ * `not_applicable` for it while Jev-backed rules judge generically (ADR-0040).
  *
  * Error messages name the failure, never the submitted source: callers can
  * print them without leaking code into logs.

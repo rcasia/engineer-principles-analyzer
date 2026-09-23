@@ -171,7 +171,7 @@ describe("main", () => {
     expect(io.out[0]).toContain("violation solid.srp");
   });
 
-  it("asks for a language when stdin has no filename to learn from", async () => {
+  it("proceeds as unknown when stdin has no filename to learn from", async () => {
     const io = capture();
 
     const code = await main(["analyze"], io.console, {
@@ -182,11 +182,10 @@ describe("main", () => {
       },
     });
 
-    expect(code).toBe(2);
-    expect(io.out).toEqual([]);
-    expect(io.err).toEqual([
-      "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.",
-    ]);
+    expect(code).toBe(0);
+    expect(io.out).toHaveLength(1);
+    expect(io.out[0]).toContain("not_applicable solid.srp");
+    expect(io.err).toEqual([]);
   });
 
   it("lets --language win over the filename extension", async () => {
@@ -243,7 +242,7 @@ describe("main", () => {
     expect(io.err).toEqual(["Could not read file: missing.ts"]);
   });
 
-  it("reports an unevaluable subject without echoing source", async () => {
+  it("analyzes unknown extensions as unknown without echoing source", async () => {
     const io = capture();
     const sensitive = "const greeting = 'zz-top-9999-quux';\n";
 
@@ -253,13 +252,11 @@ describe("main", () => {
       filesOf({ "notes.txt": sensitive }),
     );
 
-    expect(code).toBe(2);
-    expect(io.out).toEqual([]);
-    expect(io.err).toHaveLength(1);
-    expect(io.err[0]).not.toContain("zz-top-9999-quux");
-    expect(io.err[0]).toBe(
-      "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.",
-    );
+    expect(code).toBe(0);
+    expect(io.out).toHaveLength(1);
+    expect(io.out[0]).toContain("not_applicable solid.srp");
+    expect(io.out[0]).not.toContain("zz-top-9999-quux");
+    expect(io.err).toEqual([]);
   });
 
   it("reports an empty file without echoing anything", async () => {
@@ -519,7 +516,7 @@ describe("main", () => {
     expect(code).toBe(2);
     expect(io.out).toEqual([]);
     expect(io.err).toEqual([
-      "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java.",
+      "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java, unknown.",
     ]);
   });
 

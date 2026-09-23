@@ -1,18 +1,24 @@
 /**
- * Offline language resolution for the CLI (#43, ADR-0028).
+ * Offline language resolution for the CLI (#43, ADR-0028, ADR-0040).
  *
  * The web adapter judges the submission language with Jev, which needs a
  * network connection and an API key. The CLI is offline-first — no account,
  * no network, no telemetry — so it resolves the language without any
  * judgment call: an explicit `--language` wins, otherwise the file name's
- * extension names it, otherwise the caller is asked to say which language
- * it is. There are deliberately no content heuristics here: extension
- * lookup is a statement of intent by the caller, not a guess about code.
+ * extension names it, otherwise analysis proceeds as `"unknown"` instead of
+ * blocking (ADR-0040). There are deliberately no content heuristics here:
+ * extension lookup is a statement of intent by the caller, not a guess
+ * about code.
  *
  * The six languages match the closed option set the web detector judges
  * between, so whenever both adapters settle on the same language the
- * shared engine produces identical findings (#20).
+ * shared engine produces identical findings (#20). `"unknown"` is the
+ * non-blocking fallback both adapters share: heuristic rules report
+ * `not_applicable` for it while Jev-backed rules judge generically.
  */
+import { UNKNOWN_LANGUAGE } from "@principled/core";
+
+export { UNKNOWN_LANGUAGE };
 export const KNOWN_LANGUAGES: readonly string[] = [
   "typescript",
   "javascript",
@@ -67,22 +73,22 @@ export type ResolvedLanguage =
   | { readonly ok: true; readonly language: string }
   | { readonly ok: false; readonly message: string };
 
-/** Shown when neither the flag nor the filename names a language. */
-export const LANGUAGE_GUIDANCE =
-  "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.";
-
 export function resolveLanguage(input: LanguageInput): ResolvedLanguage {
   const explicit = input.language?.trim();
 
   if (explicit !== undefined && explicit.length > 0) {
-    if (!KNOWN_LANGUAGES.includes(explicit.toLowerCase())) {
+    const normalized = explicit.toLowerCase();
+    if (normalized === UNKNOWN_LANGUAGE) {
+      return { ok: true, language: UNKNOWN_LANGUAGE };
+    }
+    if (!KNOWN_LANGUAGES.includes(normalized)) {
       return {
         ok: false,
         message: `Unknown language: ${explicit}. Expected one of typescript, javascript, python, go, rust, java.`,
       };
     }
 
-    return { ok: true, language: explicit.toLowerCase() };
+    return { ok: true, language: normalized };
   }
 
   const fromFilename =
@@ -94,5 +100,5 @@ export function resolveLanguage(input: LanguageInput): ResolvedLanguage {
     return { ok: true, language: fromFilename };
   }
 
-  return { ok: false, message: LANGUAGE_GUIDANCE };
+  return { ok: true, language: UNKNOWN_LANGUAGE };
 }

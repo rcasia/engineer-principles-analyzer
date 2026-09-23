@@ -12,7 +12,7 @@ import {
  * one — LocalStack, a Lambda whose infra has not provided the key yet
  * (ADR-0037) — detection cannot judge, so the detector reports every
  * submission as undetectable instead of throwing: the request handler
- * already maps "undetected" to the 400 guidance, while a throw at startup
+ * runs those as `"unknown"` (ADR-0040), while a throw at startup
  * would 502 every route including the pages that need no detection at all.
  */
 export function detectorFor(

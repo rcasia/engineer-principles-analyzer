@@ -7,8 +7,6 @@ import {
 } from "./validation-echo.ts";
 
 const EMPTY_MESSAGE = "sourceCode must not be empty.";
-const UNDETECTED_MESSAGE =
-  "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.";
 
 describe("validationMessageOf", () => {
   it("reports the empty buffer exactly as the server rejection does", () => {
@@ -23,8 +21,9 @@ describe("validationMessageOf", () => {
     expect(validationMessageOf("   ", "")).toBe(EMPTY_MESSAGE);
   });
 
-  it("reports the detection failure for a buffer with no language", () => {
-    expect(validationMessageOf("class Foo {}", "")).toBe(UNDETECTED_MESSAGE);
+  it("stays silent for a buffer with no language, which now runs as unknown", () => {
+    expect(validationMessageOf("class Foo {}", "")).toBe(undefined);
+    expect(validationMessageOf("class Foo {}", "unknown")).toBe(undefined);
   });
 
   it("stays silent for a buffer the server would accept", () => {
@@ -101,15 +100,14 @@ describe("syncValidationEcho", () => {
     }
   });
 
-  it("echoes the detection failure without a server round trip", () => {
+  it("stays silent for an undetectable buffer without a server round trip", () => {
     const { window, form } = echoDom();
 
     try {
       expect(syncValidationEcho(form, "class Foo {}", "")).toBe(true);
       expect(
-        form.parentElement?.querySelector(`#${VALIDATION_ERROR_ID}`)
-          ?.textContent,
-      ).toBe(UNDETECTED_MESSAGE);
+        form.parentElement?.querySelector(`#${VALIDATION_ERROR_ID}`),
+      ).toBe(null);
     } finally {
       void window.close();
     }
@@ -192,11 +190,10 @@ describe("syncValidationEcho", () => {
 
     try {
       expect(
-        syncValidationEcho(form, '<script>alert(1)</script>', ""),
+        syncValidationEcho(form, '<script>alert(1)</script>', "unknown"),
       ).toBe(true);
 
-      const banner = document.querySelector(`#${VALIDATION_ERROR_ID}`);
-      expect(banner?.textContent).toBe(UNDETECTED_MESSAGE);
+      expect(document.querySelector(`#${VALIDATION_ERROR_ID}`)).toBe(null);
       expect(document.querySelectorAll("script")).toHaveLength(0);
       expect(document.body.innerHTML).not.toContain("<script>alert(1)");
     } finally {

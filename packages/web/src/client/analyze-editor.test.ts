@@ -795,7 +795,7 @@ describe("validation echo", () => {
     }
   });
 
-  it("echoes the detection failure once the lookup draws a blank", async () => {
+  it("stays silent when the lookup draws a blank, which now runs as unknown", async () => {
     const { window, document } = editorDom("class Foo {}");
     const calls: RecordedCall[] = [];
 
@@ -806,9 +806,7 @@ describe("validation echo", () => {
       await awaitTick();
 
       expect(calls).toHaveLength(1);
-      expect(document.querySelector("#analyze-error")?.textContent).toBe(
-        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
-      );
+      expect(document.querySelector("#analyze-error")).toBe(null);
     } finally {
       void window.close();
     }

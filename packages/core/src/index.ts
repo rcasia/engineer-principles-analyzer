@@ -65,7 +65,11 @@ export { err, ok, unwrap, unwrapErr, UnwrapError } from "./shared/result.ts";
 export type { Result } from "./shared/result.ts";
 
 // Rule evaluation engine (#9).
-export { InvalidSubjectError, Subject } from "./engine/domain/subject.ts";
+export {
+  InvalidSubjectError,
+  Subject,
+  UNKNOWN_LANGUAGE,
+} from "./engine/domain/subject.ts";
 export type { SubjectProps } from "./engine/domain/subject.ts";
 export {
   JevLanguageDetector,

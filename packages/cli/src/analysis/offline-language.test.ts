@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   KNOWN_LANGUAGES,
-  LANGUAGE_GUIDANCE,
+  UNKNOWN_LANGUAGE,
   languageForFilename,
   resolveLanguage,
 } from "./offline-language.ts";
@@ -70,12 +70,23 @@ describe("resolveLanguage", () => {
     ).toEqual({ ok: true, language: "python" });
   });
 
-  test("asks for a language when the explicit language is blank and alone", () => {
+  test("falls back to unknown when the explicit language is blank and alone", () => {
     expect(resolveLanguage({ language: "" })).toEqual({
-      ok: false,
-      message:
-        "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.",
+      ok: true,
+      language: "unknown",
     });
+  });
+
+  test("accepts an explicit unknown without blocking", () => {
+    expect(resolveLanguage({ language: "unknown" })).toEqual({
+      ok: true,
+      language: "unknown",
+    });
+    expect(resolveLanguage({ language: "  UNKNOWN  " })).toEqual({
+      ok: true,
+      language: "unknown",
+    });
+    expect(UNKNOWN_LANGUAGE).toBe("unknown");
   });
 
   test("rejects a language outside the judged set", () => {
@@ -93,21 +104,18 @@ describe("resolveLanguage", () => {
     });
   });
 
-  test("asks for a language when nothing names one", () => {
+  test("falls back to unknown when nothing names one", () => {
     expect(resolveLanguage({})).toEqual({
-      ok: false,
-      message:
-        "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.",
+      ok: true,
+      language: "unknown",
     });
-    expect(LANGUAGE_GUIDANCE).toBe(
-      "Could not determine the programming language. Pass --language <id> (typescript, javascript, python, go, rust, java) or use a file with a known extension.",
-    );
   });
 
-  test("asks for a language when the filename has no known extension", () => {
-    const resolved = resolveLanguage({ filename: "notes.txt" });
-
-    expect(resolved.ok).toBe(false);
+  test("falls back to unknown when the filename has no known extension", () => {
+    expect(resolveLanguage({ filename: "notes.txt" })).toEqual({
+      ok: true,
+      language: "unknown",
+    });
   });
 
   test("covers exactly the six judged languages", () => {

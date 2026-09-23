@@ -37,7 +37,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0025](0025-language-detection.md) | Detect the submission language from filename and content | Superseded by [0026](0026-auto-detect-language-only.md) | 2026-09-20 |
 | [0026](0026-auto-detect-language-only.md) | Auto-detect the submission language with no manual override | Superseded by [0028](0028-jev-language-detection.md) | 2026-09-20 |
 | [0027](0027-detect-secrets-commit-hook.md) | Block new secrets with detect-secrets, at commit time and in CI | Accepted | 2026-09-20 |
-| [0028](0028-jev-language-detection.md) | Detect the submission language with Jev Choice | Accepted | 2026-09-20 |
+| [0028](0028-jev-language-detection.md) | Detect the submission language with Jev Choice | Accepted; blocking behaviour superseded by [0040](0040-unknown-language-is-non-blocking.md) | 2026-09-20 |
 | [0029](0029-live-highlighting-analyze-editor.md) | Live language detection and syntax highlighting on /analyze | Accepted | 2026-09-20 |
 | [0030](0030-ocp-heuristic-rule.md) | Detect Open/Closed violations with a dependency-free branch-counting heuristic | Accepted | 2026-09-20 |
 | [0031](0031-srp-java-python-extractors.md) | Support Java and Python in the SRP heuristic with per-language extractors | Accepted | 2026-09-20 |
@@ -49,6 +49,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0037](0037-keyless-detection-degrades.md) | Serve keyless without failing the cold start | Accepted | 2026-09-20 |
 | [0038](0038-mutation-advisory.md) | Mutation testing reports separately, never blocks delivery | Accepted | 2026-09-20 |
 | [0039](0039-landing-page-and-shared-shell.md) | Serve a landing page at / and the catalog from /principles behind one shared shell | Accepted | 2026-09-20 |
+| [0040](0040-unknown-language-is-non-blocking.md) | Run unknown languages as "unknown" instead of blocking | Accepted | 2026-09-23 |
 
 ## Writing a new ADR
 

@@ -435,13 +435,13 @@ describe("createRequestHandler", () => {
       );
     });
 
-    it("rejects an empty submission with a 400 and shows auto-detect", async () => {
+    it("rejects an empty submission with a 400 and shows unknown", async () => {
       const response = await handlerFor()(postAnalyze({ sourceCode: "" }));
 
       expect(response.status).toBe(400);
       const body = await response.text();
       expect(body).toContain("sourceCode must not be empty.");
-      expect(body).toContain("Auto-detect · 0 lines");
+      expect(body).toContain("Unknown · 0 lines");
       expect(body).not.toContain('name="language"');
     });
 
@@ -453,29 +453,39 @@ describe("createRequestHandler", () => {
       );
     });
 
-    it("rejects a submission it cannot detect", async () => {
-      const response = await handlerFor({ jevChoices: ["other"] })(
-        postAnalyze({ sourceCode: "class Foo {}" }),
-      );
+    it("proceeds as unknown when Jev reports no match, instead of blocking", async () => {
+      const eventStore = new InMemoryEventStore();
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        jevChoices: ["other"],
+      })(postAnalyze({ sourceCode: "class Foo {}" }));
 
-      expect(response.status).toBe(400);
-      await expect(response.text()).resolves.toContain(
-        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
-      );
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toContain("Received: class Foo {}");
+      const history = await eventStore.readAll();
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("unknown");
     });
 
-    it("renders the detection guidance when Jev itself fails", async () => {
-      const response = await handlerFor({ jevChoices: [] })(
-        postAnalyze({ sourceCode: "package main" }),
-      );
+    it("proceeds as unknown when Jev itself fails, instead of blocking", async () => {
+      const eventStore = new InMemoryEventStore();
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        jevChoices: [],
+      })(postAnalyze({ sourceCode: "package main" }));
 
-      expect(response.status).toBe(400);
-      await expect(response.text()).resolves.toContain(
-        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
-      );
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toContain("Received: package main");
+      const history = await eventStore.readAll();
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("unknown");
     });
 
-    it("renders the detection guidance for an invalid Jev wire shape", async () => {
+    it("proceeds as unknown for an invalid Jev wire shape, instead of blocking", async () => {
       const languageDetector: LanguageDetector = {
         detectLanguage: () =>
           Promise.reject(
@@ -484,14 +494,15 @@ describe("createRequestHandler", () => {
             ),
           ),
       };
-      const response = await handlerFor({ languageDetector })(
-        postAnalyze({ sourceCode: "package main" }),
-      );
+      const eventStore = new InMemoryEventStore();
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        languageDetector,
+      })(postAnalyze({ sourceCode: "package main" }));
 
-      expect(response.status).toBe(400);
-      await expect(response.text()).resolves.toContain(
-        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
-      );
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toContain("Received: package main");
     });
 
     it("lets an unexpected detector failure escape instead of masking it", async () => {
@@ -611,15 +622,20 @@ describe("createRequestHandler", () => {
       ).toBe("go");
     });
 
-    it("reports an undetectable snippet without a language field", async () => {
-      const response = await handlerFor({ jevChoices: ["other"] })(
-        postAnalyze({ sourceCode: "hello world" }),
-      );
+    it("analyzes an undetectable snippet as unknown without a language field", async () => {
+      const eventStore = new InMemoryEventStore();
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        jevChoices: ["other"],
+      })(postAnalyze({ sourceCode: "hello world" }));
 
-      expect(response.status).toBe(400);
-      await expect(response.text()).resolves.toContain(
-        "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
-      );
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toContain("Received: hello world");
+      const history = await eventStore.readAll();
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("unknown");
     });
 
     it("reports the empty source rather than a detection failure when both apply", async () => {
@@ -925,7 +941,7 @@ describe("createRequestHandler", () => {
       expect(wiring.events[1]?.kind).toBe("analysis-failed");
       expect(wiring.events[1]).toEqual({
         kind: "analysis-failed",
-        language: "undetected",
+        language: "unknown",
         ruleIds: [],
         durationMs: expect.any(Number),
       });
@@ -1011,7 +1027,7 @@ describe("createRequestHandler", () => {
       expect(summary.abandonedRequests).toBe(0);
       expect(summary.languageDistribution).toEqual({
         typescript: 1,
-        undetected: 1,
+        unknown: 1,
       });
       expect(summary.ruleSelectionDistribution).toEqual({ "fake.echo": 1 });
     });
@@ -1024,8 +1040,9 @@ describe("createRequestHandler", () => {
       expect(response.status).toBe(404);
     });
 
-    it("buckets an undetectable language instead of an empty key", () => {
-      expect(metricLanguageOf("")).toBe("undetected");
+    it("buckets an unknown language instead of an empty key", () => {
+      expect(metricLanguageOf("")).toBe("unknown");
+      expect(metricLanguageOf("unknown")).toBe("unknown");
       expect(metricLanguageOf("typescript")).toBe("typescript");
     });
   });

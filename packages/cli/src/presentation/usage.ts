@@ -31,15 +31,17 @@ Usage:
 
 Input (exactly one):
   [file]          Read source from this file. A known extension
-                  (.ts, .js, .py, .go, .rs, .java, ...) names the language.
+                  (.ts, .js, .py, .go, .rs, .java, ...) names the language,
+                  otherwise analysis proceeds as unknown.
   --stdin, -      Read source from stdin instead. Used when no file is given.
 
 Options:
-  --language <id> typescript, javascript, python, go, rust, or java.
-                  Wins over the filename extension; required when the
-                  filename names no known language (for example stdin).
-                  The web product judges content with a model instead, so
-                  findings match it whenever both settle on one language.
+  --language <id> typescript, javascript, python, go, rust, java, or unknown.
+                  Wins over the filename extension; when omitted and the
+                  filename names no known language, analysis proceeds as
+                  unknown instead of blocking. The web product judges content
+                  with a model instead, so findings match it whenever both
+                  settle on one language.
   --rule <id>     Only run this rule (repeat or comma-separate for several).
                   Default: every registered rule runs.
   --format <name> human (default), json, or sarif. json and sarif carry
@@ -49,7 +51,7 @@ Options:
 Exit status:
   0  analysis completed, no violations
   1  analysis completed, at least one violation
-  2  no analysis happened (bad flags, unreadable input, or unevaluable subject)
+  2  no analysis happened (bad flags, unreadable input, or empty source)
 
 Examples:
   ${COMMAND_NAME} analyze src/server.ts

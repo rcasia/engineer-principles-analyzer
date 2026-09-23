@@ -3,19 +3,16 @@ import {
   AUTO_DETECT_LABEL,
   extensionFor,
   languageLabel,
-  UNDETECTED_LANGUAGE_MESSAGE,
 } from "./language-display.ts";
 
 describe("language-display", () => {
-  it("names auto-detect for an unknown language", () => {
+  it("names auto-detect for a blank language", () => {
     expect(languageLabel("")).toBe("Auto-detect");
     expect(AUTO_DETECT_LABEL).toBe("Auto-detect");
   });
 
-  it("explains a detection failure with the message the server renders", () => {
-    expect(UNDETECTED_LANGUAGE_MESSAGE).toBe(
-      "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
-    );
+  it("names unknown for an unidentified language", () => {
+    expect(languageLabel("unknown")).toBe("Unknown");
   });
 
   it.each([
@@ -41,6 +38,7 @@ describe("language-display", () => {
     ["go", "go"],
     ["rust", "rs"],
     ["java", "java"],
+    ["unknown", "txt"],
     ["", "txt"],
     ["haskell", "txt"],
   ])("maps %p to the %p extension", (language, extension) => {

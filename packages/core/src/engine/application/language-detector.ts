@@ -21,7 +21,8 @@ const INSTRUCTIONS =
  * The closed option set behind the language question. Six supported languages plus
  * an explicit no-match outcome: the model can always say none of the others
  * fit instead of forcing a guess, and the detector maps that outcome to
- * `undefined` so the caller asks for more evidence.
+ * `undefined` so the caller falls back to `"unknown"` (ADR-0040) instead of
+ * blocking.
  */
 const CRITERIA: Readonly<Record<string, string>> = {
   typescript:
@@ -41,7 +42,7 @@ const UNKNOWN_OPTION = "other";
 
 /**
  * Asks Jev's Choice primitive which language a submission is written in
- * (ADR-0028), replacing the dependency-free textual heuristics outright:
+ * (ADR-0028, ADR-0040), replacing the dependency-free textual heuristics outright:
  * filename and source travel together as the judgment state and code only
  * maps the answer.
  *
@@ -49,9 +50,9 @@ const UNKNOWN_OPTION = "other";
  * injected `JevClient`, so it lives beside the `AnalyzeSubject` use case
  * rather than in `engine/domain/`. A blank source resolves to `undefined`
  * without a request — there is nothing to judge — and an `other` verdict
- * does the same, so callers keep the "ask for more evidence" path. Jev
- * failures propagate untouched: the caller decides the HTTP mapping (the
- * web adapter renders them as the undetected-language 400).
+ * does the same, so callers run as `"unknown"` instead of blocking. Jev
+ * failures propagate untouched: the caller decides the fallback (the
+ * web adapter runs them as `"unknown"`).
  */
 export class JevLanguageDetector implements LanguageDetector {
   private readonly client: JevClient;

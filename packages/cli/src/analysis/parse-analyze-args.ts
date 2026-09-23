@@ -52,7 +52,7 @@ export function parseAnalyzeArgs(
       const value =
         arg === "--language" ? args[index + 1] : arg.slice("--language=".length);
       if (value === undefined || value.startsWith("--")) {
-        return { ok: false, message: "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java." };
+        return { ok: false, message: "Missing value for --language. Expected one of typescript, javascript, python, go, rust, java, unknown." };
       }
       options.language = value;
       index += arg === "--language" ? 2 : 1;
