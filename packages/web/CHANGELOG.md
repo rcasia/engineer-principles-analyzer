@@ -1,3 +1,18 @@
+# [1.14.0](https://github.com/rcasia/principled/compare/web-v1.13.0...web-v1.14.0) (2026-09-23)
+
+
+### Bug Fixes
+
+* **web:** follow the non-blocking unknown language on the live page ([26108d7](https://github.com/rcasia/principled/commit/26108d7b4e53568ce5bd72113853a98eb4641b34))
+
+
+### Features
+
+* **infra:** serve the site from an optional custom domain ([1140c99](https://github.com/rcasia/principled/commit/1140c99968b36f2d009f52339f938be3b1a5f243))
+* **web:** analyse live as you type with no submit button ([5640545](https://github.com/rcasia/principled/commit/5640545e825b4bae692970fdbe0cea748c598489))
+* **web:** answer live analysis as JSON on POST /analyze ([331b66b](https://github.com/rcasia/principled/commit/331b66b721a2aee8a7ce5eecf6f3a3a2ac7f3cc3))
+* **web:** render a buttonless realtime playground shell ([6b9d8e5](https://github.com/rcasia/principled/commit/6b9d8e535942727f8970d02ea41c6887d223e266))
+
 # [1.13.0](https://github.com/rcasia/principled/compare/web-v1.12.0...web-v1.13.0) (2026-09-23)
 
 
