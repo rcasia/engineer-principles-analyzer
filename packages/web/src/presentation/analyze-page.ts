@@ -365,7 +365,10 @@ function renderPlayground(options: {
         </div>
       </div>
     </section>
-    ${renderContract()}
+    <div class="analyze-rail">
+      ${renderContract()}
+      ${renderLiveResults()}
+    </div>
   </div>
   <div class="analyze-toolbar">
     <p class="analyze-toolbar__meta" id="editorMeta">${escapeHtml(languageLabel(options.language))} · ${lineCountLabel(options.sourceCode)}</p>
@@ -373,7 +376,6 @@ function renderPlayground(options: {
     <noscript><button class="button button--primary" type="submit">Analyze →</button></noscript>
   </div>
 </form>
-${renderLiveResults()}
 ${renderExamples(options.exampleId)}
 <p class="playground__note">Single-file analysis · Nothing you submit is stored.</p>`;
 }
@@ -382,7 +384,7 @@ function renderPlaygroundHeader(): string {
   return `<header class="page-header">
 <p class="eyebrow">Code → principles → findings</p>
 <h1>Analyze</h1>
-<p class="lede">Paste or upload one source file — findings appear below as you type, with no submit step. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>
+<p class="lede">Paste or upload one source file — findings appear beside the editor as you type, with no submit step. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>
 </header>`;
 }
 

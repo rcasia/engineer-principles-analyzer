@@ -427,6 +427,10 @@ h1 {
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; border: 0; clip: rect(0 0 0 0); white-space: nowrap; }
 .analyze-grid { display: grid; margin-bottom: var(--space-4); grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--space-4); align-items: start; }
+.analyze-rail { display: grid; min-width: 0; gap: var(--space-4); align-content: start; }
+@media (min-width: 64rem) {
+  .analyze-grid .editor { position: sticky; top: 4.5rem; }
+}
 .editor { padding: 0; overflow: hidden; }
 .editor__toolbar { display: flex; min-height: 2.75rem; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); align-items: center; justify-content: space-between; gap: var(--space-3); }
 .editor__filename { overflow: hidden; color: var(--color-text-secondary); font: 0.75rem/1.4 var(--font-mono); text-overflow: ellipsis; white-space: nowrap; }

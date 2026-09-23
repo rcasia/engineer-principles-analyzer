@@ -141,7 +141,7 @@ describe("renderAnalyzePage", () => {
 
       expect(html).toContain("<h1>Analyze</h1>");
       expect(html).toContain(
-        '<p class="lede">Paste or upload one source file — findings appear below as you type, with no submit step. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>',
+        '<p class="lede">Paste or upload one source file — findings appear beside the editor as you type, with no submit step. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>',
       );
       expect(html).not.toContain("Paste or submit exactly one file");
     });
@@ -270,9 +270,10 @@ describe("renderAnalyzePage", () => {
       expect(withoutNoscript).not.toContain("<button");
     });
 
-    it("renders the live findings region with its empty state", () => {
+    it("renders the live findings region beside the editor, inside the form", () => {
       const html = renderAnalyzePage(blankForm());
 
+      expect(html).toContain('<div class="analyze-rail">');
       expect(html).toContain(
         '<section class="results-live" aria-labelledby="results-heading">',
       );
@@ -282,13 +283,16 @@ describe("renderAnalyzePage", () => {
       expect(html).toContain(
         "<p>Findings appear here as you type — paste code, upload a file, or try an example.</p>",
       );
-      // The live region sits between the form and the examples.
-      expect(html.indexOf('id="liveResults"')).toBeGreaterThan(
-        html.indexOf("</form>"),
-      );
-      expect(html.indexOf('id="liveResults"')).toBeLessThan(
-        html.indexOf('id="examples-heading"'),
-      );
+      // The rail reads editor, contract, findings — so the verdict sits
+      // beside the code with no scrolling, in tab order too.
+      const editorAt = html.indexOf('aria-label="Source code editor"');
+      const contractAt = html.indexOf('id="contract-heading"');
+      const findingsAt = html.indexOf('id="liveResults"');
+      const formEnd = html.indexOf("</form>");
+      expect(editorAt).toBeGreaterThan(-1);
+      expect(contractAt).toBeGreaterThan(editorAt);
+      expect(findingsAt).toBeGreaterThan(contractAt);
+      expect(formEnd).toBeGreaterThan(findingsAt);
     });
 
     it("offers one link per example and marks none current", () => {
