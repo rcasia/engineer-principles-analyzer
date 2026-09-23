@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/rcasia/principled/compare/web-v1.12.0...web-v1.13.0) (2026-09-23)
+
+
+### Features
+
+* **core:** run unknown languages as unknown instead of blocking ([b88cc96](https://github.com/rcasia/principled/commit/b88cc96ed27451d1205247e97f62882cf6326961))
+
 # [1.12.0](https://github.com/rcasia/principled/compare/web-v1.11.0...web-v1.12.0) (2026-09-20)
 
 
