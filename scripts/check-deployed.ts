@@ -22,11 +22,17 @@ function fail(message: string): never {
 const url = await output("web_url");
 const originUrl = await output("origin_url");
 const cdnEnabled = (await output("cdn_enabled")) === "true";
+// ADR-0041: empty unless the custom domain is switched on.
+const customDomain = await output("custom_domain");
 
-console.log(`Checking ${url} (cdn: ${cdnEnabled})`);
+// The custom domain is canonical when set: every page check runs against it,
+// and the default distribution domain is checked separately for its 301.
+const base = customDomain === "" ? url : `https://${customDomain}/`;
+
+console.log(`Checking ${base} (cdn: ${cdnEnabled}, custom: ${customDomain || "off"})`);
 
 // The first invocation starts the runtime container, so allow time for it.
-const page = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+const page = await fetch(base, { signal: AbortSignal.timeout(120_000) });
 const body = await page.text();
 
 if (page.status !== 200) fail(`expected 200 at /, got ${page.status}`);
@@ -40,7 +46,7 @@ if (!page.headers.get("cache-control")?.includes("max-age=60")) {
   fail(`page is not cacheable: ${page.headers.get("cache-control")}`);
 }
 
-const missing = await fetch(new URL("/does-not-exist", url), {
+const missing = await fetch(new URL("/does-not-exist", base), {
   signal: AbortSignal.timeout(60_000),
 });
 if (missing.status !== 404) {
@@ -55,7 +61,7 @@ if (missing.status !== 404) {
 // so it must be recognizable as TypeScript) and no `language` field is sent.
 const analyzeForm = new FormData();
 analyzeForm.set("sourceCode", "interface Foo { readonly name: string }");
-const analyzePost = await fetch(new URL("/analyze", url), {
+const analyzePost = await fetch(new URL("/analyze", base), {
   method: "POST",
   body: analyzeForm,
   signal: AbortSignal.timeout(60_000),
@@ -69,7 +75,7 @@ if (analyzePost.status !== 200) {
 // ADR-0029: the playground form ships the live-highlight bundle when one
 // was built; the findings page has no editor so it carries no script. The
 // deploy is broken if the form references a script that 404s.
-const playground = await fetch(new URL("/analyze", url), {
+const playground = await fetch(new URL("/analyze", base), {
   signal: AbortSignal.timeout(60_000),
 });
 const playgroundBody = await playground.text();
@@ -81,7 +87,7 @@ if (scriptMatch === null || scriptMatch[1] === undefined) {
   fail("GET /analyze rendered no live-highlight script tag");
 }
 
-const asset = await fetch(new URL(scriptMatch[1], url), {
+const asset = await fetch(new URL(scriptMatch[1], base), {
   signal: AbortSignal.timeout(60_000),
 });
 
@@ -108,7 +114,7 @@ if (cdnEnabled) {
   }
 
   // Second request for the same path should be served by the edge.
-  const cached = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+  const cached = await fetch(base, { signal: AbortSignal.timeout(60_000) });
   const hitState = cached.headers.get("x-cache") ?? "unknown";
 
   if (!hitState.includes("Hit")) {
@@ -120,6 +126,27 @@ if (cdnEnabled) {
   }
 
   console.log("Origin correctly refuses direct access (403).");
+
+  if (customDomain !== "") {
+    // ADR-0041: once the alias exists, the default distribution domain must
+    // not serve content - the canonical-host function 301s it to the custom
+    // domain, preserving the path. redirect: manual, or fetch would follow
+    // the 301 and the assertion would prove nothing.
+    const legacy = await fetch(url, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(60_000),
+    });
+    const location = legacy.headers.get("location") ?? "";
+
+    if (legacy.status !== 301) {
+      fail(`default domain ${url} answered ${legacy.status}; it must 301 to the custom domain`);
+    }
+    if (location !== `https://${customDomain}/`) {
+      fail(`default domain redirected to ${location}; expected https://${customDomain}/`);
+    }
+
+    console.log(`Default domain correctly redirects to https://${customDomain}/ (301).`);
+  }
 }
 
 console.log("Deployed stack serves the page and 404s correctly.");

@@ -210,6 +210,10 @@ resource "aws_cloudfront_distribution" "web" {
   is_ipv6_enabled = true
   comment         = "${local.name_prefix} web"
 
+  # Empty until ADR-0041's custom domain is set: without an alias the
+  # distribution answers only on its default cloudfront.net domain.
+  aliases = local.custom_domain_enabled ? [var.custom_domain] : []
+
   # Global reach. Everything here is inside the free tier at current traffic,
   # and users in excluded regions would still be served, just from a farther
   # edge - so excluding them buys nothing today.
@@ -262,6 +266,17 @@ resource "aws_cloudfront_distribution" "web" {
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host[0].id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers[0].id
 
+    # 301s the default cloudfront.net domain to the custom one (ADR-0041).
+    # Absent until the custom domain is set.
+    dynamic "function_association" {
+      for_each = local.custom_domain_enabled ? [1] : []
+
+      content {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.canonical_host[0].arn
+      }
+    }
+
     # Signs every origin request - GET and POST alike - with SigV4 using the
     # signer's own credentials, which the Function URL authorizes (ADR-0019).
     # include_body is what makes POST work: without it the trigger never sees
@@ -280,7 +295,14 @@ resource "aws_cloudfront_distribution" "web" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    # Default certificate until ADR-0041's custom domain is set: aliases
+    # require an ACM certificate, which CloudFront only accepts from
+    # us-east-1. Referencing the validation (not the certificate) keeps the
+    # distribution waiting until DNS validation has completed.
+    cloudfront_default_certificate = !local.custom_domain_enabled
+    acm_certificate_arn            = local.custom_domain_enabled ? aws_acm_certificate_validation.custom[0].certificate_arn : null
+    ssl_support_method             = local.custom_domain_enabled ? "sni-only" : null
+    minimum_protocol_version       = local.custom_domain_enabled ? "TLSv1.2_2021" : null
   }
 }
 

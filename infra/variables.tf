@@ -42,6 +42,25 @@ variable "log_retention_days" {
   default     = 7
 }
 
+variable "custom_domain" {
+  description = <<-EOT
+    Optional apex domain (e.g. "principled.sh") served by the CloudFront
+    distribution in addition to its default domain (ADR-0041). Leave null and
+    the stack behaves exactly as before. The domain's Route53 hosted zone must
+    already exist in the same account - registering through Route53 creates it
+    automatically. Only used on real AWS: LocalStack has no CloudFront, so the
+    variable is ignored there. Enabled in production by setting the
+    CUSTOM_DOMAIN repository variable (see .github/workflows/main.yml).
+  EOT
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.custom_domain == null || can(regex("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$", var.custom_domain))
+    error_message = "custom_domain must be null or a bare domain like \"principled.sh\" (no scheme, no path)."
+  }
+}
+
 variable "typesafe_api_key" {
   description = <<-EOT
     TypeSafe API key for Jev language detection (ADR-0028), injected as the

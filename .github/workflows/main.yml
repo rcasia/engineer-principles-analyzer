@@ -193,6 +193,12 @@ jobs:
             -backend-config=backend.prod.hcl \
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -backend-config="region=${{ vars.AWS_REGION || 'eu-west-1' }}"
-      - run: terraform -chdir=infra apply -auto-approve -input=false -var environment=prod
+      - run: |
+          # ADR-0041: the custom domain stays off (var default null) unless the
+          # CUSTOM_DOMAIN repository variable names it. The zone must already
+          # exist - registering through Route53 creates it; see infra/README.
+          extra=""
+          if [ -n "${{ vars.CUSTOM_DOMAIN }}" ]; then extra="-var custom_domain=${{ vars.CUSTOM_DOMAIN }}"; fi
+          terraform -chdir=infra apply -auto-approve -input=false -var environment=prod $extra
       - name: Check production serves the page
         run: bun scripts/check-deployed.ts

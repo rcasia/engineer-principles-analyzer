@@ -58,6 +58,30 @@ terraform -chdir=infra init \
 terraform -chdir=infra apply -var environment=prod
 ```
 
+## Custom domain
+
+The stack serves the distribution's default `cloudfront.net` domain until a
+custom one is switched on ([ADR-0041](../docs/adr/0041-custom-domain.md)).
+To switch it on:
+
+1. Register the domain through Route53, which creates its hosted zone in the
+   same account automatically. Terraform looks the zone up and fails fast on
+   a typo — it never creates the zone itself.
+2. Set `CUSTOM_DOMAIN` as a repository variable to the bare domain
+   (e.g. `principled.sh`). The deploy job passes it as
+   `-var custom_domain=...`; every other path keeps the `null` default and
+   behaves exactly as before.
+3. The next deploy issues an ACM certificate in `us-east-1` (the only region
+   CloudFront accepts certificates from), validates it over DNS, attaches it
+   as the distribution alias, points `A`/`AAAA` alias records at the
+   distribution, and 301s the default domain to the custom one via a
+   CloudFront Function.
+
+New cost is the hosted zone alone ($0.50/month): the certificate is free,
+alias queries to CloudFront are free, and the redirect function sits inside
+its free tier. Distribution updates take several minutes to propagate, so the
+switch-on deploy is slow — that is normal.
+
 ## State
 
 Production state lives in S3 with native locking ([ADR-0007](../docs/adr/0007-remote-terraform-state.md)).
@@ -77,6 +101,8 @@ directory — a bare `terraform apply` here targets **production**.
 | `providers.tf`        | Provider config, LocalStack switch, naming and tags |
 | `variables.tf`        | Inputs, with validation                             |
 | `main.tf`             | IAM role, log group, Lambda, Function URL           |
+| `custom-domain.tf`    | Optional apex domain: ACM cert, aliases, DNS, redirect |
+| `cloudfront/`         | CloudFront Function sources (canonical-host redirect) |
 | `outputs.tf`          | Public URL, function name, log group                |
 | `backend.prod.hcl`    | Invariant half of the production backend config     |
 | `localstack/compose.yml` | LocalStack service definition                    |
