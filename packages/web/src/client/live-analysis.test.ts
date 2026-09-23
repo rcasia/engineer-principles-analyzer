@@ -510,6 +510,42 @@ describe("enhanceLiveAnalysis", () => {
     }
   });
 
+  it("analyses an unidentified buffer as unknown without parking", async () => {
+    const { window, document } = liveDom("hello world");
+    const calls: RecordedCall[] = [];
+    const analyze: AnalyzeBuffer = async (sourceCode, filename) => {
+      calls.push({ sourceCode, filename });
+      return {
+        ok: true,
+        language: "unknown",
+        results: [{ ...findingFor("solid.srp"), language: "unknown" }],
+      };
+    };
+
+    try {
+      expect(enhanceLiveAnalysis(document, analyze, 5)).toBe(true);
+      await tick(30);
+
+      expect(calls).toHaveLength(1);
+      expect(resultsOf(document)).toContain("solid.srp");
+      expect(statusOf(document)).toBe("Findings up to date.");
+      expect(document.querySelector("#editorLanguage")?.textContent).toBe(
+        "Unknown",
+      );
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Unknown · 1 line",
+      );
+      expect(document.querySelector("#editorFilename")?.textContent).toBe(
+        "snippet.txt",
+      );
+      expect(document.querySelector("#analyze-error")?.tagName ?? null).toBe(
+        null,
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
   it("collapses rapid input into one request for the latest buffer", async () => {
     const { window, document, textarea } = liveDom("");
     const calls: RecordedCall[] = [];
@@ -662,7 +698,7 @@ describe("enhanceLiveAnalysis", () => {
     }
   });
 
-  it("shows the rejection guidance and parks the loop on an undetectable buffer", async () => {
+  it("shows a server rejection and parks the loop", async () => {
     const { window, document } = liveDom("hello world");
     const calls: RecordedCall[] = [];
 
@@ -671,9 +707,8 @@ describe("enhanceLiveAnalysis", () => {
         calls.push({ sourceCode, filename });
         return {
           ok: false,
-          error:
-            "Could not detect the programming language. Please include more distinctive code or upload a file with a known extension.",
-          language: "",
+          error: "sourceCode must not be empty.",
+          language: "unknown",
         };
       };
 
@@ -682,11 +717,14 @@ describe("enhanceLiveAnalysis", () => {
 
       expect(calls).toHaveLength(1);
       expect(resultsOf(document)).toContain(
-        '<div class="notice"><p>Could not detect the programming language.',
+        '<div class="notice"><p>sourceCode must not be empty.</p></div>',
       );
       expect(statusOf(document)).toBe("Analysis paused — see below.");
       expect(document.querySelector("#editorLanguage")?.textContent).toBe(
-        "Auto-detect",
+        "Unknown",
+      );
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Unknown · 1 line",
       );
     } finally {
       void window.close();

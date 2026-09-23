@@ -24,7 +24,7 @@ export { NO_FINDINGS_MESSAGE };
 
 /**
  * What the `/analyze` page can show, chosen by the request handler
- * (ADR-0015, ADR-0040): the realtime playground on `GET` — blank, or
+ * (ADR-0015, ADR-0042): the realtime playground on `GET` — blank, or
  * prefilled when the visitor followed a `?example=` link — a validation
  * error that preserves what the visitor typed, or the structured findings
  * from a completed run. The playground carries no submit button: the live
@@ -303,7 +303,7 @@ function renderContract(): string {
 }
 
 /**
- * The live findings region (ADR-0040): an `aria-live` container the island
+ * The live findings region (ADR-0042): an `aria-live` container the island
  * fills as the visitor types, so findings arrive with no submit step and
  * no navigation. Server-rendered with the empty state — with scripting
  * disabled the island never runs and the `<noscript>` submit button in the

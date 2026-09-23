@@ -1,5 +1,5 @@
 /**
- * Realtime analysis for the `/analyze` playground (ADR-0040).
+ * Realtime analysis for the `/analyze` playground (ADR-0042).
  *
  * Progressive enhancement only: without this island the form posts through
  * the `<noscript>` submit button and the server renders the findings page.

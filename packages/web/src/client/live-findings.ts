@@ -1,5 +1,5 @@
 /**
- * Live findings renderer for the `/analyze` realtime island (ADR-0040).
+ * Live findings renderer for the `/analyze` realtime island (ADR-0042).
  *
  * Pure functions from the live JSON shapes to the HTML injected into the
  * `aria-live` findings region. The markup mirrors the server findings page
