@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
-import { byTag } from "./dom.ts";
+import { byTag, selectedFilename } from "./dom.ts";
 
 describe("byTag", () => {
   it("returns the element when the tag matches", () => {
@@ -41,5 +41,30 @@ describe("byTag", () => {
     } finally {
       void window.close();
     }
+  });
+});
+
+describe("selectedFilename", () => {
+  it("returns undefined without a file input", () => {
+    expect(selectedFilename(null)).toBe(undefined);
+  });
+
+  it("returns undefined when the input exposes no files", () => {
+    expect(selectedFilename({ files: undefined })).toBe(undefined);
+    expect(selectedFilename({ files: null })).toBe(undefined);
+  });
+
+  it("returns undefined when no file is chosen", () => {
+    expect(selectedFilename({ files: { length: 0 } })).toBe(undefined);
+  });
+
+  it("returns the chosen filename", () => {
+    expect(
+      selectedFilename({ files: { length: 1, 0: { name: "main.py" } } }),
+    ).toBe("main.py");
+  });
+
+  it("returns undefined when the entry has no name", () => {
+    expect(selectedFilename({ files: { length: 1 } })).toBe(undefined);
   });
 });

@@ -20,3 +20,16 @@ export function byTag<T extends Element>(
 
   return found as T;
 }
+
+/**
+ * Uploaded filename, or `undefined` when no file is chosen. Shared by the
+ * editor island (the detection hint) and the live island (the analysis
+ * hint), so both read the same input the same way.
+ */
+export function selectedFilename(
+  fileInput: {
+    readonly files: ArrayLike<{ readonly name: string }> | null | undefined;
+  } | null,
+): string | undefined {
+  return fileInput?.files?.[0]?.name;
+}

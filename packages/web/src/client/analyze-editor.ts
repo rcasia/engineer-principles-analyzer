@@ -31,8 +31,13 @@ import {
   languageLabel,
 } from "../presentation/language-display.ts";
 import { hydrateGutter } from "./gutter.ts";
-import { byTag } from "./dom.ts";
+import { byTag, selectedFilename } from "./dom.ts";
 import { enhanceExampleSwitching } from "./example-switcher.ts";
+import {
+  enhanceLiveAnalysis,
+  fetchAnalysis,
+  LIVE_ANALYSIS_DEBOUNCE_MS,
+} from "./live-analysis.ts";
 import { syncValidationEcho } from "./validation-echo.ts";
 
 type LanguageDefinition = Parameters<typeof hljs.registerLanguage>[1];
@@ -154,17 +159,7 @@ interface EditorState {
   language: string;
 }
 
-/** Uploaded filename, or `undefined` when no file is chosen. */
-export function selectedFilename(
-  fileInput: {
-    readonly files: ArrayLike<{ readonly name: string }> | null | undefined;
-  } | null,
-): string | undefined {
-  return fileInput?.files?.[0]?.name;
-}
-
-function render(elements: EditorElements, language: string): void {
-  const sourceCode = elements.textarea.value;
+function render(elements: EditorElements, language: string): void {  const sourceCode = elements.textarea.value;
 
   elements.backdrop.innerHTML = `${highlightedHtml(sourceCode, language)}\n`;
   elements.badge.textContent = languageLabel(language);
@@ -290,5 +285,11 @@ if (typeof document !== "undefined") {
     document,
     (sourceCode, filename) =>
       fetchLanguage(sourceCode, filename, globalThis.fetch),
+  );
+  enhanceLiveAnalysis(
+    document,
+    (sourceCode, filename) =>
+      fetchAnalysis(sourceCode, filename, globalThis.fetch),
+    LIVE_ANALYSIS_DEBOUNCE_MS,
   );
 }
