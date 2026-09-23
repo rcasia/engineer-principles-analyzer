@@ -1,3 +1,5 @@
+## [1.17.2](https://github.com/rcasia/principled/compare/web-v1.17.1...web-v1.17.2) (2026-09-23)
+
 ## [1.17.1](https://github.com/rcasia/principled/compare/web-v1.17.0...web-v1.17.1) (2026-09-23)
 
 
