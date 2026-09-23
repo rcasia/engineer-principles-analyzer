@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/rcasia/principled/compare/web-v1.14.0...web-v1.15.0) (2026-09-23)
+
+
+### Features
+
+* **web:** shorten the live-analysis debounce so findings track typing ([cf29dcc](https://github.com/rcasia/principled/commit/cf29dcc9b1066df025be6c281c78b9b303528113))
+
 # [1.14.0](https://github.com/rcasia/principled/compare/web-v1.13.0...web-v1.14.0) (2026-09-23)
 
 
