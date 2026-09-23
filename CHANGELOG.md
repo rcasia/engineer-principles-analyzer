@@ -1,3 +1,10 @@
+## [1.18.2](https://github.com/rcasia/principled/compare/v1.18.1...v1.18.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **ci:** cache Stryker report whenever the run refreshes it ([b10841f](https://github.com/rcasia/principled/commit/b10841f09ead7ec270597a06ebee366c598f9e87))
+
 ## [1.18.1](https://github.com/rcasia/principled/compare/v1.18.0...v1.18.1) (2026-09-23)
 
 
