@@ -85,8 +85,10 @@ working with zero JS-visible chrome.
 
 Option 3, with these specifics:
 
-- **Debounce 500 ms** (`LIVE_ANALYSIS_DEBOUNCE_MS`, literal-tested): one
-  pause costs one request; typing never fires.
+- **Debounce 150 ms** (`LIVE_ANALYSIS_DEBOUNCE_MS`, literal-tested): short
+  enough that findings track continuous typing instead of arriving only
+  after a pause; typing never fires per keystroke, and overlapping runs
+  still resolve through the request-id guard.
 - **Skip empty and unchanged buffers**: whitespace-only input renders the
   empty state with no request; re-picks of identical content render nothing.
 - **Race guard, not cancellation**: each run takes the next request id and
@@ -127,10 +129,12 @@ Option 3, with these specifics:
 
 - Two finding renderers must be kept visually consistent by test
   discipline; a redesign of the finding card touches both.
-- Metric and Jev request volume grows with pauses, not submits. Debounce
-  bounds it, and both sinks already carry only minimized facts — but the
-  per-keystroke cost model should be re-measured if the debounce ever
-  drops.
+- Metric and Jev request volume grows with typing, not submits. The
+  150 ms debounce bounds it to roughly one request per pause in typing,
+  and both sinks already carry only minimized facts — but if analysis
+  latency ever exceeds the debounce routinely, overlapping runs pile up
+  server-side (the island still renders only the latest) and the delay
+  should grow again.
 - The client bundle grows by the island (~fetch, render, wiring); the
   existing immutable-asset pipeline absorbs it with no config change.
 

@@ -34,7 +34,7 @@ function stubFetch(
 
 describe("live constants", () => {
   it("pins the debounce and the transport-failure wording", () => {
-    expect(LIVE_ANALYSIS_DEBOUNCE_MS).toBe(500);
+    expect(LIVE_ANALYSIS_DEBOUNCE_MS).toBe(150);
     expect(LIVE_FETCH_FAILED_MESSAGE).toBe(
       "Could not reach the analysis service — your code is safe in the editor; try again in a moment.",
     );
@@ -364,7 +364,7 @@ function resultsOf(document: Document): string {
 
 describe("enhanceLiveAnalysis", () => {
   it("debounces the production delay by default only in production wiring", () => {
-    expect(LIVE_ANALYSIS_DEBOUNCE_MS).toBe(500);
+    expect(LIVE_ANALYSIS_DEBOUNCE_MS).toBe(150);
   });
 
   it("is a no-op without an analyze form", () => {

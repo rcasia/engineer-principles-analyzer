@@ -36,8 +36,8 @@ import {
 } from "./live-findings.ts";
 import { syncValidationEcho } from "./validation-echo.ts";
 
-/** Debounce between the last keystroke and the live request. */
-export const LIVE_ANALYSIS_DEBOUNCE_MS = 500;
+/** Debounce between the last keystroke and the live request: short enough that findings track continuous typing. */
+export const LIVE_ANALYSIS_DEBOUNCE_MS = 150;
 
 /**
  * Shown when the service cannot be reached or answers something
