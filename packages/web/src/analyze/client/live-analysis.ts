@@ -22,11 +22,11 @@ import {
   LIVE_STATUS_EMPTY,
   LIVE_STATUS_READY,
   type PlainResult,
-} from "../presentation/analysis-payload.ts";
+} from "../analysis-payload.ts";
 import {
   extensionFor,
   languageLabel,
-} from "../presentation/language-display.ts";
+} from "../language-display.ts";
 import { byTag, selectedFilename } from "./dom.ts";
 import {
   renderLiveAnalyzing,

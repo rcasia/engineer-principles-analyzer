@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { escapeHtml, FOOTER, NAV_ITEMS, renderPage } from "./layout.ts";
-import { VERSION } from "../version.ts";
+import { VERSION } from "./version.ts";
 
 const body = `<h1>Test page</h1>`;
 

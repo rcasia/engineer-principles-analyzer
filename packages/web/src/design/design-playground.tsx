@@ -1,8 +1,8 @@
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
-import { NAV_ITEMS } from "./layout.ts";
-import { VERSION } from "../version.ts";
+import { DESIGN_SYSTEM_CSS } from "../shared/design-system.ts";
+import { NAV_ITEMS } from "../shared/layout.ts";
+import { VERSION } from "../shared/version.ts";
 
 export const DESIGN_PLAYGROUND_TITLE = "Design playground | Principled";
 

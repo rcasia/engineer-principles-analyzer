@@ -1,5 +1,5 @@
 import { DESIGN_SYSTEM_CSS } from "./design-system.ts";
-import { VERSION } from "../version.ts";
+import { VERSION } from "./version.ts";
 
 /**
  * Escapes text before it reaches HTML. Principles will eventually come from

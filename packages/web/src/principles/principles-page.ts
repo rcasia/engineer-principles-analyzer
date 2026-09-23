@@ -1,5 +1,5 @@
 import type { Principle } from "@principled/core";
-import { escapeHtml, renderPage } from "./layout.ts";
+import { escapeHtml, renderPage } from "../shared/layout.ts";
 import { renderPrinciplesList } from "./principles-list.tsx";
 
 export const PAGE_TITLE = "Principles | Principled";

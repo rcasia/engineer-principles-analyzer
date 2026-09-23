@@ -11,7 +11,7 @@ import {
   PROBABILISTIC_NOTE,
 } from "./analysis-payload.ts";
 import { CODE_EXAMPLES, exampleFor } from "./code-examples.ts";
-import { escapeHtml, renderPage } from "./layout.ts";
+import { escapeHtml, renderPage } from "../shared/layout.ts";
 import {
   AUTO_DETECT_LABEL,
   extensionFor,

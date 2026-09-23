@@ -8,7 +8,7 @@ import {
   unwrap,
 } from "@principled/core";
 import type { AnalysisStatus } from "@principled/core";
-import { hydrateGutter } from "../client/gutter.ts";
+import { hydrateGutter } from "./client/gutter.ts";
 import {
   ANALYZE_PAGE_TITLE,
   AUTO_DETECT_LABEL,

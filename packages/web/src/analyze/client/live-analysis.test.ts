@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
-import type { PlainResult } from "../presentation/analysis-payload.ts";
+import type { PlainResult } from "../analysis-payload.ts";
 import { enhanceAnalyzeEditor } from "./analyze-editor.ts";
 import {
   enhanceLiveAnalysis,

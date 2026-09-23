@@ -29,7 +29,7 @@ import typescript from "highlight.js/lib/languages/typescript";
 import {
   extensionFor,
   languageLabel,
-} from "../presentation/language-display.ts";
+} from "../language-display.ts";
 import { hydrateGutter } from "./gutter.ts";
 import { byTag, selectedFilename } from "./dom.ts";
 import { enhanceExampleSwitching } from "./example-switcher.ts";

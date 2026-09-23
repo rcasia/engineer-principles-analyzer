@@ -23,15 +23,17 @@ import type {
   WebMetricsSummary,
 } from "@principled/core";
 import {
+  createRequestHandler,
+  type RequestHandlerDependencies,
+} from "./server.ts";
+import {
   ANALYSIS_CACHE_CONTROL,
   CLIENT_ASSET_CACHE_CONTROL,
   CLIENT_ASSET_CONTENT_TYPE,
-  createRequestHandler,
   METRICS_CONTENT_TYPE,
-  metricLanguageOf,
-  type RequestHandlerDependencies,
-} from "./server.ts";
-import type { ClientAssets } from "./client-assets.ts";
+} from "./shared/http.ts";
+import { metricLanguageOf } from "./analyze/analyze-handler.ts";
+import type { ClientAssets } from "./shared/client-assets.ts";
 import { InvalidJevResponseError } from "@principled/core";
 
 const tdd: Principle = { id: "tdd", title: "Test Driven Development" };

@@ -18,7 +18,7 @@
  * writes the textarea. Any language refresh after a switch is the editor
  * island's `onSwitch` hook, not this module's doing.
  */
-import { exampleFor } from "../presentation/code-examples.ts";
+import { exampleFor } from "../code-examples.ts";
 import { byTag } from "./dom.ts";
 
 export interface ExampleSwitchHooks {

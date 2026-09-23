@@ -16,8 +16,8 @@ import { mkdir, rm } from "node:fs/promises";
 
 const OUT_DIR = "infra/build/client";
 const ENTRIES = [
-  "packages/web/src/client/gutter.ts",
-  "packages/web/src/client/analyze-editor.ts",
+  "packages/web/src/analyze/client/gutter.ts",
+  "packages/web/src/analyze/client/analyze-editor.ts",
 ];
 
 await rm(OUT_DIR, { recursive: true, force: true });

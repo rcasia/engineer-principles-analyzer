@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { createLambdaHandler } from "./lambda.ts";
 import { detectorFor } from "./language-detector.ts";
 import { createRequestHandler } from "./server.ts";
-import { loadClientAssets } from "./client-assets.ts";
+import { loadClientAssets } from "./shared/client-assets.ts";
 
 // Lambda entry point shim. All behaviour lives in createLambdaHandler and
 // createRequestHandler, which is why this file is excluded from mutation

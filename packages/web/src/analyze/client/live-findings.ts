@@ -19,8 +19,8 @@ import {
   PROBABILISTIC_NOTE,
   type PlainEvidence,
   type PlainResult,
-} from "../presentation/analysis-payload.ts";
-import { languageLabel } from "../presentation/language-display.ts";
+} from "../analysis-payload.ts";
+import { languageLabel } from "../language-display.ts";
 
 const STATUS_BADGE_CLASS: Readonly<Record<string, string>> = {
   compliant: "badge--success",

@@ -1,5 +1,5 @@
-import { renderPage } from "./layout.ts";
-import { VERSION } from "../version.ts";
+import { renderPage } from "../shared/layout.ts";
+import { VERSION } from "../shared/version.ts";
 
 export const LANDING_PAGE_TITLE = "Principled";
 

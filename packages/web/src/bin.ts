@@ -14,7 +14,7 @@ import {
   SrpRule,
 } from "@principled/core";
 import { createRequestHandler } from "./server.ts";
-import { loadClientAssets } from "./client-assets.ts";
+import { loadClientAssets } from "./shared/client-assets.ts";
 
 // Executable shim only. All behaviour lives in createRequestHandler, which is
 // why this file is excluded from mutation testing in stryker.config.json.

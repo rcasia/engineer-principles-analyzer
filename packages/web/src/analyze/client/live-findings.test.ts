@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { PlainResult } from "../presentation/analysis-payload.ts";
-import { renderAnalyzePage } from "../presentation/analyze-page.ts";
+import type { PlainResult } from "../analysis-payload.ts";
+import { renderAnalyzePage } from "../analyze-page.ts";
 import {
   renderLiveAnalyzing,
   renderLiveEmpty,
