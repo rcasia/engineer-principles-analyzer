@@ -51,6 +51,7 @@ commit changes how the system is built, its ADR ships with it.
 | [0039](0039-landing-page-and-shared-shell.md) | Serve a landing page at / and the catalog from /principles behind one shared shell | Accepted | 2026-09-20 |
 | [0040](0040-unknown-language-is-non-blocking.md) | Run unknown languages as "unknown" instead of blocking | Accepted | 2026-09-23 |
 | [0041](0041-custom-domain.md) | Serve the site from an optional custom domain | Accepted | 2026-09-23 |
+| [0042](0042-realtime-buttonless-analyze.md) | Analyze live on /analyze with no submit button | Accepted | 2026-09-23 |
 
 ## Writing a new ADR
 

@@ -707,6 +707,224 @@ describe("createRequestHandler", () => {
     });
   });
 
+  describe("POST /analyze as live JSON", () => {
+    function postJson(payload: unknown): Request {
+      return new Request("http://localhost/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    function postRawJson(body: string): Request {
+      return new Request("http://localhost/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body,
+      });
+    }
+
+    it("answers a completed run as JSON with the language and plain results", async () => {
+      const response = await handlerFor({ rules: [echoRule] })(
+        postJson({ sourceCode: "interface Foo { readonly name: string }" }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      const body = (await response.json()) as {
+        language: string;
+        results: unknown[];
+      };
+      expect(body.language).toBe("typescript");
+      expect(body.results).toEqual([
+        {
+          ruleId: "fake.echo",
+          status: "compliant",
+          confidence: 1,
+          method: "deterministic",
+          evidence: [],
+          explanation: "Received: interface Foo { readonly name: string }",
+          language: "typescript",
+          analyzer: { name: "fake", version: "0" },
+          limitations: [],
+          humanReviewRecommended: false,
+        },
+      ]);
+    });
+
+    it("never caches a live analysis", async () => {
+      const response = await handlerFor({ rules: [echoRule] })(
+        postJson({ sourceCode: "interface Foo { readonly name: string }" }),
+      );
+
+      expect(response.headers.get("cache-control")).toBe(
+        "no-store, private",
+      );
+    });
+
+    it("rejects an empty buffer with the validation message and its language", async () => {
+      const response = await handlerFor()(postJson({ sourceCode: "" }));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "sourceCode must not be empty.",
+        language: "unknown",
+      });
+      expect(response.headers.get("cache-control")).toBe(
+        "no-store, private",
+      );
+    });
+
+    it("runs an undetectable snippet as unknown instead of blocking", async () => {
+      const response = await handlerFor({
+        rules: [echoRule],
+        jevChoices: ["other"],
+      })(postJson({ sourceCode: "class Foo {}" }));
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        language: string;
+        results: { explanation: string }[];
+      };
+      expect(body.language).toBe("unknown");
+      expect(body.results).toHaveLength(1);
+      expect(body.results[0]?.explanation).toBe("Received: class Foo {}");
+    });
+
+    it("detects the language from the filename hint", async () => {
+      const eventStore = new InMemoryEventStore();
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        jevChoices: ["python"],
+      })(postJson({ sourceCode: "hello world", filename: "main.py" }));
+
+      expect(response.status).toBe(200);
+      const history = await eventStore.readAll();
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("python");
+    });
+
+    it("appends the run's events without the source, and nothing for a rejection", async () => {
+      const eventStore = new InMemoryEventStore();
+      const handler = handlerFor({ rules: [echoRule], eventStore });
+
+      await handler(
+        postJson({ sourceCode: "interface Foo { readonly name: string }" }),
+      );
+      await handler(postJson({ sourceCode: "" }));
+
+      const history = await eventStore.readAll();
+      expect(history).toHaveLength(2);
+      expect(history.map((event) => event.eventType)).toEqual([
+        "AnalysisRequested",
+        "AnalysisCompleted",
+      ]);
+      expect(JSON.stringify(history)).not.toContain(
+        "interface Foo { readonly name: string }",
+      );
+    });
+
+    it("records a live run in the product metrics like a form post", async () => {
+      const events: WebMetricEvent[] = [];
+      const response = await handlerFor({
+        rules: [echoRule],
+        recordMetric: (event) => {
+          events.push(event);
+        },
+      })(postJson({ sourceCode: "interface Foo { readonly name: string }" }));
+
+      expect(response.status).toBe(200);
+      expect(events[0]).toEqual({ kind: "analysis-requested" });
+      expect(events[1]?.kind).toBe("analysis-completed");
+    });
+
+    it("rejects a body that is not JSON", async () => {
+      const response = await handlerFor({ jevChoices: ["go"] })(
+        postRawJson("this is not json"),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "expected a JSON body with sourceCode",
+      });
+      expect(response.headers.get("cache-control")).toBe("no-store, private");
+    });
+
+    it("treats a null body as a blank buffer", async () => {
+      const response = await handlerFor()(postJson(null));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "sourceCode must not be empty.",
+        language: "unknown",
+      });
+    });
+
+    it("treats a non-object body as a blank buffer", async () => {
+      const response = await handlerFor()(postJson("just a string"));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "sourceCode must not be empty.",
+        language: "unknown",
+      });
+    });
+
+    it("treats a non-string source as a blank buffer", async () => {
+      const response = await handlerFor()(postJson({ sourceCode: 7 }));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "sourceCode must not be empty.",
+        language: "unknown",
+      });
+    });
+
+    it("treats a non-string filename as no hint", async () => {
+      const eventStore = new InMemoryEventStore();
+      const response = await handlerFor({
+        rules: [echoRule],
+        eventStore,
+        jevChoices: ["go"],
+      })(postJson({ sourceCode: "package main", filename: 7 }));
+
+      expect(response.status).toBe(200);
+      const history = await eventStore.readAll();
+      expect(
+        (history[0]?.payload as { language?: string }).language,
+      ).toBe("go");
+    });
+
+    it("accepts a charset-suffixed JSON content type as a live request", async () => {
+      const response = await handlerFor({ rules: [echoRule] })(
+        new Request("http://localhost/analyze", {
+          method: "POST",
+          headers: { "content-type": "application/json; charset=utf-8" },
+          body: JSON.stringify({
+            sourceCode: "interface Foo { readonly name: string }",
+          }),
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+    });
+
+    it("still renders the page when the post carries no JSON content type", async () => {
+      await expect(
+        handlerFor({ rules: [echoRule] })(
+          new Request("http://localhost/analyze", { method: "POST" }),
+        ),
+      ).rejects.toThrow();
+    });
+  });
+
   describe("POST /detect", () => {
     function postDetect(payload: unknown): Request {
       return new Request("http://localhost/detect", {

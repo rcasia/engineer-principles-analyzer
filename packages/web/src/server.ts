@@ -1,4 +1,5 @@
 import type {
+  AnalysisResult,
   AnalyzeSubject,
   EventStore,
   LanguageDetector,
@@ -15,6 +16,7 @@ import {
 } from "@principled/core";
 import type { ClientAssets } from "./client-assets.ts";
 import { renderAnalyzePage } from "./presentation/analyze-page.ts";
+import { toPlainResult } from "./presentation/analysis-payload.ts";
 import { exampleFor } from "./presentation/code-examples.ts";
 import { renderDesignPlayground } from "./presentation/design-playground.tsx";
 import { renderLandingPage } from "./presentation/landing-page.ts";
@@ -196,17 +198,35 @@ async function detectedLanguage(
   }
 }
 
-async function handleAnalyzeSubmission(
-  request: Request,
+/**
+ * What one analysis run settles to, however the submission arrived: either
+ * the rejection message the visitor needs, or the detected language with
+ * every rule's finding. Both the page render and the live JSON island
+ * answer from this one outcome, so detection, validation, metrics and the
+ * event-store append cannot drift between the two representations.
+ */
+type SettledAnalysis =
+  | {
+      readonly kind: "invalid";
+      readonly message: string;
+      readonly language: string;
+    }
+  | {
+      readonly kind: "completed";
+      readonly language: string;
+      readonly results: readonly AnalysisResult[];
+    };
+
+async function settleAnalysis(
+  sourceCode: string,
+  filename: string | undefined,
   deps: Pick<
     RequestHandlerDependencies,
-    "analyzeSubject" | "eventStore" | "languageDetector" | "clientAssets" | "recordMetric"
+    "analyzeSubject" | "eventStore" | "languageDetector" | "recordMetric"
   >,
-): Promise<Response> {
+): Promise<SettledAnalysis> {
   const recordMetric = deps.recordMetric ?? (() => {});
   const startedAt = Date.now();
-  const form = await request.formData();
-  const { sourceCode, filename } = await sourceCodeOf(form);
   // Fully automatic: any `language` field in the form is ignored and the
   // effective language always comes from Jev over the source and filename.
   // An unidentified language never blocks (ADR-0040): Jev's `other`,
@@ -232,19 +252,7 @@ async function handleAnalyzeSubmission(
     });
     // The language above is always non-blank by construction, so a failed
     // Subject can only mean the source itself is blank.
-    return htmlResponse(
-      renderAnalyzePage(
-        {
-          kind: "invalid",
-          message: subject.error.message,
-          sourceCode,
-          language,
-        },
-        { scriptSrc: deps.clientAssets?.scriptSrc },
-      ),
-      400,
-      ANALYSIS_CACHE_CONTROL,
-    );
+    return { kind: "invalid", message: subject.error.message, language };
   }
 
   try {
@@ -258,11 +266,7 @@ async function handleAnalyzeSubmission(
     });
     await deps.eventStore.append(run.analysisId, 0, run.events);
 
-    return htmlResponse(
-      renderAnalyzePage({ kind: "completed", results: run.results }),
-      200,
-      ANALYSIS_CACHE_CONTROL,
-    );
+    return { kind: "completed", language, results: run.results };
   } catch (error) {
     recordMetric({
       kind: "analysis-failed",
@@ -272,6 +276,107 @@ async function handleAnalyzeSubmission(
     });
     throw error;
   }
+}
+
+async function handleAnalyzeSubmission(
+  request: Request,
+  deps: Pick<
+    RequestHandlerDependencies,
+    "analyzeSubject" | "eventStore" | "languageDetector" | "clientAssets" | "recordMetric"
+  >,
+): Promise<Response> {
+  const form = await request.formData();
+  const { sourceCode, filename } = await sourceCodeOf(form);
+  // Any `language` field in the form is ignored and the effective language
+  // always comes from Jev over the source and filename.
+  const settled = await settleAnalysis(sourceCode, filename, deps);
+
+  if (settled.kind === "invalid") {
+    return htmlResponse(
+      renderAnalyzePage(
+        {
+          kind: "invalid",
+          message: settled.message,
+          sourceCode,
+          language: settled.language,
+        },
+        { scriptSrc: deps.clientAssets?.scriptSrc },
+      ),
+      400,
+      ANALYSIS_CACHE_CONTROL,
+    );
+  }
+
+  return htmlResponse(
+    renderAnalyzePage({ kind: "completed", results: settled.results }),
+    200,
+    ANALYSIS_CACHE_CONTROL,
+  );
+}
+
+/**
+ * The live island behind the realtime playground (ADR-0042) speaks JSON to
+ * this path: the same `POST /analyze` route, selected by a JSON request
+ * body rather than a new URL, so the edge signer (ADR-0019) and the
+ * `no-store` cache semantics need no new infrastructure. Only an empty
+ * buffer answers 400; an unidentified language runs as `"unknown"` with
+ * 200 (ADR-0040) — only the representation differs from the page render.
+ */
+function isLiveAnalysisRequest(request: Request): boolean {
+  return (request.headers.get("content-type") ?? "").includes(
+    "application/json",
+  );
+}
+
+async function handleLiveAnalysisRequest(
+  request: Request,
+  deps: Pick<
+    RequestHandlerDependencies,
+    "analyzeSubject" | "eventStore" | "languageDetector" | "recordMetric"
+  >,
+): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return Response.json(
+      { error: "expected a JSON body with sourceCode" },
+      {
+        status: 400,
+        headers: { "cache-control": ANALYSIS_CACHE_CONTROL },
+      },
+    );
+  }
+
+  // Object spread narrows without a branch: primitives and `null` spread
+  // to no props, so every non-object body behaves as a blank buffer —
+  // exactly what the guard it replaces did, but with no condition a mutant
+  // could weaken.
+  const fields: Record<string, unknown> = {
+    ...(payload as Record<string, unknown>),
+  };
+  const sourceCode =
+    typeof fields["sourceCode"] === "string" ? fields["sourceCode"] : "";
+  const filenameRaw = fields["filename"];
+  const filename =
+    typeof filenameRaw === "string" ? filenameRaw : undefined;
+
+  const settled = await settleAnalysis(sourceCode, filename, deps);
+
+  if (settled.kind === "invalid") {
+    return Response.json(
+      { error: settled.message, language: settled.language },
+      {
+        status: 400,
+        headers: { "cache-control": ANALYSIS_CACHE_CONTROL },
+      },
+    );
+  }
+
+  return Response.json(
+    { language: settled.language, results: settled.results.map(toPlainResult) },
+    { headers: { "cache-control": ANALYSIS_CACHE_CONTROL } },
+  );
 }
 
 /**
@@ -373,6 +478,10 @@ export function createRequestHandler(
 
     if (pathname === "/analyze") {
       if (request.method === "POST") {
+        if (isLiveAnalysisRequest(request)) {
+          return handleLiveAnalysisRequest(request, deps);
+        }
+
         return handleAnalyzeSubmission(request, deps);
       }
 
