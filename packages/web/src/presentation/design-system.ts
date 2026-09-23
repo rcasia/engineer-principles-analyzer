@@ -467,8 +467,11 @@ h1 {
 .contract__item { display: flex; padding: var(--space-1) 0; font-size: 0.8125rem; align-items: center; gap: var(--space-2); }
 .contract__item input { accent-color: var(--color-accent); }
 .contract__count { margin: var(--space-4) 0 0; padding-top: var(--space-3); border-top: 1px solid var(--color-border); color: var(--color-text-muted); font: 0.75rem/1.4 var(--font-mono); }
-.analyze-toolbar { display: flex; padding: var(--space-2) 0; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.analyze-toolbar { display: flex; padding: var(--space-2) 0; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
 .analyze-toolbar__meta { margin: 0; color: var(--color-text-muted); font: 0.75rem/1.4 var(--font-mono); }
+.analyze-status { margin: 0; color: var(--color-text-muted); font: 0.75rem/1.4 var(--font-mono); }
+.results-live { margin-top: var(--space-8); }
+.results-live h2 { margin-bottom: var(--space-3); font-size: 0.9375rem; line-height: 1.4; }
 .examples { margin-top: var(--space-8); padding-top: var(--space-6); border-top: 1px solid var(--color-border); }
 .examples h2 { margin-bottom: var(--space-3); font-size: 0.9375rem; line-height: 1.4; }
 .playground__note { margin: var(--space-4) 0 0; color: var(--color-text-muted); font-size: 0.75rem; line-height: 1.45; }

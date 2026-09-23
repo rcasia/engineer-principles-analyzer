@@ -4,6 +4,12 @@ import type {
   Evidence,
   SourceLocation,
 } from "@principled/core";
+import {
+  LIVE_RESULTS_EMPTY_MESSAGE,
+  LIVE_STATUS_EMPTY,
+  NO_FINDINGS_MESSAGE,
+  PROBABILISTIC_NOTE,
+} from "./analysis-payload.ts";
 import { CODE_EXAMPLES, exampleFor } from "./code-examples.ts";
 import { escapeHtml, renderPage } from "./layout.ts";
 import {
@@ -14,16 +20,20 @@ import {
 
 export const ANALYZE_PAGE_TITLE = "Analyze | Principled";
 export { AUTO_DETECT_LABEL };
-export const NO_FINDINGS_MESSAGE =
-  "The analysis completed, but no rules were available to evaluate this submission.";
+export { NO_FINDINGS_MESSAGE };
 
 /**
  * What the `/analyze` page can show, chosen by the request handler
- * (ADR-0015): the playground on `GET` — blank, or prefilled when the
- * visitor followed a `?example=` link — a validation error that preserves
- * what the visitor typed, or the structured findings from a completed run.
- * There is deliberately no fourth "loading" variant — see ADR-0015 for why
- * a page with no client-side JavaScript (ADR-0004) does not need one.
+ * (ADR-0015, ADR-0040): the realtime playground on `GET` — blank, or
+ * prefilled when the visitor followed a `?example=` link — a validation
+ * error that preserves what the visitor typed, or the structured findings
+ * from a completed run. The playground carries no submit button: the live
+ * island analyses as the visitor types into the `aria-live` findings
+ * region, while a `<noscript>` submit button keeps the same form working
+ * with scripting disabled. There is deliberately no fourth "loading"
+ * variant in the server views — see ADR-0015 for why a page with no
+ * client-side JavaScript (ADR-0004) does not need one; the loading state
+ * lives in the island, announced through `role="status"`.
  *
  * `language` is display-only and always detector-produced ("" means
  * unknown): the visitor has no language control (ADR-0026).
@@ -180,15 +190,6 @@ function renderSummary(results: readonly AnalysisResult[]): string {
   return `<p class="results-summary">${total} finding${total === 1 ? "" : "s"}: ${parts.join(" · ")}</p>`;
 }
 
-/**
- * The probabilistic-finding disclosure (#35): heuristic and AI-assisted
- * verdicts must never read as compiler errors. Shown above the findings on
- * every completed run that produced at least one — with zero findings
- * there is nothing to misread as a fact.
- */
-const PROBABILISTIC_NOTE =
-  "Findings are heuristic or AI-assisted judgments, not compiler errors. Confirm before acting.";
-
 function renderProbabilisticNote(results: readonly AnalysisResult[]): string {
   if (results.length === 0) {
     return "";
@@ -301,6 +302,20 @@ function renderContract(): string {
 </section>`;
 }
 
+/**
+ * The live findings region (ADR-0040): an `aria-live` container the island
+ * fills as the visitor types, so findings arrive with no submit step and
+ * no navigation. Server-rendered with the empty state — with scripting
+ * disabled the island never runs and the `<noscript>` submit button in the
+ * toolbar posts the form to the findings page instead.
+ */
+function renderLiveResults(): string {
+  return `<section class="results-live" aria-labelledby="results-heading">
+  <h2 id="results-heading">Findings</h2>
+  <div id="liveResults" aria-live="polite"><div class="empty-state"><strong>No findings yet</strong><p>${LIVE_RESULTS_EMPTY_MESSAGE}</p></div></div>
+</section>`;
+}
+
 /** Plain navigations: each link reloads the page with the editor prefilled, no script involved. The client island (`example-switcher.ts`) intercepts them for reload-free filling when it loads. */
 function renderExamples(activeId: string | null): string {
   const links = CODE_EXAMPLES.map((example) => {
@@ -354,9 +369,11 @@ function renderPlayground(options: {
   </div>
   <div class="analyze-toolbar">
     <p class="analyze-toolbar__meta" id="editorMeta">${escapeHtml(languageLabel(options.language))} · ${lineCountLabel(options.sourceCode)}</p>
-    <button class="button button--primary" type="submit">Analyze →</button>
+    <p class="analyze-status" id="analyzeStatus" role="status">${LIVE_STATUS_EMPTY}</p>
+    <noscript><button class="button button--primary" type="submit">Analyze →</button></noscript>
   </div>
 </form>
+${renderLiveResults()}
 ${renderExamples(options.exampleId)}
 <p class="playground__note">Single-file analysis · Nothing you submit is stored.</p>`;
 }
@@ -365,7 +382,7 @@ function renderPlaygroundHeader(): string {
   return `<header class="page-header">
 <p class="eyebrow">Code → principles → findings</p>
 <h1>Analyze</h1>
-<p class="lede">Paste or upload one source file and Principled runs it through the engineering contract beside the editor. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>
+<p class="lede">Paste or upload one source file — findings appear below as you type, with no submit step. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>
 </header>`;
 }
 

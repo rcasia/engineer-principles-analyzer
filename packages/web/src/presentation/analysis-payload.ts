@@ -85,6 +85,22 @@ export const LIVE_STATUS_READY = "Findings up to date.";
 export const LIVE_STATUS_ATTENTION = "Analysis paused — see below.";
 
 /**
+ * Empty-run wording shared by the server findings page and the live
+ * island: a completed run with zero findings means no rule had anything to
+ * say, not that the code is perfect.
+ */
+export const NO_FINDINGS_MESSAGE =
+  "The analysis completed, but no rules were available to evaluate this submission.";
+
+/**
+ * The probabilistic-finding disclosure shared by the server findings page
+ * and the live island: heuristic and AI-assisted verdicts must never read
+ * as compiler errors.
+ */
+export const PROBABILISTIC_NOTE =
+  "Findings are heuristic or AI-assisted judgments, not compiler errors. Confirm before acting.";
+
+/**
  * Plain-data view of one `AnalysisResult` for JSON output. Every optional
  * field is omitted when absent rather than serialized as `undefined`, so
  * the wire shape stays tight and `JSON.stringify` round-trips exactly.

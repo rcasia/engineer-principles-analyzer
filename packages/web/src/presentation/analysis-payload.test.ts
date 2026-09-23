@@ -12,6 +12,8 @@ import {
   LIVE_STATUS_ATTENTION,
   LIVE_STATUS_EMPTY,
   LIVE_STATUS_READY,
+  NO_FINDINGS_MESSAGE,
+  PROBABILISTIC_NOTE,
   toPlainResult,
 } from "./analysis-payload.ts";
 
@@ -146,5 +148,11 @@ describe("live status strings", () => {
     expect(LIVE_STATUS_ANALYZING).toBe("Analyzing…");
     expect(LIVE_STATUS_READY).toBe("Findings up to date.");
     expect(LIVE_STATUS_ATTENTION).toBe("Analysis paused — see below.");
+    expect(NO_FINDINGS_MESSAGE).toBe(
+      "The analysis completed, but no rules were available to evaluate this submission.",
+    );
+    expect(PROBABILISTIC_NOTE).toBe(
+      "Findings are heuristic or AI-assisted judgments, not compiler errors. Confirm before acting.",
+    );
   });
 });

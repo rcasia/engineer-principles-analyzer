@@ -136,12 +136,12 @@ describe("renderAnalyzePage", () => {
   });
 
   describe("the blank playground", () => {
-    it("says what the submission runs and what comes back", () => {
+    it("says findings arrive live with no submit step, and what comes back", () => {
       const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain("<h1>Analyze</h1>");
       expect(html).toContain(
-        '<p class="lede">Paste or upload one source file and Principled runs it through the engineering contract beside the editor. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>',
+        '<p class="lede">Paste or upload one source file — findings appear below as you type, with no submit step. Each rule that applies returns a finding: a verdict, the lines of code it judged, a confidence level, and a suggested fix where the rule knows one.</p>',
       );
       expect(html).not.toContain("Paste or submit exactly one file");
     });
@@ -252,14 +252,42 @@ describe("renderAnalyzePage", () => {
       );
     });
 
-    it("ends the playground with a status bar and a prominent analyze action", () => {
+    it("ends the playground with a status bar, a live status and no submit button", () => {
       const html = renderAnalyzePage(blankForm());
 
       expect(html).toContain(
         '<p class="analyze-toolbar__meta" id="editorMeta">Auto-detect · 0 lines</p>',
       );
       expect(html).toContain(
-        '<button class="button button--primary" type="submit">Analyze →</button>',
+        '<p class="analyze-status" id="analyzeStatus" role="status">Waiting for code.</p>',
+      );
+      // The only submit button lives inside <noscript>: scripting visitors
+      // analyse live, while scripting-disabled ones still post the form.
+      expect(html).toContain(
+        '<noscript><button class="button button--primary" type="submit">Analyze →</button></noscript>',
+      );
+      const withoutNoscript = html.replace(/<noscript>.*?<\/noscript>/s, "");
+      expect(withoutNoscript).not.toContain("<button");
+    });
+
+    it("renders the live findings region with its empty state", () => {
+      const html = renderAnalyzePage(blankForm());
+
+      expect(html).toContain(
+        '<section class="results-live" aria-labelledby="results-heading">',
+      );
+      expect(html).toContain('<h2 id="results-heading">Findings</h2>');
+      expect(html).toContain('<div id="liveResults" aria-live="polite">');
+      expect(html).toContain("<strong>No findings yet</strong>");
+      expect(html).toContain(
+        "<p>Findings appear here as you type — paste code, upload a file, or try an example.</p>",
+      );
+      // The live region sits between the form and the examples.
+      expect(html.indexOf('id="liveResults"')).toBeGreaterThan(
+        html.indexOf("</form>"),
+      );
+      expect(html.indexOf('id="liveResults"')).toBeLessThan(
+        html.indexOf('id="examples-heading"'),
       );
     });
 
@@ -513,6 +541,18 @@ describe("renderAnalyzePage", () => {
       );
       expect(html).toContain(
         '<div class="field__error" id="analyze-error" role="alert">',
+      );
+    });
+
+    it("keeps the live region and the noscript submit on a rejected submission", () => {
+      const html = renderAnalyzePage(view);
+
+      expect(html).toContain('<div id="liveResults" aria-live="polite">');
+      expect(html).toContain(
+        '<p class="analyze-status" id="analyzeStatus" role="status">Waiting for code.</p>',
+      );
+      expect(html).toContain(
+        '<noscript><button class="button button--primary" type="submit">Analyze →</button></noscript>',
       );
     });
 
