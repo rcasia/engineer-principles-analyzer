@@ -48,6 +48,19 @@ jobs:
           restore-keys: |
             stryker-incremental-main-
             stryker-incremental-
+      # Snapshot the restored report's hash. Stryker exits non-zero both
+      # when the score is below the break threshold (a valid, fresh report
+      # worth caching) and when it crashes writing the report (nothing new
+      # on disk). The hash comparison below tells the two apart, so the
+      # save is gated on the file changing, not on the step succeeding.
+      - name: Snapshot incremental report hash
+        id: incremental-before
+        run: |
+          if [ -f reports/stryker-incremental.json ]; then
+            echo "hash=$(sha256sum reports/stryker-incremental.json | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          else
+            echo "hash=missing" >> "$GITHUB_OUTPUT"
+          fi
       # The command runner reports no test coverage, so incremental mode can
       # only see mutant changes, never test changes (ADR-0021): when test
       # files, dependencies or the Stryker config itself changed, force a
@@ -63,11 +76,28 @@ jobs:
           else
             bun run test:mutation:incremental
           fi
-      # Success only: on failure the file on disk is still the restored
-      # entry (a crash in writeIncrementalReport writes nothing new), so
-      # saving would duplicate stale data under a new per-SHA key.
+      # Only save when the run actually refreshed the report. A crash in
+      # writeIncrementalReport (RangeError at this suite size) leaves the
+      # restored entry untouched, and a forced full run without
+      # --incremental never rewrites it either; saving then would duplicate
+      # stale data under a new per-SHA key. A below-threshold score still
+      # writes a fresh report, so this must not be gated on step success.
+      - name: Check whether the incremental report changed
+        id: incremental-changed
+        if: always()
+        run: |
+          if [ -f reports/stryker-incremental.json ]; then
+            after=$(sha256sum reports/stryker-incremental.json | cut -d' ' -f1)
+          else
+            after=missing
+          fi
+          if [ "$after" != "${{ steps.incremental-before.outputs.hash }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Save Stryker incremental cache
-        if: success()
+        if: always() && steps.incremental-changed.outputs.changed == 'true'
         uses: actions/cache/save@v6
         with:
           path: reports/stryker-incremental.json
