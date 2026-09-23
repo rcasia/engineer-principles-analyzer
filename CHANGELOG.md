@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/rcasia/principled/compare/v1.17.2...v1.18.0) (2026-09-23)
+
+
+### Features
+
+* **core:** run unknown languages as unknown instead of blocking ([b88cc96](https://github.com/rcasia/principled/commit/b88cc96ed27451d1205247e97f62882cf6326961))
+
 ## [1.17.2](https://github.com/rcasia/principled/compare/v1.17.1...v1.17.2) (2026-09-20)
 
 
