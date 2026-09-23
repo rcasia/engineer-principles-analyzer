@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/rcasia/principled/compare/web-v1.17.0...web-v1.17.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **ci:** cache Stryker report whenever the run refreshes it ([b10841f](https://github.com/rcasia/principled/commit/b10841f09ead7ec270597a06ebee366c598f9e87))
+
 # [1.17.0](https://github.com/rcasia/principled/compare/web-v1.16.0...web-v1.17.0) (2026-09-23)
 
 
