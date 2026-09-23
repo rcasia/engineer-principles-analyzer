@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/rcasia/principled/compare/web-v1.15.0...web-v1.16.0) (2026-09-23)
+
+
+### Features
+
+* **web:** show findings beside the editor in a sticky side rail ([b8b1fb6](https://github.com/rcasia/principled/commit/b8b1fb612f7c1324b25c617d258fe78f757315de))
+
 # [1.15.0](https://github.com/rcasia/principled/compare/web-v1.14.0...web-v1.15.0) (2026-09-23)
 
 
