@@ -1,3 +1,10 @@
+## [1.18.1](https://github.com/rcasia/principled/compare/v1.18.0...v1.18.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **ci:** save Stryker cache on success only ([21ed35f](https://github.com/rcasia/principled/commit/21ed35f2c9b0b5ca293984ecc3e332c3e86dc215))
+
 # [1.18.0](https://github.com/rcasia/principled/compare/v1.17.2...v1.18.0) (2026-09-23)
 
 
