@@ -1,3 +1,15 @@
+# [1.17.0](https://github.com/rcasia/principled/compare/web-v1.16.0...web-v1.17.0) (2026-09-23)
+
+
+### Bug Fixes
+
+* **ci:** save Stryker cache on success only ([21ed35f](https://github.com/rcasia/principled/commit/21ed35f2c9b0b5ca293984ecc3e332c3e86dc215))
+
+
+### Features
+
+* **web:** remove the engineering contract panel from the analyze page ([840b9e4](https://github.com/rcasia/principled/commit/840b9e42f1ce98027e743cf4821e151fd2df39c2))
+
 # [1.16.0](https://github.com/rcasia/principled/compare/web-v1.15.0...web-v1.16.0) (2026-09-23)
 
 
