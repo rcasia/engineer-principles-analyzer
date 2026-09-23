@@ -257,52 +257,6 @@ function renderGutter(sourceCode: string): string {
 }
 
 /**
- * The engineering contract the code is tested against, as static display.
- * This is the one group of rules `AnalyzeSubject` actually runs for the
- * web adapter (the five SOLID heuristics, ADR-0022..0035) — listed here
- * rather than fetched because no rule-selection backend exists yet — so
- * the panel is deliberately `checked disabled`: visibly on, not
- * configurable here, and never submitted with the form. The labels must
- * stay in sync with the landing page's "5 SOLID heuristics" fact.
- */
-const CONTRACT_GROUP: {
-  readonly title: string;
-  readonly principles: readonly string[];
-} = {
-  title: "SOLID",
-  principles: [
-    "Single Responsibility",
-    "Open/Closed",
-    "Liskov Substitution",
-    "Interface Segregation",
-    "Dependency Inversion",
-  ],
-};
-
-function renderContractGroup(group: {
-  readonly title: string;
-  readonly principles: readonly string[];
-}): string {
-  const items = group.principles
-    .map(
-      (principle) =>
-        `<label class="contract__item"><input type="checkbox" checked disabled><span>${principle}</span></label>`,
-    )
-    .join("");
-
-  return `<div class="contract__group"><h3 class="contract__group-title">${group.title}</h3><div class="contract__items">${items}</div></div>`;
-}
-
-function renderContract(): string {
-  return `<section class="panel contract" aria-labelledby="contract-heading">
-  <h2 class="panel__label" id="contract-heading">Engineering contract</h2>
-  ${renderContractGroup(CONTRACT_GROUP)}
-  <p class="contract__count">${CONTRACT_GROUP.principles.length} principles enabled</p>
-  <p class="contract__help">The rules shown here run against your file. How principles become rules: <a href="/principles">the Principles page</a>.</p>
-</section>`;
-}
-
-/**
  * The live findings region (ADR-0042): an `aria-live` container the island
  * fills as the visitor types, so findings arrive with no submit step and
  * no navigation. Server-rendered with the empty state — with scripting
@@ -366,7 +320,6 @@ function renderPlayground(options: {
       </div>
     </section>
     <div class="analyze-rail">
-      ${renderContract()}
       ${renderLiveResults()}
     </div>
   </div>

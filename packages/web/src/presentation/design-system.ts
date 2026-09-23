@@ -413,7 +413,6 @@ h1 {
 .principles__flow li::before { display: block; margin-bottom: var(--space-2); color: var(--color-text-muted); content: counter(principle-flow, decimal-leading-zero); font: 0.6875rem/1.4 var(--font-mono); }
 .principles__flow h2 { margin-bottom: var(--space-1); font-size: 0.875rem; }
 .principles__flow p { margin: 0; color: var(--color-text-secondary); font-size: 0.8125rem; }
-.contract__help { margin: var(--space-2) 0 0; color: var(--color-text-muted); font-size: 0.75rem; line-height: 1.45; }
 .principles-list { margin: 0; padding: 0; list-style: none; }
 .principle { padding: var(--space-6) 0; border-bottom: 1px solid var(--color-border); }
 .principle h2 { margin-bottom: var(--space-1); font-size: 1rem; }
@@ -464,13 +463,6 @@ h1 {
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 650; }
 .hljs-deletion { color: var(--color-error); }
-.contract__group { margin-bottom: var(--space-4); }
-.contract__group:last-child { margin-bottom: 0; }
-.contract__group-title { margin: 0 0 var(--space-2); color: var(--color-text-muted); font: 0.6875rem/1.4 var(--font-mono); letter-spacing: 0.07em; text-transform: uppercase; }
-.contract__items { display: grid; }
-.contract__item { display: flex; padding: var(--space-1) 0; font-size: 0.8125rem; align-items: center; gap: var(--space-2); }
-.contract__item input { accent-color: var(--color-accent); }
-.contract__count { margin: var(--space-4) 0 0; padding-top: var(--space-3); border-top: 1px solid var(--color-border); color: var(--color-text-muted); font: 0.75rem/1.4 var(--font-mono); }
 .analyze-toolbar { display: flex; padding: var(--space-2) 0; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
 .analyze-toolbar__meta { margin: 0; color: var(--color-text-muted); font: 0.75rem/1.4 var(--font-mono); }
 .analyze-status { margin: 0; color: var(--color-text-muted); font: 0.75rem/1.4 var(--font-mono); }

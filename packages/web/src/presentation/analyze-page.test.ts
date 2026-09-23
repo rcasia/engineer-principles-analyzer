@@ -229,27 +229,13 @@ describe("renderAnalyzePage", () => {
       expect(formSectionOf(html)).not.toContain("multiple");
     });
 
-    it("shows the principles under test as a checked, non-editable contract", () => {
+    it("carries no contract panel — the rail holds findings only", () => {
       const html = renderAnalyzePage(blankForm());
 
-      expect(html).toContain('id="contract-heading">Engineering contract</h2>');
-      expect(html).toContain(">SOLID</h3>");
-      expect(html).toContain("<span>Single Responsibility</span>");
-      expect(html).toContain("<span>Open/Closed</span>");
-      expect(html).toContain("<span>Liskov Substitution</span>");
-      expect(html).toContain("<span>Interface Segregation</span>");
-      expect(html).toContain("<span>Dependency Inversion</span>");
-      expect(html).toContain(
-        '<label class="contract__item"><input type="checkbox" checked disabled><span>Open/Closed</span></label>',
-      );
-      expect(html).toContain("</label><label class=\"contract__item\">");
-      expect(html.match(/type="checkbox" checked disabled/g)).toHaveLength(5);
-      expect(html).toContain(
-        '<p class="contract__count">5 principles enabled</p>',
-      );
-      expect(html).toContain(
-        '<p class="contract__help">The rules shown here run against your file. How principles become rules: <a href="/principles">the Principles page</a>.</p>',
-      );
+      expect(html).not.toContain("contract-heading");
+      expect(html).not.toContain("Engineering contract");
+      expect(html).not.toContain("contract__item");
+      expect(html).not.toContain('type="checkbox"');
     });
 
     it("ends the playground with a status bar, a live status and no submit button", () => {
@@ -283,15 +269,13 @@ describe("renderAnalyzePage", () => {
       expect(html).toContain(
         "<p>Findings appear here as you type — paste code, upload a file, or try an example.</p>",
       );
-      // The rail reads editor, contract, findings — so the verdict sits
-      // beside the code with no scrolling, in tab order too.
+      // The rail reads editor, findings — so the verdict sits beside
+      // the code with no scrolling, in tab order too.
       const editorAt = html.indexOf('aria-label="Source code editor"');
-      const contractAt = html.indexOf('id="contract-heading"');
       const findingsAt = html.indexOf('id="liveResults"');
       const formEnd = html.indexOf("</form>");
       expect(editorAt).toBeGreaterThan(-1);
-      expect(contractAt).toBeGreaterThan(editorAt);
-      expect(findingsAt).toBeGreaterThan(contractAt);
+      expect(findingsAt).toBeGreaterThan(editorAt);
       expect(formEnd).toBeGreaterThan(findingsAt);
     });
 
