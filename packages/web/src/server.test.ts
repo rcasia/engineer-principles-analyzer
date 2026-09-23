@@ -794,18 +794,22 @@ describe("createRequestHandler", () => {
     });
 
     it("detects the language from the filename hint", async () => {
-      const eventStore = new InMemoryEventStore();
+      const seen: { sourceCode: string; filename: string | undefined }[] = [];
+      const languageDetector: LanguageDetector = {
+        detectLanguage: async (sourceCode, filename) => {
+          seen.push({ sourceCode, filename });
+          return "python";
+        },
+      };
       const response = await handlerFor({
         rules: [echoRule],
-        eventStore,
-        jevChoices: ["python"],
+        languageDetector,
       })(postJson({ sourceCode: "hello world", filename: "main.py" }));
 
       expect(response.status).toBe(200);
-      const history = await eventStore.readAll();
-      expect(
-        (history[0]?.payload as { language?: string }).language,
-      ).toBe("python");
+      expect(seen).toEqual([{ sourceCode: "hello world", filename: "main.py" }]);
+      const body = (await response.json()) as { language: string };
+      expect(body.language).toBe("python");
     });
 
     it("appends the run's events without the source, and nothing for a rejection", async () => {
@@ -885,18 +889,22 @@ describe("createRequestHandler", () => {
     });
 
     it("treats a non-string filename as no hint", async () => {
-      const eventStore = new InMemoryEventStore();
+      const seen: { sourceCode: string; filename: string | undefined }[] = [];
+      const languageDetector: LanguageDetector = {
+        detectLanguage: async (sourceCode, filename) => {
+          seen.push({ sourceCode, filename });
+          return "go";
+        },
+      };
       const response = await handlerFor({
         rules: [echoRule],
-        eventStore,
-        jevChoices: ["go"],
+        languageDetector,
       })(postJson({ sourceCode: "package main", filename: 7 }));
 
       expect(response.status).toBe(200);
-      const history = await eventStore.readAll();
-      expect(
-        (history[0]?.payload as { language?: string }).language,
-      ).toBe("go");
+      expect(seen).toEqual([
+        { sourceCode: "package main", filename: undefined },
+      ]);
     });
 
     it("accepts a charset-suffixed JSON content type as a live request", async () => {

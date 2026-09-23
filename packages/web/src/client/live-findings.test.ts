@@ -130,6 +130,15 @@ describe("renderLiveFindings", () => {
     expect(html).not.toContain("<script>bad</script>");
   });
 
+  it("escapes ampersands and quotes alongside angle brackets", () => {
+    const html = renderLiveFindings([
+      plainFor({ explanation: 'Fish & "chips" <yum>' }),
+    ]);
+
+    expect(html).toContain("Fish &amp; &quot;chips&quot; &lt;yum&gt;");
+    expect(html).not.toContain('Fish & "chips"');
+  });
+
   it("renders nothing extra when there is no evidence", () => {
     expect(renderLiveFindings([plainFor({})])).not.toContain("Evidence");
   });
@@ -146,6 +155,7 @@ describe("renderLiveFindings", () => {
 
     expect(html).toContain("<h4>Evidence</h4>");
     expect(html).toContain("Line 12");
+    expect(html).not.toContain("column");
     expect(html).toContain("<code>class Foo {}</code>");
   });
 
@@ -322,6 +332,17 @@ describe("renderLiveFindings", () => {
     );
     expect(html.indexOf("results-note")).toBeLessThan(
       html.indexOf('<ol aria-label="Analysis findings"'),
+    );
+  });
+
+  it("renders exactly the expected markup for a bare finding", () => {
+    const html = renderLiveFindings([plainFor({})]);
+    const start = html.indexOf("<ol");
+    const end = html.indexOf("</ol>") + "</ol>".length;
+    const normalized = html.slice(start, end).replace(/\s+/g, " ").trim();
+
+    expect(normalized).toBe(
+      '<ol aria-label="Analysis findings" class="findings-list"><li> <article class="panel finding" aria-labelledby="finding-0-heading"> <div class="status-row"> <span class="badge badge--success">Compliant</span> <span class="badge">deterministic</span> <span class="badge">100% confidence</span> </div> <h3 id="finding-0-heading" class="card-title">solid.srp</h3> <p class="card-copy">Looks fine.</p> <p class="finding-meta">Analyzed as TypeScript · fake-analyzer v0.0.0</p> </article> </li></ol>',
     );
   });
 });

@@ -122,14 +122,11 @@ function renderFinding(result: PlainResult, index: number): string {
 
 /**
  * One line saying what the run produced overall: total findings plus a
- * per-status breakdown in first-seen order. Rendered only when there is at
- * least one finding — the empty state already says what an empty run means.
+ * per-status breakdown in first-seen order. Only ever called with at least
+ * one finding — `renderLiveFindings` answers the empty run before this —
+ * so there is no empty branch to drift from the empty state.
  */
 function renderSummary(results: readonly PlainResult[]): string {
-  if (results.length === 0) {
-    return "";
-  }
-
   const counts = new Map<string, number>();
 
   for (const result of results) {

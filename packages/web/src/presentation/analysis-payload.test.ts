@@ -89,8 +89,7 @@ describe("toPlainResult", () => {
     ]);
   });
 
-  it("carries remediation, limitations and evaluation metadata when present", () => {
-    const result = unwrap(
+  it("carries remediation, limitations and evaluation metadata when present", () => {    const result = unwrap(
       AnalysisResult.of({
         ruleId: "solid.srp",
         status: "uncertain",
@@ -113,6 +112,38 @@ describe("toPlainResult", () => {
     expect(plain.limitations).toEqual(["Limited context"]);
     expect(plain.evaluationMetadata).toEqual({ corpus: "solid-v1" });
     expect(plain.confidence).toBe(0.5);
+  });
+
+  it("omits the optional fields entirely when they are absent", () => {
+    const result = unwrap(
+      AnalysisResult.of({
+        ruleId: "solid.srp",
+        status: "compliant",
+        confidence: unwrap(Confidence.of(1)),
+        method: "deterministic",
+        evidence: [
+          unwrap(
+            Evidence.of({
+              location: unwrap(SourceLocation.of({ startLine: 1 })),
+              excerpt: "x",
+            }),
+          ),
+        ],
+        explanation: "Looks fine.",
+        language: "typescript",
+        analyzer: { name: "fake-analyzer", version: "0.0.0" },
+        humanReviewRecommended: false,
+      }),
+    );
+
+    const plain = toPlainResult(result);
+
+    expect("remediation" in plain).toBe(false);
+    expect("evaluationMetadata" in plain).toBe(false);
+    expect(Object.keys(plain.evidence[0]?.location ?? {}).sort()).toEqual([
+      "endLine",
+      "startLine",
+    ]);
   });
 
   it("round-trips through JSON without losing the optional fields", () => {

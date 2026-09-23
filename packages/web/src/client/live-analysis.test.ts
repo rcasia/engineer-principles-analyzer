@@ -192,6 +192,20 @@ describe("fetchAnalysis", () => {
     });
   });
 
+  it("falls back for a non-string rejection error with a usable length", async () => {
+    const { fetchFn } = stubFetch(() =>
+      jsonResponse({ error: ["stale", "news"], language: "go" }, 400),
+    );
+
+    await expect(
+      fetchAnalysis("package main", undefined, fetchFn),
+    ).resolves.toEqual({
+      ok: false,
+      error: LIVE_FETCH_FAILED_MESSAGE,
+      language: "go",
+    });
+  });
+
   it("falls back when the success body is not JSON", async () => {
     const { fetchFn } = stubFetch(
       () => new Response("not json", { status: 200 }),
@@ -450,6 +464,52 @@ describe("enhanceLiveAnalysis", () => {
     }
   });
 
+  it("counts several lines in the toolbar meta", async () => {
+    const { window, document } = liveDom("package main\n// a second line");
+    const calls: RecordedCall[] = [];
+    const analyze: AnalyzeBuffer = async (sourceCode, filename) => {
+      calls.push({ sourceCode, filename });
+      return { ok: true, language: "go", results: [] };
+    };
+
+    try {
+      expect(enhanceLiveAnalysis(document, analyze, 5)).toBe(true);
+      await tick(30);
+
+      expect(calls).toHaveLength(1);
+      expect(document.querySelector("#editorMeta")?.textContent).toBe(
+        "Go · 2 lines",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("shows the analysing state while a run is in flight", async () => {
+    const { window, document } = liveDom("package main");
+    let resolveRun!: (outcome: LiveOutcome) => void;
+    const pending = new Promise<LiveOutcome>((resolve) => {
+      resolveRun = resolve;
+    });
+    const analyze: AnalyzeBuffer = async () => pending;
+
+    try {
+      expect(enhanceLiveAnalysis(document, analyze, 5)).toBe(true);
+      await tick(20);
+
+      expect(statusOf(document)).toBe("Analyzing…");
+      expect(resultsOf(document)).toContain('class="skeleton"');
+      expect(resultsOf(document)).toContain('class="progress-line"');
+
+      resolveRun({ ok: true, language: "go", results: [] });
+      await tick();
+
+      expect(statusOf(document)).toBe("Findings up to date.");
+    } finally {
+      void window.close();
+    }
+  });
+
   it("collapses rapid input into one request for the latest buffer", async () => {
     const { window, document, textarea } = liveDom("");
     const calls: RecordedCall[] = [];
@@ -495,6 +555,35 @@ describe("enhanceLiveAnalysis", () => {
 
       expect(calls).toHaveLength(1);
       expect(statusOf(document)).toBe("Findings up to date.");
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("renders the empty state when the buffer is cleared during the debounce", async () => {
+    const { window, document, textarea } = liveDom("package main");
+    const calls: RecordedCall[] = [];
+    const analyze: AnalyzeBuffer = async (sourceCode, filename) => {
+      calls.push({ sourceCode, filename });
+      return { ok: true, language: "go", results: [] };
+    };
+
+    try {
+      expect(enhanceLiveAnalysis(document, analyze, 30)).toBe(true);
+      await tick(50);
+      expect(calls).toHaveLength(1);
+
+      // A new pause starts for the longer buffer, then the buffer is
+      // cleared with no event — so the armed run reads the blank buffer
+      // itself rather than the schedule shortcut.
+      textarea.value = "package main\n// more";
+      textarea.dispatchEvent(inputEvent(window));
+      textarea.value = "   ";
+      await tick(50);
+
+      expect(calls).toHaveLength(1);
+      expect(resultsOf(document)).toContain("No findings yet");
+      expect(statusOf(document)).toBe("Waiting for code.");
     } finally {
       void window.close();
     }
@@ -648,7 +737,9 @@ describe("enhanceLiveAnalysis", () => {
       expect(enhanceLiveAnalysis(document, analyze, 5)).toBe(true);
       await tick(30);
 
-      expect(document.querySelector("#analyze-error")).toBe(null);
+      expect(document.querySelector("#analyze-error")?.tagName ?? null).toBe(
+        null,
+      );
       expect(textarea.hasAttribute("aria-invalid")).toBe(false);
       expect(textarea.hasAttribute("aria-describedby")).toBe(false);
       expect(statusOf(document)).toBe("Findings up to date.");
@@ -705,6 +796,9 @@ describe("enhanceLiveAnalysis", () => {
   it("reads an uploaded file into the editor and analyses it with its name", async () => {
     const { window, document } = liveDom("stale text");
     const calls: RecordedCall[] = [];
+    // Bubbled input events: the editor island re-renders off the same
+    // dispatch the island emits after filling the textarea.
+    let bubbledInputs = 0;
 
     try {
       const analyze: AnalyzeBuffer = async (sourceCode, filename) => {
@@ -715,6 +809,11 @@ describe("enhanceLiveAnalysis", () => {
       expect(enhanceLiveAnalysis(document, analyze, 5)).toBe(true);
       await tick(30);
       expect(calls).toHaveLength(1);
+
+      const form = document.querySelector("form#analyzeForm");
+      form?.addEventListener("input", () => {
+        bubbledInputs += 1;
+      });
 
       const fileInput = document.querySelector("#sourceFile");
       const file = new window.File(["def greet(name):"], "main.py", {
@@ -731,6 +830,7 @@ describe("enhanceLiveAnalysis", () => {
         "#sourceCode",
       ) as unknown as HTMLTextAreaElement;
       expect(textarea.value).toBe("def greet(name):");
+      expect(bubbledInputs).toBeGreaterThan(0);
       expect(calls).toHaveLength(2);
       expect(calls[1]).toEqual({
         sourceCode: "def greet(name):",
@@ -744,8 +844,8 @@ describe("enhanceLiveAnalysis", () => {
     }
   });
 
-  it("analyses the textarea when the file picker is cancelled", async () => {
-    const { window, document } = liveDom("package main");
+  it("analyses the edited buffer when the file picker is cancelled", async () => {
+    const { window, document, textarea } = liveDom("package main");
     const calls: RecordedCall[] = [];
 
     try {
@@ -758,6 +858,9 @@ describe("enhanceLiveAnalysis", () => {
       await tick(30);
       expect(calls).toHaveLength(1);
 
+      // Edited with no event, so only the picker's own schedule can
+      // analyse the new buffer — a crash there would analyse nothing.
+      textarea.value = "package main\n// edited";
       const fileInput = document.querySelector("#sourceFile");
       Object.defineProperty(fileInput, "files", {
         value: null,
@@ -766,8 +869,11 @@ describe("enhanceLiveAnalysis", () => {
       fileInput?.dispatchEvent(changeEvent(window));
       await tick(30);
 
-      // Same buffer as before: the unchanged guard suppresses a second call.
-      expect(calls).toHaveLength(1);
+      expect(calls).toHaveLength(2);
+      expect(calls[1]).toEqual({
+        sourceCode: "package main\n// edited",
+        filename: undefined,
+      });
     } finally {
       void window.close();
     }

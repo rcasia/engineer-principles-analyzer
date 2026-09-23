@@ -1041,7 +1041,9 @@ describe("module auto-enhancement", () => {
       `<p id="editorMeta"></p>` +
       `<div class="editor__gutter" aria-hidden="true"></div>` +
       `<input id="sourceFile" name="sourceFile" type="file">` +
-      `</form>`;
+      `</form>` +
+      `<div id="liveResults" aria-live="polite"></div>` +
+      `<p id="analyzeStatus" role="status">Waiting for code.</p>`;
 
     const globals = globalThis as unknown as Record<string, unknown>;
     const previousDocument = globals["document"];
@@ -1067,6 +1069,18 @@ describe("module auto-enhancement", () => {
           "editor--live",
         ),
       ).toBe(true);
+
+      // The stub answers { language: "go" } with no results array, so the
+      // live island parks with the transport message — proving the live
+      // wiring ran on load alongside the editor, with no submit involved.
+      await new Promise((resolve) => setTimeout(resolve, 650));
+
+      expect(document.querySelector("#liveResults")?.innerHTML).toContain(
+        "Could not reach the analysis service",
+      );
+      expect(document.querySelector("#analyzeStatus")?.textContent).toBe(
+        "Analysis paused — see below.",
+      );
     } finally {
       if (previousDocument === undefined) {
         delete globals["document"];

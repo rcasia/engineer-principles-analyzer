@@ -83,7 +83,9 @@ export async function fetchAnalysis(
     });
 
     if (!response.ok) {
-      return failureOf(await readFailurePayload(response));
+      // Awaited, not bare-returned: a rejection here must land in this
+      // function's own catch, not escape it.
+      return await readFailurePayload(response);
     }
 
     const payload: unknown = await response.json();
@@ -109,18 +111,14 @@ export async function fetchAnalysis(
   }
 }
 
-async function readFailurePayload(response: Response): Promise<{
-  readonly error: string;
-  readonly language: string;
-}> {
-  let payload: unknown;
-
-  try {
-    payload = await response.json();
-  } catch {
-    return { error: LIVE_FETCH_FAILED_MESSAGE, language: "" };
-  }
-
+/**
+ * Reads a rejection body into the outcome the island shows. An unreadable
+ * body rejects here and is answered by the caller's transport fallback —
+ * the same message as any other unreachable service — so there is no
+ * second error path to drift from the first.
+ */
+async function readFailurePayload(response: Response): Promise<LiveOutcome> {
+  const payload: unknown = await response.json();
   const fields: Record<string, unknown> = {
     ...(payload as Record<string, unknown>),
   };
@@ -130,17 +128,9 @@ async function readFailurePayload(response: Response): Promise<{
       ? rawError
       : LIVE_FETCH_FAILED_MESSAGE;
   const rawLanguage = fields["language"];
-  const language =
-    typeof rawLanguage === "string" ? rawLanguage : "";
+  const language = typeof rawLanguage === "string" ? rawLanguage : "";
 
-  return { error, language };
-}
-
-function failureOf(failure: {
-  readonly error: string;
-  readonly language: string;
-}): LiveOutcome {
-  return { ok: false, error: failure.error, language: failure.language };
+  return { ok: false, error, language };
 }
 
 /** "0 lines" is unreachable here: empty buffers never reach the toolbar. */
@@ -330,10 +320,9 @@ export function enhanceLiveAnalysis(
       .then((text) => {
         textarea.value = text;
         // The editor island re-renders highlight, gutter and counts off
-        // this event; the explicit schedule below analyses regardless of
-        // whether that island is present.
+        // this event, and the live input listener schedules the analysis
+        // off that same dispatch — one path serves both islands.
         dispatchInput(textarea);
-        schedule();
       })
       .catch(() => {
         state.requestId += 1;
