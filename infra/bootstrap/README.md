@@ -136,11 +136,15 @@ Scoped to this project, not the account:
 - Manage log groups under `/aws/lambda/principled-*`.
 - `logs:DescribeLogGroups` account-wide, because that call cannot be scoped
   to a single group. It is read only.
-- Manage CloudFront distributions and origin access controls. **This is the
-  least scoped statement in the policy**: CloudFront ARNs contain a generated
-  ID rather than a name, so they cannot be restricted by prefix the way the
-  Lambda and IAM statements are. In an account shared with other CloudFront
-  distributions, prefer a dedicated account over tightening this.
+- Manage CloudFront distributions, origin access controls and functions.
+  **This is the least scoped statement in the policy**: CloudFront ARNs
+  contain a generated ID rather than a name, so they cannot be restricted by
+  prefix the way the Lambda and IAM statements are. In an account shared with
+  other CloudFront distributions, prefer a dedicated account over tightening
+  this.
+- Manage ACM certificates and Route53 records for the optional custom domain
+  (ADR-0041). Same accepted tradeoff: certificate ARNs and hosted-zone IDs
+  are generated, so these cannot be prefix-scoped either.
 
 Be clear about what this means: **a green commit on main can create and
 modify IAM roles prefixed `principled-`, with no human review.** That is a

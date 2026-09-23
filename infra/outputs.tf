@@ -10,6 +10,11 @@ output "origin_url" {
   value       = aws_lambda_function_url.web.function_url
 }
 
+output "custom_domain" {
+  description = "The custom domain serving the site (ADR-0041), or empty when disabled."
+  value       = local.custom_domain_enabled ? var.custom_domain : ""
+}
+
 output "cdn_enabled" {
   description = "Whether a CloudFront distribution fronts the function."
   value       = local.use_cdn

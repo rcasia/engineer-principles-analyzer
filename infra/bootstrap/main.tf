@@ -285,6 +285,8 @@ data "aws_iam_policy_document" "deploy" {
   # CloudFront distribution ARNs contain a generated ID, not a name, so they
   # cannot be matched by prefix the way the Lambda and IAM statements are.
   # This is the least scoped statement in the policy; see README.md.
+  # Function actions join it for ADR-0041's canonical-host redirect: function
+  # ARNs carry the same generated distribution ID once attached.
   statement {
     sid    = "Cdn"
     effect = "Allow"
@@ -305,6 +307,13 @@ data "aws_iam_policy_document" "deploy" {
       "cloudfront:DeleteOriginAccessControl",
       "cloudfront:ListOriginAccessControls",
       "cloudfront:CreateInvalidation",
+      "cloudfront:CreateFunction",
+      "cloudfront:UpdateFunction",
+      "cloudfront:DescribeFunction",
+      "cloudfront:GetFunction",
+      "cloudfront:DeleteFunction",
+      "cloudfront:PublishFunctionVersion",
+      "cloudfront:ListFunctions",
       # Read only: resolves the managed cache and header policies by name.
       "cloudfront:GetCachePolicy",
       "cloudfront:ListCachePolicies",
@@ -312,6 +321,31 @@ data "aws_iam_policy_document" "deploy" {
       "cloudfront:ListOriginRequestPolicies",
       "cloudfront:GetResponseHeadersPolicy",
       "cloudfront:ListResponseHeadersPolicies",
+    ]
+    resources = ["*"]
+  }
+
+  # ADR-0041's custom domain: the deploy provisions the ACM certificate and
+  # its Route53 validation and alias records. Certificate ARNs embed the
+  # account plus a generated ID and hosted-zone IDs are generated too, so
+  # neither can be prefix-scoped to this project the way the Lambda and IAM
+  # statements are - same accepted tradeoff as the Cdn statement above.
+  statement {
+    sid    = "CustomDomain"
+    effect = "Allow"
+    actions = [
+      "acm:RequestCertificate",
+      "acm:DescribeCertificate",
+      "acm:DeleteCertificate",
+      "acm:ListCertificates",
+      "acm:AddTagsToCertificate",
+      "acm:RemoveTagsFromCertificate",
+      "acm:ListTagsForCertificate",
+      "route53:ListHostedZones",
+      "route53:GetHostedZone",
+      "route53:ListResourceRecordSets",
+      "route53:GetChange",
+      "route53:ChangeResourceRecordSets",
     ]
     resources = ["*"]
   }
