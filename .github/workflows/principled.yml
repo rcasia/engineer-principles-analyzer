@@ -57,6 +57,6 @@ jobs:
             echo "analyzed $file (exit $code)"
           done < changed.txt
       - name: Upload findings to code scanning
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           path: sarif/
