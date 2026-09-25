@@ -8,6 +8,7 @@ export {
 export type { PrincipleCatalog } from "./principles/application/principle-catalog.port.ts";
 export { ListPrinciples } from "./principles/application/list-principles.use-case.ts";
 export { InMemoryPrincipleCatalog } from "./principles/infrastructure/in-memory-principle-catalog.ts";
+export { SOLID_PRINCIPLES } from "./principles/infrastructure/solid-principles.ts";
 
 // Event sourcing + CQRS foundation (ADR-0012).
 export type { EventEnvelope } from "./eventsourcing/domain/event.ts";

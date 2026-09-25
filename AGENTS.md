@@ -174,7 +174,6 @@ supersedes it.
 
 Honest list of what is not done, so nobody assumes otherwise:
 
-- The principles catalog is empty and the analysis rules do not exist.
 - `POST /analyze` on real AWS is signed at the edge (ADR-0019): a Lambda@Edge
   origin-request function SigV4-signs every request, body included, because
   origin access control cannot sign a POST body and this account's AWS
