@@ -1,19 +1,20 @@
-# Data Processing Agreement (DRAFT — not in force)
+# Data Processing Agreement (Customer-Contractual Template)
 
-> **Status:** Draft skeleton. Not published, not binding. Customer-contractual
-> document; must be reviewed by a qualified person before any customer relies
-> on it.
+> **Status:** Template only. Not automatically accepted or binding. A qualified
+> person must complete and approve it before a customer relies on it.
 
 **Classification:** Customer-contractual.
-**Assumed product mode:** No customer processes personal data through
-Principled yet, so no DPA is in effect.
+**Product mode:** The hosted analyzer can receive source code containing
+personal data, but no customer-contractual DPA is automatically in effect.
+Business customers must execute an approved DPA before submitting personal
+data on documented instructions.
 
 ## Controller/processor roles
 
 For the hosted analysis service, the customer is expected to be the
 **controller** of any personal data contained in submitted code, and
-Principled the **processor**. This must be confirmed against the actual data
-flow when the service exists (controller/processor role assessment, #28).
+Principled the **processor**. This role allocation must be confirmed against
+the customer's actual data flow and executed contract.
 
 ## GDPR Article 28 clauses to complete
 

@@ -30,6 +30,17 @@ export const NAV_ITEMS: readonly { readonly href: string; readonly label: string
 
 export const FOOTER = `Principled · evidence before opinion · v${VERSION}`;
 
+const FOOTER_LINKS = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  { href: "/imprint", label: "Imprint" },
+  { href: "/acceptable-use", label: "Acceptable use" },
+  { href: "/security", label: "Security" },
+  { href: "/ai-transparency", label: "AI transparency" },
+  { href: "/subprocessors", label: "Subprocessors" },
+  { href: "/accessibility", label: "Accessibility" },
+] as const;
+
 export interface PageOptions {
   readonly title: string;
   /** Optional `<meta name="description">`; escaped like any other text. */
@@ -67,6 +78,7 @@ export function renderPage(options: PageOptions): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 ${description}<link rel="icon" href="data:,">
+<link rel="canonical" href="${escapeHtml(options.path)}">
 <title>${escapeHtml(options.title)}</title>
 <style>${DESIGN_SYSTEM_CSS}</style>
 ${options.script ?? ""}</head>
@@ -83,7 +95,10 @@ ${nav}
 <main class="${options.mainClass ?? "page"}" id="main">
 ${options.body}
 </main>
-<footer class="footer">${FOOTER}</footer>
+<footer class="footer">
+  <span>${FOOTER}</span>
+  <nav class="footer__nav" aria-label="Legal"><span class="visually-hidden">Legal: </span>${FOOTER_LINKS.map((item) => `<a href="${item.href}">${item.label}</a>`).join(" · ")}</nav>
+</footer>
 </body>
 </html>`;
 }

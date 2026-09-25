@@ -144,7 +144,7 @@ describe("renderLandingPage", () => {
     expect(html).toContain('<a class="skip-link" href="#main">Skip to content</a>');
     expect(html).toContain('<main class="playground" id="main">');
     expect(html).toContain(
-      '<footer class="footer">Principled · evidence before opinion · v0.0.0-dev</footer>',
+      '<footer class="footer">\n  <span>Principled · evidence before opinion · v0.0.0-dev</span>',
     );
     expect(html).toContain('<a href="/" aria-current="page">Home</a>');
     expect(html.match(/<a\b[^>]*aria-current="page"/g)).toHaveLength(1);

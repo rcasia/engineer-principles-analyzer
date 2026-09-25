@@ -1,6 +1,6 @@
 import { INITIAL_WEB_METRICS_SUMMARY } from "@principled/core";
 import type { WebMetricsSummary } from "@principled/core";
-import { METRICS_CONTENT_TYPE, PAGE_CACHE_CONTROL } from "../shared/http.ts";
+import { jsonResponse, PAGE_CACHE_CONTROL } from "../shared/http.ts";
 
 /**
  * Answers `GET /metrics` (#31): aggregates only — counts, failure rate,
@@ -13,11 +13,8 @@ export function handleMetricsRequest(
 ): Response {
   const read = readMetrics ?? (() => INITIAL_WEB_METRICS_SUMMARY);
 
-  return new Response(JSON.stringify(read()), {
+  return jsonResponse(read(), {
     status: 200,
-    headers: {
-      "content-type": METRICS_CONTENT_TYPE,
-      "cache-control": PAGE_CACHE_CONTROL,
-    },
+    headers: { "cache-control": PAGE_CACHE_CONTROL },
   });
 }

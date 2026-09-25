@@ -136,6 +136,7 @@ which is the main thing that could quietly spend money.
 - [Product design](docs/design/README.md) — visual language, components, layout
   and UX standards.
 - [Infrastructure](infra/README.md) — how to plan, apply and destroy.
+- [Legal and trust](docs/legal/README.md) — public notices, data flows and launch requirements.
 - [AGENTS.md](AGENTS.md) — conventions for agents and humans working here.
 
 ## Licence

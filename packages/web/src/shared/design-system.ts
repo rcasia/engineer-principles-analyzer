@@ -479,6 +479,17 @@ h1 {
 }
 
 .footer { width: min(100% - 4rem, var(--content-width)); margin: 0 auto; padding: var(--space-6) 0 var(--space-12); color: var(--color-text-muted); font: 0.6875rem/1.5 var(--font-mono); }
+.footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); }
+.footer__nav { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); }
+.footer__nav a { color: inherit; }
+.legal-section { margin-block: var(--space-8); }
+.legal-section h2 { margin-bottom: var(--space-3); font-size: 1.125rem; line-height: 1.3; }
+.legal-section p:last-child, .legal-section ul:last-child, .legal-section table:last-child { margin-bottom: 0; }
+.legal-section ul { display: grid; margin: 0; padding-left: 1.25rem; color: var(--color-text-secondary); gap: var(--space-2); }
+.legal-section .table { min-width: 38rem; }
+.legal-contact { display: grid; margin-bottom: var(--space-4); padding: var(--space-4); border-left: 3px solid var(--color-accent); background: var(--color-accent-soft); gap: var(--space-1); }
+.legal-contact p { margin: 0; color: var(--color-text-secondary); }
+.legal-contact-link { margin-top: var(--space-12); color: var(--color-text-secondary); }
 
 @media (max-width: 63.99rem) {
   .intro { grid-template-columns: 1fr; }

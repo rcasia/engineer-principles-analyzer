@@ -17,6 +17,11 @@ import { handleDesignRequest } from "./design/design-handler.ts";
 import { handleLandingRequest } from "./landing/landing-handler.ts";
 import { handleMetricsRequest } from "./metrics/metrics-handler.ts";
 import { handlePrinciplesRequest } from "./principles/principles-handler.ts";
+import {
+  handleLegalRequest,
+  isLegalPagePath,
+} from "./legal/legal-handler.ts";
+import type { LegalContact } from "./legal/legal-page.ts";
 import type { ClientAssets } from "./shared/client-assets.ts";
 import { clientAssetResponse, notFoundResponse } from "./shared/http.ts";
 
@@ -44,6 +49,8 @@ export interface RequestHandlerDependencies {
    * `<script>` tag and the no-JS baseline holds.
    */
   readonly clientAssets?: ClientAssets | undefined;
+  /** Public legal pages are enabled only when deployment identity is complete. */
+  readonly legalContact?: LegalContact | undefined;
   /**
    * First-party, server-side metrics sink (#31). Optional so tests and
    * compositions without analytics keep working: unrecorded runs simply do
@@ -73,6 +80,10 @@ export function createRequestHandler(
 
     if (pathname === "/design") {
       return handleDesignRequest();
+    }
+
+    if (isLegalPagePath(pathname)) {
+      return handleLegalRequest(pathname, deps.legalContact);
     }
 
     if (pathname === "/metrics" && request.method === "GET") {
@@ -125,5 +136,6 @@ export {
   NOT_FOUND_BODY,
   NOT_FOUND_CACHE_CONTROL,
   PAGE_CACHE_CONTROL,
+  SECURITY_HEADERS,
 } from "./shared/http.ts";
 export { metricLanguageOf } from "./analyze/analyze-handler.ts";

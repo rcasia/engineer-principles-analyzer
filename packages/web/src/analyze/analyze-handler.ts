@@ -15,6 +15,7 @@ import type { ClientAssets } from "../shared/client-assets.ts";
 import {
   ANALYSIS_CACHE_CONTROL,
   htmlResponse,
+  jsonResponse,
   PAGE_CACHE_CONTROL,
 } from "../shared/http.ts";
 import { renderAnalyzePage } from "./analyze-page.ts";
@@ -51,6 +52,45 @@ export interface AnalyzeDependencies {
    * facts ever reach it — never source, prompts or findings.
    */
   readonly recordMetric?: ((event: WebMetricEvent) => void) | undefined;
+}
+
+/** Hard bound for source plus multipart/JSON framing at the HTTP boundary. */
+export const MAX_ANALYSIS_BODY_BYTES = 1_048_576;
+const MAX_DETECT_BODY_BYTES = 65_536;
+const BODY_TOO_LARGE_MESSAGE =
+  "Submission too large. Keep the request under 1 MiB.";
+
+async function bodyExceedsLimit(
+  request: Request,
+  limit: number,
+): Promise<boolean> {
+  const contentLength = request.headers.get("content-length");
+
+  if (contentLength !== null && Number(contentLength) > limit) {
+    return true;
+  }
+
+  return (await request.clone().arrayBuffer()).byteLength > limit;
+}
+
+function oversizedAnalysisResponse(request: Request): Response {
+  if (isLiveAnalysisRequest(request)) {
+    return jsonResponse(
+      { error: BODY_TOO_LARGE_MESSAGE },
+      { status: 413, headers: { "cache-control": ANALYSIS_CACHE_CONTROL } },
+    );
+  }
+
+  return htmlResponse(
+    renderAnalyzePage({
+      kind: "invalid",
+      message: BODY_TOO_LARGE_MESSAGE,
+      sourceCode: "",
+      language: "",
+    }),
+    413,
+    ANALYSIS_CACHE_CONTROL,
+  );
 }
 
 /**
@@ -205,6 +245,10 @@ export async function handleAnalyzeSubmission(
     "analyzeSubject" | "eventStore" | "languageDetector" | "clientAssets" | "recordMetric"
   >,
 ): Promise<Response> {
+  if (await bodyExceedsLimit(request, MAX_ANALYSIS_BODY_BYTES)) {
+    return oversizedAnalysisResponse(request);
+  }
+
   const form = await request.formData();
   const { sourceCode, filename } = await sourceCodeOf(form);
   // Any `language` field in the form is ignored and the effective language
@@ -243,9 +287,9 @@ export async function handleAnalyzeSubmission(
  * 200 (ADR-0040) — only the representation differs from the page render.
  */
 export function isLiveAnalysisRequest(request: Request): boolean {
-  return (request.headers.get("content-type") ?? "").includes(
-    "application/json",
-  );
+  const contentType = request.headers.get("content-type");
+
+  return contentType !== null && contentType.includes("application/json");
 }
 
 export async function handleLiveAnalysisRequest(
@@ -255,11 +299,15 @@ export async function handleLiveAnalysisRequest(
     "analyzeSubject" | "eventStore" | "languageDetector" | "recordMetric"
   >,
 ): Promise<Response> {
+  if (await bodyExceedsLimit(request, MAX_ANALYSIS_BODY_BYTES)) {
+    return oversizedAnalysisResponse(request);
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();
   } catch {
-    return Response.json(
+    return jsonResponse(
       { error: "expected a JSON body with sourceCode" },
       {
         status: 400,
@@ -284,7 +332,7 @@ export async function handleLiveAnalysisRequest(
   const settled = await settleAnalysis(sourceCode, filename, deps);
 
   if (settled.kind === "invalid") {
-    return Response.json(
+    return jsonResponse(
       { error: settled.message, language: settled.language },
       {
         status: 400,
@@ -293,7 +341,7 @@ export async function handleLiveAnalysisRequest(
     );
   }
 
-  return Response.json(
+  return jsonResponse(
     { language: settled.language, results: settled.results.map(toPlainResult) },
     { headers: { "cache-control": ANALYSIS_CACHE_CONTROL } },
   );
@@ -311,11 +359,18 @@ export async function handleDetectRequest(
   request: Request,
   deps: Pick<AnalyzeDependencies, "languageDetector">,
 ): Promise<Response> {
+  if (await bodyExceedsLimit(request, MAX_DETECT_BODY_BYTES)) {
+    return jsonResponse(
+      { error: "Detection request too large." },
+      { status: 413, headers: { "cache-control": ANALYSIS_CACHE_CONTROL } },
+    );
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();
   } catch {
-    return Response.json(
+    return jsonResponse(
       { error: "expected a JSON body with sourceCode" },
       {
         status: 400,
@@ -341,7 +396,7 @@ export async function handleDetectRequest(
     (await detectedLanguage(deps.languageDetector, sourceCode, filename)) ??
     "";
 
-  return Response.json(
+  return jsonResponse(
     { language },
     { headers: { "cache-control": ANALYSIS_CACHE_CONTROL } },
   );

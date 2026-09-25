@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { escapeHtml, FOOTER, NAV_ITEMS, renderPage } from "./layout.ts";
+import { SECURITY_HEADERS } from "./http.ts";
 import { VERSION } from "./version.ts";
 
 const body = `<h1>Test page</h1>`;
@@ -43,7 +44,10 @@ describe("renderPage", () => {
     expect(html).toContain('<link rel="icon" href="data:,">');
     expect(html).toContain("<title>Principled</title>");
     expect(html).toContain("<main class=\"page\" id=\"main\">\n<h1>Test page</h1>\n</main>");
-    expect(html).toContain('<footer class="footer">Principled · evidence before opinion');
+    expect(html).toContain('<footer class="footer">\n  <span>Principled · evidence before opinion');
+    expect(html).toContain('<a href="/privacy">Privacy</a>');
+    expect(html).toContain('<a href="/terms">Terms</a>');
+    expect(html).toContain('<a href="/imprint">Imprint</a>');
     expect(html).toEndWith("</body>\n</html>");
   });
 
@@ -127,6 +131,15 @@ describe("renderPage", () => {
   it("lets keyboard users bypass the navigation", () => {
     expect(renderPage({ title: "T", path: "/", body })).toContain(
       '<a class="skip-link" href="#main">Skip to content</a>',
+    );
+  });
+
+  it("includes a restrictive baseline content security policy", () => {
+    expect(SECURITY_HEADERS["content-security-policy"]).toContain(
+      "frame-ancestors 'none'",
+    );
+    expect(SECURITY_HEADERS["content-security-policy"]).toContain(
+      "form-action 'self'",
     );
   });
 });

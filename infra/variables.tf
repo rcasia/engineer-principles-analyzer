@@ -77,3 +77,41 @@ variable "typesafe_api_key" {
     error_message = "typesafe_api_key must be null or a non-blank key."
   }
 }
+
+variable "legal_operator_name" {
+  description = "Legal name of the operator, published on the web imprint. Required for real AWS deployments."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "legal_operator_address" {
+  description = "Legal address of the operator, published on the web imprint. Required for real AWS deployments."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "legal_privacy_email" {
+  description = "Privacy contact address published on the web legal pages. Required for real AWS deployments."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.legal_privacy_email == null || can(regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", var.legal_privacy_email))
+    error_message = "legal_privacy_email must be null or a valid email address."
+  }
+}
+
+variable "legal_security_email" {
+  description = "Security disclosure address published on the web legal pages. Required for real AWS deployments."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.legal_security_email == null || can(regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", var.legal_security_email))
+    error_message = "legal_security_email must be null or a valid email address."
+  }
+}

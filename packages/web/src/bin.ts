@@ -16,6 +16,7 @@ import {
 } from "@principled/core";
 import { createRequestHandler } from "./server.ts";
 import { loadClientAssets } from "./shared/client-assets.ts";
+import { legalContactFromEnvironment } from "./legal/legal-page.ts";
 
 // Executable shim only. All behaviour lives in createRequestHandler, which is
 // why this file is excluded from mutation testing in stryker.config.json.
@@ -52,6 +53,7 @@ const server = Bun.serve({
       new HttpJevClient({ apiKey, fetchFn: globalThis.fetch }),
     ),
     eventStore: new InMemoryEventStore(),
+    legalContact: legalContactFromEnvironment(Bun.env),
     // Absent without a client build: the form renders with no script tag.
     clientAssets,
   }),

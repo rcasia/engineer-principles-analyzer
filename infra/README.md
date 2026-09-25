@@ -47,6 +47,13 @@ GitHub OIDC provider and the deploy role.
 Until `AWS_DEPLOY_ROLE_ARN` is set as a repository variable the deploy job is
 skipped, so the pipeline stays green without an AWS account.
 
+Before enabling production deployment, configure the repository variables
+`LEGAL_OPERATOR_NAME`, `LEGAL_OPERATOR_ADDRESS`, `LEGAL_PRIVACY_EMAIL` and
+`LEGAL_SECURITY_EMAIL`. Terraform rejects a real AWS deployment without them;
+the values are rendered on `/imprint` and the public privacy and security
+pages. Do not use personal contact details here unless the operator has chosen
+them for public publication.
+
 To apply by hand against real AWS:
 
 ```sh

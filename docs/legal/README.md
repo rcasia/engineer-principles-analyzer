@@ -7,11 +7,14 @@ of the privacy, security and AI-transparency baseline tracked in
 enabler, not a user story) and scaffolded by
 [issue #29](https://github.com/anomalyco/opencode/issues/29).
 
-> **These documents are DRAFTs and are not in force.** Nothing here is a legal
-> notice, a contract, or legal advice. Principled has no hosted service that
-> accepts user code today (see "Current product mode"), so no document below
-> is published or binding. Each must be reviewed by a qualified person before
-> commercial launch.
+The public versions of the privacy, terms, acceptable-use, security, AI
+transparency, subprocessors and accessibility notices are served by the web
+package at `/privacy`, `/terms`, `/acceptable-use`, `/security`,
+`/ai-transparency`, `/subprocessors` and `/accessibility`. The operator identity
+and contact details are deployment configuration and are required by Terraform
+for real AWS deployments. These documents still require qualified legal review;
+the repository cannot determine the operator's legal identity or replace that
+review.
 
 ## The one rule that governs this directory
 
@@ -61,33 +64,34 @@ contract) brings the activity within scope.
 ## Hosted analysis is a separate processing activity
 
 The static public pages and the hosted analysis endpoint are **not** the same
-for legal purposes. A future `POST /api/analyze` receives and processes user
-source code — potentially containing personal data, secrets and proprietary
-material — and so needs its **own** territorial, privacy, retention,
-subprocessor and data-flow assessment, distinct from the informational site.
-No such endpoint exists yet (`packages/web/src/server.ts` serves only `/`,
-`/design`, and a 404). The assessment is owned by the feature that introduces
-it (#17); this directory documents the guarantees that feature makes true.
+for legal purposes. The live `POST /analyze` and JSON content-negotiated
+equivalent receive and process one source file at a time. Source can contain
+personal data, secrets and proprietary material. The service therefore has its
+own privacy, retention, subprocessor and data-flow rules, distinct from the
+informational pages. The app does not persist source or results, but language
+detection sends the source and optional filename to TypeSafe when that
+integration is enabled.
 
 ## Current product mode
 
 Legal obligations depend on what the product actually does. Today:
 
-- There is **no hosted service that accepts user source code**. The web app
-  serves public informational pages only; deployment has been exercised on
-  LocalStack, never against real users (see `AGENTS.md` "Known gaps").
+- **The hosted service accepts one source file per analysis request**. It uses
+  `Cache-Control: no-store, private` for submitted requests and does not persist
+  source or findings in the application event store.
 - The **CLI is not published** and emits **no telemetry**.
-- **No customer content is persisted**, because there is no hosted analysis.
-- GDPR/LOPDGDD **apply to the operator's own processing** by virtue of the
-  EU/Spanish establishment (question 2 above), even though **no user-content
-  processing and no controller/processor-of-customer-data relationship exists
-  yet**. The AI Act provider/deployer roles are **not yet triggered** because
-  no AI system is placed on the market or put into service.
+- **No customer content is persisted by the application**. AWS operational logs
+  are retained for up to 7 days, and aggregate metrics are in-memory per Lambda
+  environment.
+- GDPR/LOPDGDD **apply to the operator's own processing** and the hosted
+  analysis data flow by virtue of the EU/Spanish establishment (question 2
+  above). The operator must complete its controller/processor assessment and
+  customer DPA before offering enterprise processing.
 
-When the product changes mode — accepts remote code, persists projects,
-integrates with Git providers, publishes the CLI, or deliberately targets a
-market — the triggering change updates the affected documents in the same
-commit.
+When the product changes mode — persists projects, integrates with Git
+providers, publishes the CLI, adds accounts or payments, or deliberately
+targets a market — the triggering change updates the affected documents in the
+same commit.
 
 ## Document register
 
@@ -96,14 +100,14 @@ customers under contract, or for internal use.
 
 | Document | Classification | Status | Becomes relevant when |
 | --- | --- | --- | --- |
-| [privacy-policy.md](privacy-policy.md) | Public | Draft skeleton | The operator processes any personal data (already partially true for own processing) |
-| [terms-of-service.md](terms-of-service.md) | Public | Draft skeleton | The hosted service is offered to users |
-| [acceptable-use-policy.md](acceptable-use-policy.md) | Public | Draft skeleton | The hosted service accepts user input |
-| [ai-transparency.md](ai-transparency.md) | Public | Draft skeleton | AI-assisted analysis is exposed to users |
+| [privacy-policy.md](privacy-policy.md) | Public | Served at `/privacy`; legal review required | The operator processes request data and submitted source |
+| [terms-of-service.md](terms-of-service.md) | Public | Served at `/terms`; legal review required | The hosted service is offered to users |
+| [acceptable-use-policy.md](acceptable-use-policy.md) | Public | Served at `/acceptable-use`; legal review required | The hosted service accepts user input |
+| [ai-transparency.md](ai-transparency.md) | Public | Served at `/ai-transparency`; legal review required | AI-assisted language detection is exposed to users |
 | [data-processing-agreement.md](data-processing-agreement.md) | Customer-contractual | Draft skeleton | A customer processes personal data through Principled |
-| [subprocessors.md](subprocessors.md) | Public | Draft skeleton | Any third party processes customer data |
-| [data-retention.md](data-retention.md) | Public + contractual | Draft skeleton | Any customer data is persisted |
-| [security.md](security.md) | Public | Draft skeleton | Now — vulnerability disclosure should exist early |
+| [subprocessors.md](subprocessors.md) | Public | Served at `/subprocessors`; legal review required | AWS and TypeSafe process request data |
+| [data-retention.md](data-retention.md) | Public + contractual | Engineering source of truth; legal review required | Customer-specific data is persisted |
+| [security.md](security.md) | Public | Served at `/security`; legal review required | Vulnerability disclosure exists before launch |
 | [regional-notices/](regional-notices/) | Public | Placeholder | A jurisdiction is deliberately targeted or independently in scope |
 
 Sensitive legal strategy, negotiation notes and non-public assessments do
@@ -124,9 +128,9 @@ applies to every public page.
 | EU GDPR | Applies to the operator's own processing | EU establishment (Art 3(1)) |
 | Spain LOPDGDD | Applies to the operator's own processing | Operator established in Spain |
 | EU / Spanish ePrivacy | Assessed; no cookies/tracking in use yet | Cookies/tracking on the public site |
-| EU AI Act | Not yet triggered — no AI system placed on the market | AI-assisted analysis offered to users |
+| EU AI Act | AI-assisted language detection is disclosed; classification and obligations require legal review | AI-assisted analysis offered to users |
 | EU Accessibility Act / WCAG | Design baseline tracked in `docs/design/` | Commercial service offered in the EU |
-| International data transfers | Assessed; hosting in `eu-west-1`, no non-EU subprocessor yet | A subprocessor processes data outside the EEA |
+| International data transfers | AWS hosting is in `eu-west-1`; TypeSafe is a US subprocessor using its DPA and SCCs | A subprocessor processes data outside the EEA |
 
 ### Conditional — assessed on a recorded trigger
 

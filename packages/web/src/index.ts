@@ -7,6 +7,7 @@ export {
   NOT_FOUND_BODY,
   NOT_FOUND_CACHE_CONTROL,
   PAGE_CACHE_CONTROL,
+  SECURITY_HEADERS,
 } from "./server.ts";
 export type { RequestHandlerDependencies } from "./server.ts";
 export { loadClientAssets } from "./shared/client-assets.ts";
@@ -31,6 +32,13 @@ export {
 } from "./landing/landing-page.ts";
 export { NAV_ITEMS, renderPage } from "./shared/layout.ts";
 export type { PageOptions } from "./shared/layout.ts";
+export {
+  LEGAL_PAGE_PATHS,
+  legalContactFromEnvironment,
+  renderLegalConfigurationError,
+  renderLegalPage,
+} from "./legal/legal-page.ts";
+export type { LegalContact, LegalPagePath } from "./legal/legal-page.ts";
 export { VERSION } from "./shared/version.ts";
 export { createLambdaHandler, toRequest } from "./lambda.ts";
 export type { FunctionUrlEvent, FunctionUrlResult } from "./lambda.ts";

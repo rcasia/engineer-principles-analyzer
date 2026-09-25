@@ -130,7 +130,7 @@ describe("renderPrinciplesPage", () => {
 
   it("shows the web version in the footer", () => {
     expect(renderPrinciplesPage([])).toContain(
-      '<footer class="footer">Principled · evidence before opinion · v0.0.0-dev</footer>',
+      '<footer class="footer">\n  <span>Principled · evidence before opinion · v0.0.0-dev</span>',
     );
   });
 

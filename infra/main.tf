@@ -63,17 +63,40 @@ resource "aws_lambda_function" "web" {
 
   architectures = ["arm64"] # ~20% cheaper per GB-second than x86_64.
 
+  lifecycle {
+    precondition {
+      condition = !local.use_cdn || alltrue([
+        var.legal_operator_name != null && trimspace(var.legal_operator_name) != "",
+        var.legal_operator_address != null && trimspace(var.legal_operator_address) != "",
+        var.legal_privacy_email != null && trimspace(var.legal_privacy_email) != "",
+        var.legal_security_email != null && trimspace(var.legal_security_email) != "",
+      ])
+      error_message = "Real AWS deployments require the legal operator name, address, privacy email and security email before public launch."
+    }
+  }
+
   # The Jev credential for language detection (ADR-0028). Absent by default
   # so LocalStack and the CI gate run with no secrets at all: the function
   # starts keyless and reports submissions as undetectable (ADR-0037).
   # Production sets it with -var typesafe_api_key=... (or TF_VAR_...).
   dynamic "environment" {
-    for_each = var.typesafe_api_key == null ? [] : [var.typesafe_api_key]
+    for_each = var.typesafe_api_key != null || (
+      var.legal_operator_name != null &&
+      var.legal_operator_address != null &&
+      var.legal_privacy_email != null &&
+      var.legal_security_email != null
+    ) ? [1] : []
 
     content {
-      variables = {
-        TYPESAFE_API_KEY = environment.value
-      }
+      variables = merge(
+        var.typesafe_api_key == null ? {} : { TYPESAFE_API_KEY = var.typesafe_api_key },
+        var.legal_operator_name == null || var.legal_operator_address == null || var.legal_privacy_email == null || var.legal_security_email == null ? {} : {
+          PRINCIPLED_OPERATOR_NAME    = var.legal_operator_name
+          PRINCIPLED_OPERATOR_ADDRESS = var.legal_operator_address
+          PRINCIPLED_PRIVACY_EMAIL    = var.legal_privacy_email
+          PRINCIPLED_SECURITY_EMAIL   = var.legal_security_email
+        },
+      )
     }
   }
 

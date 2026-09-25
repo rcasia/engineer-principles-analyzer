@@ -200,5 +200,10 @@ jobs:
           extra=""
           if [ -n "${{ vars.CUSTOM_DOMAIN }}" ]; then extra="-var custom_domain=${{ vars.CUSTOM_DOMAIN }}"; fi
           terraform -chdir=infra apply -auto-approve -input=false -var environment=prod $extra
+        env:
+          TF_VAR_legal_operator_name: ${{ vars.LEGAL_OPERATOR_NAME }}
+          TF_VAR_legal_operator_address: ${{ vars.LEGAL_OPERATOR_ADDRESS }}
+          TF_VAR_legal_privacy_email: ${{ vars.LEGAL_PRIVACY_EMAIL }}
+          TF_VAR_legal_security_email: ${{ vars.LEGAL_SECURITY_EMAIL }}
       - name: Check production serves the page
         run: bun scripts/check-deployed.ts

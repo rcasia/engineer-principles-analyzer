@@ -1,35 +1,35 @@
-# Security and Vulnerability Disclosure (DRAFT)
+# Security and Vulnerability Disclosure
 
-> **Status:** Draft skeleton. The vulnerability-disclosure contact should be
-> made real early, even pre-launch; the rest is completed as controls ship.
-
-**Classification:** Public.
+The public version of this notice is served at `/security`. It must be
+reviewed by qualified counsel before commercial launch. The security contact
+is published at `/imprint`.
 
 ## Vulnerability disclosure
 
-If you believe you have found a security vulnerability in Principled, please
-report it privately to _to be completed_ (security contact). Please do not
-open a public issue for security reports. We aim to acknowledge within
-_to be completed_ and will keep you informed of remediation.
+Report security issues privately to the security address at `/imprint`.
+Include enough detail to reproduce the issue, but do not include live
+credentials or unrelated personal data. Please do not publicly disclose an
+issue before the operator has had a reasonable opportunity to investigate.
 
-## Security controls (owned by the features that add them)
+## Current controls
 
-These are engineering controls; each is delivered by the relevant feature, and
-this document records the resulting posture:
+- HTTPS is enforced at the CDN and the origin uses TLS.
+- Security headers are emitted by the application as well as the CDN.
+- Submitted analysis responses are `private` and `no-store`; static pages and
+  immutable bundles use separate cache policies.
+- The production function is reachable through the CloudFront origin path, not
+  a public application endpoint.
+- Source code and complete findings are excluded from event history and
+  aggregate metrics.
+- Application log retention is capped at 7 days.
+- Dependencies are audited in the delivery pipeline.
+- The analyzer rejects requests above its configured body-size limit.
 
-- No-store analysis path (`Cache-Control: no-store, private`) and a separate
-  CloudFront behavior for user/code-specific responses (#17).
-- Request/body size limits, rate limiting and abuse controls (#17).
-- Secret scanning/redaction before code reaches any external model provider.
-- Sensitive-data logging tests: source code, prompts, results, credentials,
-  cookies, authorization headers and request bodies are never logged.
-- Encryption strategy for any persisted customer data.
-- Tenant isolation before multi-user storage.
-- Authentication/authorization model.
-- Security headers.
-- Dependency/SBOM and release-security baseline (see ADR-0011, `bun audit`).
+These controls reduce risk but cannot guarantee that an electronic service is
+invulnerable. Users must remove secrets before submission; the service does
+not promise to detect or redact every secret.
 
-## Incident response and breach notification
+## Incident response
 
-Procedure to be documented: detection, triage, containment, notification
-timelines (GDPR Article 33/34 where applicable), and post-incident review.
+The operator will assess security incidents, contain them, notify affected
+parties and supervisory authorities where required, and document remediation.

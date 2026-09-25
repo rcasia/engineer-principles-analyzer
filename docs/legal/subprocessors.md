@@ -1,29 +1,19 @@
-# Subprocessors (DRAFT — not in force)
+# Subprocessor Register
 
-> **Status:** Draft skeleton. Not published, not binding.
+The public version of this register is served at `/subprocessors`. It must be
+reviewed by qualified counsel before commercial launch.
 
 **Classification:** Public.
-**Assumed product mode:** No customer data is processed, so there are no
-subprocessors of customer data today.
 
-## Register
+| Subprocessor | Purpose | Data categories | Location and safeguards |
+| --- | --- | --- | --- |
+| AWS | CloudFront, Lambda and CloudWatch hosting | Requests, transient source code and operational logs | `eu-west-1`; AWS DPA and applicable transfer safeguards |
+| TypeSafe AI, Inc. | Jev language detection | Submitted source and optional filename | United States; TypeSafe DPA, EU SCCs and provider subprocessor register |
 
-Every third party that processes customer data must appear here with purpose,
-data categories, location and transfer mechanism (acceptance criterion, #28).
+TypeSafe states that it does not train or fine-tune models on customer input.
+Its DPA permits subprocessors under its published register. We will update
+this page before adding another provider or processing purpose.
 
-| Subprocessor | Purpose | Data categories | Location | Transfer mechanism |
-| --- | --- | --- | --- | --- |
-| _none yet_ | — | — | — | — |
-
-## Infrastructure note (not a customer subprocessor yet)
-
-The application is hosted on AWS with the region defaulting to `eu-west-1`
-(Ireland) — see `infra/`. AWS becomes a subprocessor of *customer* data only
-once the hosted analysis service processes customer content. Hosting location
-is recorded here for transfer assessment; it is not offered to users as a
-residency guarantee.
-
-## Change process
-
-- Add a subprocessor here in the same commit that introduces it.
-- Notify customers of new subprocessors per the DPA before they process data.
+Customer-contractual DPA terms are available on request where applicable. The
+operator will notify customers of material subprocessor changes in accordance
+with the applicable contract.

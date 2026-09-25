@@ -34,6 +34,27 @@ export const CLIENT_ASSET_CONTENT_TYPE = "text/javascript; charset=utf-8";
 
 export const METRICS_CONTENT_TYPE = "application/json; charset=utf-8";
 
+export const SECURITY_HEADERS = {
+  "content-security-policy":
+    "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'",
+  "cross-origin-opener-policy": "same-origin",
+  "permissions-policy": "camera=(), geolocation=(), microphone=()",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+} as const;
+
+export function secureHeaders(init?: HeadersInit): Headers {
+  const headers = new Headers(SECURITY_HEADERS);
+
+  new Headers(init).forEach((value, key) => {
+    headers.set(key, value);
+  });
+
+  return headers;
+}
+
 export function htmlResponse(
   body: string,
   status: number,
@@ -41,20 +62,33 @@ export function htmlResponse(
 ): Response {
   return new Response(body, {
     status,
-    headers: {
+    headers: secureHeaders({
       "content-type": HTML_CONTENT_TYPE,
       "cache-control": cacheControl,
-    },
+    }),
+  });
+}
+
+export function jsonResponse(
+  body: unknown,
+  init: ResponseInit = {},
+): Response {
+  const headers = secureHeaders(init.headers);
+  headers.set("content-type", METRICS_CONTENT_TYPE);
+
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers,
   });
 }
 
 export function notFoundResponse(): Response {
   return new Response(NOT_FOUND_BODY, {
     status: 404,
-    headers: {
+    headers: secureHeaders({
       "content-type": "text/plain; charset=utf-8",
       "cache-control": NOT_FOUND_CACHE_CONTROL,
-    },
+    }),
   });
 }
 
@@ -75,9 +109,9 @@ export function clientAssetResponse(
 
   return new Response(source, {
     status: 200,
-    headers: {
+    headers: secureHeaders({
       "content-type": CLIENT_ASSET_CONTENT_TYPE,
       "cache-control": CLIENT_ASSET_CACHE_CONTROL,
-    },
+    }),
   });
 }

@@ -31,8 +31,12 @@ import {
   CLIENT_ASSET_CACHE_CONTROL,
   CLIENT_ASSET_CONTENT_TYPE,
   METRICS_CONTENT_TYPE,
+  SECURITY_HEADERS,
 } from "./shared/http.ts";
-import { metricLanguageOf } from "./analyze/analyze-handler.ts";
+import {
+  isLiveAnalysisRequest,
+  metricLanguageOf,
+} from "./analyze/analyze-handler.ts";
 import type { ClientAssets } from "./shared/client-assets.ts";
 import { InvalidJevResponseError } from "@principled/core";
 
@@ -74,6 +78,7 @@ function handlerFor(overrides?: {
   readonly languageDetector?: LanguageDetector;
   readonly recordMetric?: ((event: WebMetricEvent) => void) | undefined;
   readonly readMetrics?: (() => WebMetricsSummary) | undefined;
+  readonly legalContact?: RequestHandlerDependencies["legalContact"];
 }): (request: Request) => Promise<Response> {
   const deps: RequestHandlerDependencies = {
     listPrinciples: new ListPrinciples(
@@ -104,6 +109,9 @@ function handlerFor(overrides?: {
       : {}),
     ...(overrides?.readMetrics !== undefined
       ? { readMetrics: overrides.readMetrics }
+      : {}),
+    ...(overrides?.legalContact !== undefined
+      ? { legalContact: overrides.legalContact }
       : {}),
   };
 
@@ -142,6 +150,49 @@ describe("createRequestHandler", () => {
     const body = await response.text();
     expect(body).toContain("<title>Principles | Principled</title>");
     expect(body).toContain("Test Driven Development");
+  });
+
+  it("serves configured legal pages and links the operator details", async () => {
+    const response = await handlerFor({
+      legalContact: {
+        operatorName: "Principled Labs S.L.",
+        operatorAddress: "Calle Example 1",
+        privacyEmail: "privacy@example.test",
+        securityEmail: "security@example.test",
+      },
+    })(new Request("http://localhost/privacy"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=60, stale-while-revalidate=600",
+    );
+    await expect(response.text()).resolves.toContain("Privacy notice");
+  });
+
+  it("refuses legal pages when production identity is not configured", async () => {
+    const response = await handlerFor()(new Request("http://localhost/imprint"));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    await expect(response.text()).resolves.toContain("Legal pages unavailable");
+  });
+
+  it("emits security headers on every response", async () => {
+    const handler = handlerFor({ clientAssets: editorAssets });
+    const responses = [
+      await handler(new Request("http://localhost/")),
+      await handler(new Request("http://localhost/metrics")),
+      await handler(
+        new Request("http://localhost/assets/analyze-editor-a1b2c3.js"),
+      ),
+      await handler(new Request("http://localhost/missing")),
+    ];
+
+    for (const response of responses) {
+      for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+        expect(response.headers.get(name)).toBe(value);
+      }
+    }
   });
 
   it("lets the cdn cache the principles catalog like any other page", async () => {
@@ -860,6 +911,97 @@ describe("createRequestHandler", () => {
       expect(response.headers.get("cache-control")).toBe("no-store, private");
     });
 
+    it("rejects a live analysis body above one mebibyte", async () => {
+      const response = await handlerFor()(
+        postJson({ sourceCode: "x".repeat(1_048_577) }),
+      );
+
+      expect(response.status).toBe(413);
+      await expect(response.json()).resolves.toEqual({
+        error: "Submission too large. Keep the request under 1 MiB.",
+      });
+      expect(response.headers.get("cache-control")).toBe("no-store, private");
+    });
+
+    it("rejects an oversized no-JavaScript form submission with an HTML error", async () => {
+      const form = new FormData();
+      form.set("sourceCode", "x".repeat(1_048_577));
+      const response = await handlerFor()(
+        new Request("http://localhost/analyze", {
+          method: "POST",
+          body: form,
+        }),
+      );
+
+      expect(response.status).toBe(413);
+      const body = await response.text();
+      expect(body).toContain("Submission too large. Keep the request under 1 MiB.");
+      expect(body).toContain("Auto-detect · 0 lines");
+      expect(body).toContain('aria-invalid="true"');
+    });
+
+    it("does not reject a request whose declared length is exactly the limit", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/detect", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "content-length": "65536",
+          },
+          body: "{}",
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ language: "" });
+    });
+
+    it("rejects a request whose declared length exceeds the limit", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/detect", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "content-length": "65537",
+          },
+          body: "{}",
+        }),
+      );
+
+      expect(response.status).toBe(413);
+      await expect(response.json()).resolves.toEqual({
+        error: "Detection request too large.",
+      });
+    });
+
+    it("accepts a detection body exactly at the byte limit", async () => {
+      const response = await handlerFor()(
+        new Request("http://localhost/detect", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "x".repeat(65_536),
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "expected a JSON body with sourceCode",
+      });
+    });
+
+    it("recognizes only JSON content types as live analysis requests", () => {
+      expect(isLiveAnalysisRequest(new Request("http://localhost/analyze"))).toBe(
+        false,
+      );
+      expect(
+        isLiveAnalysisRequest(
+          new Request("http://localhost/analyze", {
+            headers: { "content-type": "application/json; charset=utf-8" },
+          }),
+        ),
+      ).toBe(true);
+    });
+
     it("treats a null body as a blank buffer", async () => {
       const response = await handlerFor()(postJson(null));
 
@@ -1080,6 +1222,18 @@ describe("createRequestHandler", () => {
       expect(response.status).toBe(400);
       await expect(response.json()).resolves.toEqual({
         error: "expected a JSON body with sourceCode",
+      });
+      expect(response.headers.get("cache-control")).toBe("no-store, private");
+    });
+
+    it("rejects a detection body above 64 KiB", async () => {
+      const response = await handlerFor()(
+        postRawDetect("x".repeat(65_537)),
+      );
+
+      expect(response.status).toBe(413);
+      await expect(response.json()).resolves.toEqual({
+        error: "Detection request too large.",
       });
       expect(response.headers.get("cache-control")).toBe("no-store, private");
     });

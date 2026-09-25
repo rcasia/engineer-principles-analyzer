@@ -19,6 +19,7 @@ import { createLambdaHandler } from "./lambda.ts";
 import { detectorFor } from "./language-detector.ts";
 import { createRequestHandler } from "./server.ts";
 import { loadClientAssets } from "./shared/client-assets.ts";
+import { legalContactFromEnvironment } from "./legal/legal-page.ts";
 
 // Lambda entry point shim. All behaviour lives in createLambdaHandler and
 // createRequestHandler, which is why this file is excluded from mutation
@@ -59,6 +60,7 @@ export const handler = createLambdaHandler(
     languageDetector: detectorFor(process.env["TYPESAFE_API_KEY"]),
     eventStore: new InMemoryEventStore(),
     clientAssets,
+    legalContact: legalContactFromEnvironment(process.env),
     recordMetric: (event) => {
       metrics = metrics.record(event);
     },
