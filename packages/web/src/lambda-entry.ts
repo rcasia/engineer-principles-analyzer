@@ -8,6 +8,7 @@ import {
   ListPrinciples,
   LspRule,
   OcpRule,
+  SOLID_PRINCIPLES,
   SrpRule,
   WebMetrics,
 } from "@principled/core";
@@ -24,8 +25,9 @@ import { loadClientAssets } from "./shared/client-assets.ts";
 // testing in stryker.config.json.
 //
 // InMemoryEventStore does not survive a cold start (ADR-0015): the port is
-// real, the durable adapter is not built yet, the same gap already accepted
-// for InMemoryPrincipleCatalog and InMemoryRuleCatalog below.
+// real, the durable adapter is not built yet. The principle and rule
+// catalogs below are static seeds rebuilt on every cold start, so they
+// need no durability.
 //
 // Language detection asks Jev (ADR-0028) and the key reaches the function
 // through the `typesafe_api_key` infra variable (ADR-0037). When it is
@@ -48,7 +50,9 @@ const clientAssets = await loadClientAssets(
 let metrics = WebMetrics.empty();
 export const handler = createLambdaHandler(
   createRequestHandler({
-    listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
+    listPrinciples: new ListPrinciples(
+      new InMemoryPrincipleCatalog(SOLID_PRINCIPLES),
+    ),
     analyzeSubject: new AnalyzeSubject(
       new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule(), new IspRule(), new DipRule()]),
     ),

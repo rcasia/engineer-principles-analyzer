@@ -11,6 +11,7 @@ import {
   ListPrinciples,
   LspRule,
   OcpRule,
+  SOLID_PRINCIPLES,
   SrpRule,
 } from "@principled/core";
 import { createRequestHandler } from "./server.ts";
@@ -40,7 +41,9 @@ const clientAssets = await loadClientAssets(
 const server = Bun.serve({
   port: Number(Bun.env["PORT"] ?? 3000),
   fetch: createRequestHandler({
-    listPrinciples: new ListPrinciples(new InMemoryPrincipleCatalog()),
+    listPrinciples: new ListPrinciples(
+      new InMemoryPrincipleCatalog(SOLID_PRINCIPLES),
+    ),
     // Seeded with the real SOLID rules as they land (#10 SRP first).
     analyzeSubject: new AnalyzeSubject(
       new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule(), new IspRule(), new DipRule()]),
