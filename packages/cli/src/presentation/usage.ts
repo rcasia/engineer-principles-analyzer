@@ -19,7 +19,7 @@ Usage:
 
 Local only: analysis runs on this machine with no account, no network and
 no telemetry. Run '${COMMAND_NAME} analyze --help' for the analyze options.
-The principles catalog is empty while the analysis rules are being designed.
+The catalog lists the five SOLID principles the analyzer checks.
 See https://github.com/rcasia/principled`;
 }
 

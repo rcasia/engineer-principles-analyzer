@@ -54,7 +54,9 @@ describe("main", () => {
     const code = await main([], io.console);
 
     expect(code).toBe(0);
-    expect(io.out).toEqual(["No principles are defined yet."]);
+    expect(io.out).toEqual([
+      "- solid.srp: Single Responsibility Principle\n- solid.ocp: Open/Closed Principle\n- solid.lsp: Liskov Substitution Principle\n- solid.isp: Interface Segregation Principle\n- solid.dip: Dependency Inversion Principle",
+    ]);
     expect(io.err).toEqual([]);
   });
 

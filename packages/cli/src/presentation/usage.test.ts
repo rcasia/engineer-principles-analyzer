@@ -36,9 +36,9 @@ describe("usage", () => {
     expect(usage).toContain("no telemetry");
   });
 
-  it("tells the user the catalog is empty on purpose", () => {
+  it("tells the user the catalog lists the checked principles", () => {
     expect(renderUsage()).toContain(
-      "The principles catalog is empty while the analysis rules are being designed.",
+      "The catalog lists the five SOLID principles the analyzer checks.",
     );
   });
 

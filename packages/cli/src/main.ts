@@ -1,4 +1,8 @@
-import { InMemoryPrincipleCatalog, ListPrinciples } from "@principled/core";
+import {
+  InMemoryPrincipleCatalog,
+  ListPrinciples,
+  SOLID_PRINCIPLES,
+} from "@principled/core";
 import { readFile } from "node:fs/promises";
 import { toJsonOutput } from "./analysis/format-json.ts";
 import { toSarifOutput } from "./analysis/format-sarif.ts";
@@ -105,7 +109,9 @@ export async function main(
     return EXIT_USAGE;
   }
 
-  const listPrinciples = new ListPrinciples(new InMemoryPrincipleCatalog());
+  const listPrinciples = new ListPrinciples(
+    new InMemoryPrincipleCatalog(SOLID_PRINCIPLES),
+  );
   console.out(renderPrinciples(await listPrinciples.execute()));
 
   return EXIT_OK;
