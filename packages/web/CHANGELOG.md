@@ -1,3 +1,10 @@
+## [1.19.1](https://github.com/rcasia/principled/compare/web-v1.19.0...web-v1.19.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **core:** analyze unknown languages generically ([4834f54](https://github.com/rcasia/principled/commit/4834f54a0c9da1a0a7070324a1df4cc1093cb546))
+
 # [1.19.0](https://github.com/rcasia/principled/compare/web-v1.18.1...web-v1.19.0) (2026-09-26)
 
 
