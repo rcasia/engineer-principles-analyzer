@@ -11,7 +11,8 @@
  * One request per pause at most: empty buffers render the empty state with
  * no request, unchanged buffers never re-fire, rapid input collapses into
  * the latest buffer via debounce, and only the latest request id may
- * render, so a slow response can never paint over a newer buffer.
+ * render, so a slow response can never paint over a newer buffer. Accepted
+ * results also announce their language to the highlighting island.
  *
  * Everything DOM-touching degrades to `false` when its elements are absent,
  * mirroring the editor island's contract.
@@ -38,6 +39,9 @@ import { syncValidationEcho } from "./validation-echo.ts";
 
 /** Debounce between the last keystroke and the live request: short enough that findings track continuous typing. */
 export const LIVE_ANALYSIS_DEBOUNCE_MS = 150;
+
+/** Event used to keep the live result and syntax-highlighting islands in sync. */
+export const LANGUAGE_DETECTED_EVENT = "principled:language-detected";
 
 /**
  * Shown when the service cannot be reached or answers something
@@ -161,6 +165,17 @@ function setStatus(elements: LiveElements, text: string): void {
   elements.status.textContent = text;
 }
 
+function languageDetectedEvent(
+  document: Document,
+  language: string,
+): CustomEvent<{ readonly language: string }> {
+  const event = document.createEvent("CustomEvent") as CustomEvent<{
+    readonly language: string;
+  }>;
+  event.initCustomEvent(LANGUAGE_DETECTED_EVENT, false, false, { language });
+  return event;
+}
+
 function renderEmpty(elements: LiveElements): void {
   elements.results.innerHTML = renderLiveEmpty();
   setStatus(elements, LIVE_STATUS_EMPTY);
@@ -184,6 +199,10 @@ function updateToolbar(
   if (elements.meta !== null) {
     elements.meta.textContent = `${languageLabel(language)} · ${lineCountLabel(sourceCode)}`;
   }
+
+  elements.form.dispatchEvent(
+    languageDetectedEvent(elements.form.ownerDocument, language),
+  );
 }
 
 function dispatchInput(textarea: HTMLTextAreaElement): void {

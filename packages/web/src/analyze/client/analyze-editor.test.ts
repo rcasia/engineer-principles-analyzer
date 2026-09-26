@@ -7,6 +7,7 @@ import {
   toolbarFilename,
   type DetectLanguage,
 } from "./analyze-editor.ts";
+import { LANGUAGE_DETECTED_EVENT } from "./live-analysis.ts";
 
 function jsonResponse(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {
@@ -457,6 +458,47 @@ describe("enhanceAnalyzeEditor", () => {
       ).toBe("Go");
       expect(document.querySelector("#editorMeta")?.textContent).toBe(
         "Go · 2 lines",
+      );
+    } finally {
+      void window.close();
+    }
+  });
+
+  it("highlights the buffer when live analysis detects TypeScript", () => {
+    const { window, document, textarea } = editorDom("");
+    const sourceCode = `export class UserService {
+  async save(user: User): Promise<void> {
+    await this.db.save(user);
+    await this.mailer.sendWelcomeEmail(user.email);
+    await this.audit.log(\`created user \${user.id}\`);
+  }
+}`;
+
+    try {
+      expect(enhanceAnalyzeEditor(document, neverDetect())).toBe(true);
+
+      textarea.value = sourceCode;
+      textarea.dispatchEvent(inputEvent(window));
+      expect(document.querySelector("#sourceHighlight")?.innerHTML).not.toContain(
+        "hljs-",
+      );
+
+      document.querySelector("#analyzeForm")?.dispatchEvent(
+        new window.CustomEvent(LANGUAGE_DETECTED_EVENT, {
+          detail: { language: "typescript" },
+        }) as unknown as Event,
+      );
+
+      expect(document.querySelector("#editorLanguage")?.textContent).toBe(
+        "TypeScript",
+      );
+      expect(
+        document.querySelector<HTMLElement>("#editorLanguage")?.dataset[
+          "language"
+        ],
+      ).toBe("typescript");
+      expect(document.querySelector("#sourceHighlight")?.innerHTML).toContain(
+        '<span class="hljs-keyword">export</span>',
       );
     } finally {
       void window.close();

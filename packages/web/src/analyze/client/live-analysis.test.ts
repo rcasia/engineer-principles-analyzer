@@ -5,6 +5,7 @@ import { enhanceAnalyzeEditor } from "./analyze-editor.ts";
 import {
   enhanceLiveAnalysis,
   fetchAnalysis,
+  LANGUAGE_DETECTED_EVENT,
   LIVE_ANALYSIS_DEBOUNCE_MS,
   LIVE_FETCH_FAILED_MESSAGE,
   type AnalyzeBuffer,
@@ -439,6 +440,18 @@ describe("enhanceLiveAnalysis", () => {
         results: [{ ...findingFor("solid.srp"), language: "go" }],
       };
     };
+    const detectedLanguages: string[] = [];
+    document.querySelector("#analyzeForm")?.addEventListener(
+      LANGUAGE_DETECTED_EVENT,
+      (event) => {
+        expect(event.type).toBe("principled:language-detected");
+        expect(event.bubbles).toBe(false);
+        expect(event.cancelable).toBe(false);
+        detectedLanguages.push(
+          (event as CustomEvent<{ readonly language: string }>).detail.language,
+        );
+      },
+    );
 
     try {
       expect(enhanceLiveAnalysis(document, analyze, 5)).toBe(true);
@@ -459,6 +472,7 @@ describe("enhanceLiveAnalysis", () => {
       expect(document.querySelector("#editorFilename")?.textContent).toBe(
         "snippet.go",
       );
+      expect(detectedLanguages).toEqual(["go"]);
     } finally {
       void window.close();
     }

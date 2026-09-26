@@ -6,9 +6,11 @@
  * without any of this running. When the bundle loads, the island
  * highlights with the server-rendered language (`data-language` on the
  * badge) and asks POST /detect — the same Jev judgment the server uses on
- * submit — on paste and when a buffer loads unknown. Never per keystroke:
- * typing only re-highlights and re-counts locally, so the credential stays
- * server-side and one paste costs one call.
+ * submit — on paste and when a buffer loads unknown. Live POST /analyze
+ * results also publish their detected language back to this island, so a
+ * normal input event gets highlighted once its debounced analysis completes.
+ * Never per keystroke: typing re-highlights and re-counts locally until that
+ * live result arrives, so the credential stays server-side.
  *
  * The Phase 2 validation echo (#50) rides on the same state: every render
  * also syncs the server's rejection wording for the current buffer, so an
@@ -36,6 +38,7 @@ import { enhanceExampleSwitching } from "./example-switcher.ts";
 import {
   enhanceLiveAnalysis,
   fetchAnalysis,
+  LANGUAGE_DETECTED_EVENT,
   LIVE_ANALYSIS_DEBOUNCE_MS,
 } from "./live-analysis.ts";
 import { syncValidationEcho } from "./validation-echo.ts";
@@ -163,6 +166,7 @@ function render(elements: EditorElements, language: string): void {  const sourc
 
   elements.backdrop.innerHTML = `${highlightedHtml(sourceCode, language)}\n`;
   elements.badge.textContent = languageLabel(language);
+  elements.badge.dataset["language"] = language;
   // Read live, not cached: example switching rewrites the dataset, and the
   // toolbar must follow the newest fill rather than the loaded buffer.
   elements.filename.textContent = toolbarFilename(
@@ -247,6 +251,18 @@ export function enhanceAnalyzeEditor(
 
   render(elements, state.language);
   backdrop.closest(".editor__stage")?.classList.add("editor--live");
+
+  form.addEventListener(LANGUAGE_DETECTED_EVENT, (event) => {
+    const language = (event as CustomEvent<{ readonly language?: unknown }>).detail
+      ?.language;
+
+    if (typeof language !== "string") {
+      return;
+    }
+
+    state.language = language;
+    render(elements, state.language);
+  });
 
   if (elements.textarea.value.trim().length > 0 && state.language === "") {
     void refreshLanguage(elements, state, detect);
