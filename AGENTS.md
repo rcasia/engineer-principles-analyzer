@@ -74,7 +74,10 @@ If `bun run check` is red, nothing else matters. Fix that first.
    green. If the pipeline fails, stop other work and immediately revert the
    failing commit on `main`, push the revert, and watch that recovery run to
    green before continuing. Fix the original change in a follow-up commit;
-   never leave a red commit blocking production deployments. A commit left on
+   never leave a red commit blocking production deployments. A revert does
+   not end the task: stay in the session and keep solving it — re-apply the
+   fix forward as a new commit once `main` is green again, rather than
+   dropping the work. A commit left on
    a local branch or an unobserved pipeline is not delivered work.
 
    Push often, not once at the end. Every green commit that lands on `main`
