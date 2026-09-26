@@ -1,3 +1,15 @@
+## [1.21.1](https://github.com/rcasia/principled/compare/web-v1.21.0...web-v1.21.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **deps:** use bun ecosystem for Dependabot updates ([7495cf2](https://github.com/rcasia/principled/commit/7495cf2650f1afeecbe5aeee3f3ec679309ca983))
+
+
+### Reverts
+
+* **infra:** drop SSM key delivery until bootstrap grants access ([f5ffc62](https://github.com/rcasia/principled/commit/f5ffc625145f199a342e396b3adc7dda1b5e08b8))
+
 # [1.21.0](https://github.com/rcasia/principled/compare/web-v1.20.0...web-v1.21.0) (2026-09-26)
 
 
