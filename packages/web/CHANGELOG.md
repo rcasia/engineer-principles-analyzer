@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/rcasia/principled/compare/web-v1.18.1...web-v1.19.0) (2026-09-26)
+
+
+### Features
+
+* **core:** explain each SOLID principle in the catalog ([1460421](https://github.com/rcasia/principled/commit/14604217c456a321f5147d497269df722f5fb105))
+
 ## [1.18.1](https://github.com/rcasia/principled/compare/web-v1.18.0...web-v1.18.1) (2026-09-26)
 
 
