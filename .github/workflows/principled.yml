@@ -59,4 +59,6 @@ jobs:
       - name: Upload findings to code scanning
         uses: github/codeql-action/upload-sarif@v3
         with:
-          path: sarif/
+          # v3 accepts sarif_file (file or directory), not path: the old key
+          # was silently ignored and the step failed on the ../results default.
+          sarif_file: sarif/
