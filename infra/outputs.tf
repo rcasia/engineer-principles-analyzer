@@ -29,3 +29,8 @@ output "log_group" {
   description = "CloudWatch log group for the web adapter."
   value       = aws_cloudwatch_log_group.web.name
 }
+
+output "typesafe_api_key_ssm_parameter" {
+  description = "SSM SecureString parameter holding the Jev API key (ADR-0045). A name, not a value: create it by hand, e.g. aws ssm put-parameter --name <this> --value \"$KEY\" --type SecureString. Terraform never reads or writes the value. Empty on LocalStack, which runs keyless."
+  value       = local.use_cdn ? local.typesafe_api_key_ssm_parameter : ""
+}

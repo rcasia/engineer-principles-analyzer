@@ -46,6 +46,48 @@ resource "aws_cloudwatch_log_group" "web" {
   retention_in_days = var.log_retention_days
 }
 
+data "aws_caller_identity" "current" {}
+
+# The Jev API key lives in SSM Parameter Store, created by hand, not by
+# Terraform (ADR-0045): the operator writes the value once per environment
+# with `put-parameter`, so the secret never crosses the deploy pipeline,
+# CI needs no secret configuration, and rotation needs no redeploy. The
+# stack only assumes the naming convention below — Terraform never reads
+# or writes the value, which is why the deploy role needs no SSM access
+# at all. LocalStack and the CI gate run keyless by design (ADR-0037).
+locals {
+  typesafe_api_key_ssm_parameter = "/${local.name_prefix}/typesafe-api-key"
+}
+
+data "aws_iam_policy_document" "web_ssm" {
+  count = local.use_cdn ? 1 : 0
+
+  statement {
+    sid       = "ReadJevKey"
+    effect    = "Allow"
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${local.typesafe_api_key_ssm_parameter}"]
+  }
+
+  # SecureString values are encrypted under the default `aws/ssm` key, so
+  # reading the parameter requires decrypting with it. Scoped to that key
+  # alias: no customer-managed key, no extra cost.
+  statement {
+    sid       = "DecryptJevKey"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt"]
+    resources = ["arn:aws:kms:${var.aws_region}:${data.aws_caller_identity.current.account_id}:alias/aws/ssm"]
+  }
+}
+
+resource "aws_iam_role_policy" "web_ssm" {
+  count = local.use_cdn ? 1 : 0
+
+  name   = "${local.name_prefix}-web-ssm"
+  role   = aws_iam_role.web.id
+  policy = data.aws_iam_policy_document.web_ssm[0].json
+}
+
 resource "aws_lambda_function" "web" {
   function_name = "${local.name_prefix}-web"
   role          = aws_iam_role.web.arn
@@ -78,15 +120,18 @@ resource "aws_lambda_function" "web" {
     }
   }
 
-  # The Jev credential for language detection (ADR-0028). Absent by default
-  # so LocalStack and the CI gate run with no secrets at all: the function
-  # starts keyless and reports submissions as undetectable (ADR-0037).
-  # Production sets it with -var typesafe_api_key=... (or TF_VAR_...).
+  # The Jev credential for language detection (ADR-0028) travels as the SSM
+  # parameter *name*, never the value (ADR-0045): the operator creates the
+  # parameter by hand, so LocalStack and the CI gate run with no secrets at
+  # all and the function starts keyless there (ADR-0037). On real AWS the
+  # function reads the value at cold start with its own role; a missing or
+  # wrong value degrades to `"unknown"` (ADR-0040, ADR-0044), never a failed
+  # cold start.
   # The domicile travels only when set and non-blank, so a personal,
   # non-economic project (ADR-0043) deploys with name plus emails and no
   # home address; a blank address is treated as absent, never published.
   dynamic "environment" {
-    for_each = var.typesafe_api_key != null || (
+    for_each = local.use_cdn || (
       var.legal_operator_name != null &&
       var.legal_privacy_email != null &&
       var.legal_security_email != null
@@ -94,7 +139,7 @@ resource "aws_lambda_function" "web" {
 
     content {
       variables = merge(
-        var.typesafe_api_key == null ? {} : { TYPESAFE_API_KEY = var.typesafe_api_key },
+        local.use_cdn ? { TYPESAFE_API_KEY_SSM_PARAMETER = local.typesafe_api_key_ssm_parameter } : {},
         var.legal_operator_name == null || var.legal_privacy_email == null || var.legal_security_email == null ? {} : merge(
           {
             PRINCIPLED_OPERATOR_NAME  = var.legal_operator_name
