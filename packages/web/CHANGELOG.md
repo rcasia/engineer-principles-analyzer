@@ -1,3 +1,10 @@
+## [1.18.1](https://github.com/rcasia/principled/compare/web-v1.18.0...web-v1.18.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **web:** make imprint domicile optional for non-economic projects ([66e67d8](https://github.com/rcasia/principled/commit/66e67d89ef5ee759769008ebf6fe45dbd268fde2))
+
 # [1.18.0](https://github.com/rcasia/principled/compare/web-v1.17.2...web-v1.18.0) (2026-09-26)
 
 
