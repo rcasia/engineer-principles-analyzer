@@ -65,10 +65,17 @@ If `bun run check` is red, nothing else matters. Fix that first.
    `*.tfstate`, `*.tfvars`, `infra/build/` and `.env`. Check `git status`
    before staging.
 
-7. **Done means pushed to `main`.** The trunk is the delivery target: once
-   `bun run check` is green, commit and push. If `origin/main` moved while
-   you worked, `git pull --rebase` first. A commit left on a local branch is
-   not delivered work.
+7. **Done means pushed to `main` and observed green.** The trunk is the
+   delivery target: once the deterministic pre-commit/pre-push hooks and
+   `bun run check` are green, commit and push to `origin/main` immediately.
+   Do not hold a green change locally or wait for unrelated work to batch
+   with it. If `origin/main` moved while you worked, `git pull --rebase` first.
+   After pushing, watch the GitHub Actions run for that commit until it is
+   green. If the pipeline fails, stop other work and immediately revert the
+   failing commit on `main`, push the revert, and watch that recovery run to
+   green before continuing. Fix the original change in a follow-up commit;
+   never leave a red commit blocking production deployments. A commit left on
+   a local branch or an unobserved pipeline is not delivered work.
 
    Push often, not once at the end. Every green commit that lands on `main`
    is one another agent can rebase onto immediately, so integrating early and
