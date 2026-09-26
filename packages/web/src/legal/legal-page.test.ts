@@ -76,23 +76,54 @@ const completeEnvironment = {
 
 
 describe("legalContactFromEnvironment", () => {
-  it.each(Object.keys(completeEnvironment))(
-    "requires %s",
-    (missingKey) => {
-      const environment = { ...completeEnvironment };
-      delete environment[missingKey as keyof typeof completeEnvironment];
+  it.each([
+    "PRINCIPLED_OPERATOR_NAME",
+    "PRINCIPLED_PRIVACY_EMAIL",
+    "PRINCIPLED_SECURITY_EMAIL",
+  ])("requires %s", (missingKey) => {
+    const environment = { ...completeEnvironment };
+    delete environment[missingKey as keyof typeof completeEnvironment];
 
-      expect(legalContactFromEnvironment(environment)).toBeUndefined();
-    },
-  );
+    expect(legalContactFromEnvironment(environment)).toBeUndefined();
+  });
 
-  it.each(Object.keys(completeEnvironment))("rejects blank %s", (blankKey) => {
+  it("treats a missing domicile as a personal project without a published address", () => {
+    const { PRINCIPLED_OPERATOR_ADDRESS: _omitted, ...rest } =
+      completeEnvironment;
+
+    expect(legalContactFromEnvironment(rest)).toEqual({
+      operatorName: "Principled Labs S.L.",
+      operatorAddress: undefined,
+      privacyEmail: "privacy@example.test",
+      securityEmail: "security@example.test",
+    });
+  });
+
+  it.each([
+    "PRINCIPLED_OPERATOR_NAME",
+    "PRINCIPLED_PRIVACY_EMAIL",
+    "PRINCIPLED_SECURITY_EMAIL",
+  ])("rejects blank %s", (blankKey) => {
     const environment = {
       ...completeEnvironment,
       [blankKey]: "   ",
     };
 
     expect(legalContactFromEnvironment(environment)).toBeUndefined();
+  });
+
+  it("treats a blank domicile as absent instead of failing", () => {
+    expect(
+      legalContactFromEnvironment({
+        ...completeEnvironment,
+        PRINCIPLED_OPERATOR_ADDRESS: "   ",
+      }),
+    ).toEqual({
+      operatorName: "Principled Labs S.L.",
+      operatorAddress: undefined,
+      privacyEmail: "privacy@example.test",
+      securityEmail: "security@example.test",
+    });
   });
 
   it("rejects malformed email configuration", () => {
@@ -169,6 +200,20 @@ describe("renderLegalPage", () => {
     expect(html).toContain("Name &lt;unsafe&gt;");
     expect(html).toContain("One<br>Two &amp; Three");
     expect(html).not.toContain("<unsafe>");
+  });
+
+  it("renders the imprint without a domicile line for personal projects", () => {
+    const html = renderLegalPage("/imprint", {
+      operatorName: "Jane Doe",
+      operatorAddress: undefined,
+      privacyEmail: "privacy@example.test",
+      securityEmail: "security@example.test",
+    });
+
+    expect(html).toContain("Operator");
+    expect(html).toContain("Jane Doe");
+    expect(html).toContain("privacy@example.test");
+    expect(html).not.toContain("Calle Example 1");
   });
 
   it("rejects an unknown legal path at the renderer boundary", () => {

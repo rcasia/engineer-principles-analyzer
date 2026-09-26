@@ -48,11 +48,15 @@ Until `AWS_DEPLOY_ROLE_ARN` is set as a repository variable the deploy job is
 skipped, so the pipeline stays green without an AWS account.
 
 Before enabling production deployment, configure the repository variables
-`LEGAL_OPERATOR_NAME`, `LEGAL_OPERATOR_ADDRESS`, `LEGAL_PRIVACY_EMAIL` and
-`LEGAL_SECURITY_EMAIL`. Terraform rejects a real AWS deployment without them;
-the values are rendered on `/imprint` and the public privacy and security
-pages. Do not use personal contact details here unless the operator has chosen
-them for public publication.
+`LEGAL_OPERATOR_NAME`, `LEGAL_PRIVACY_EMAIL` and `LEGAL_SECURITY_EMAIL`.
+`LEGAL_OPERATOR_ADDRESS` is required only for economic activity under LSSI
+art.10.1.a; a personal, free project without economic activity or advertising
+may omit it (ADR-0043) rather than publish a home address. Terraform rejects a
+real AWS deployment without name and both emails; the values are rendered on
+`/imprint` and the public privacy and security pages. Do not use personal
+contact details here unless the operator has chosen them for public
+publication. Data-protection review (IPs, submitted source, TypeSafe US
+subprocessor) is separate — see `docs/legal/README.md`.
 
 To apply by hand against real AWS:
 

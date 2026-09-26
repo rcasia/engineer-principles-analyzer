@@ -86,7 +86,13 @@ variable "legal_operator_name" {
 }
 
 variable "legal_operator_address" {
-  description = "Legal address of the operator, published on the web imprint. Required for real AWS deployments."
+  description = <<-EOT
+    Domicile published on the web imprint. Required for economic activity
+    under LSSI art.10.1.a; omit it (null or blank) for a personal, free
+    project without economic activity or advertising, which is outside that
+    scope (ADR-0043). Never publish a home address unless chosen for public
+    publication.
+  EOT
   type        = string
   default     = null
   nullable    = true

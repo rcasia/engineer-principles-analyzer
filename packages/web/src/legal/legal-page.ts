@@ -15,7 +15,13 @@ export type LegalPagePath = (typeof LEGAL_PAGE_PATHS)[number];
 
 export interface LegalContact {
   readonly operatorName: string;
-  readonly operatorAddress: string;
+  /**
+   * Domicile published on the imprint. Optional for personal, non-economic
+   * projects outside LSSI art.10 scope (ADR-0043): GDPR transparency is met
+   * with name plus contact emails, and no home address is published.
+   * Economic operators must still set it (LSSI art.10.1.a).
+   */
+  readonly operatorAddress?: string | undefined;
   readonly privacyEmail: string;
   readonly securityEmail: string;
 }
@@ -24,20 +30,27 @@ export interface LegalContact {
  * Legal identity is deployment configuration, not source code. Returning
  * undefined for incomplete configuration lets local tests and LocalStack boot
  * while the production Terraform precondition prevents an incomplete launch.
+ *
+ * Only the operator name and the two contact emails are required: the
+ * domicile stays optional so a personal, free project without economic
+ * activity (outside LSSI art.10 scope, ADR-0043) is not forced to publish a
+ * home address. A blank address is treated as absent, not as a failure.
  */
 export function legalContactFromEnvironment(
   environment: Readonly<Record<string, string | undefined>>,
 ): LegalContact | undefined {
   const operatorName = environment["PRINCIPLED_OPERATOR_NAME"]?.trim();
-  const operatorAddress = environment["PRINCIPLED_OPERATOR_ADDRESS"]?.trim();
+  const rawAddress = environment["PRINCIPLED_OPERATOR_ADDRESS"]?.trim();
+  const operatorAddress =
+    rawAddress === undefined || rawAddress.length === 0
+      ? undefined
+      : rawAddress;
   const privacyEmail = environment["PRINCIPLED_PRIVACY_EMAIL"]?.trim();
   const securityEmail = environment["PRINCIPLED_SECURITY_EMAIL"]?.trim();
 
   if (
     operatorName === undefined ||
     operatorName.length === 0 ||
-    operatorAddress === undefined ||
-    operatorAddress.length === 0 ||
     !isEmail(privacyEmail) ||
     !isEmail(securityEmail)
   ) {
@@ -52,10 +65,13 @@ function isEmail(value: string | undefined): value is string {
 }
 
 function contactBlock(contact: LegalContact): string {
+  const address =
+    contact.operatorAddress === undefined
+      ? ""
+      : `  <p>${escapeHtml(contact.operatorAddress).replaceAll("\n", "<br>")}</p>\n`;
   return `<div class="legal-contact">
   <p><strong>${escapeHtml(contact.operatorName)}</strong></p>
-  <p>${escapeHtml(contact.operatorAddress).replaceAll("\n", "<br>")}</p>
-  <p>Privacy: <a href="mailto:${escapeHtml(contact.privacyEmail)}">${escapeHtml(contact.privacyEmail)}</a></p>
+${address}  <p>Privacy: <a href="mailto:${escapeHtml(contact.privacyEmail)}">${escapeHtml(contact.privacyEmail)}</a></p>
   <p>Security: <a href="mailto:${escapeHtml(contact.securityEmail)}">${escapeHtml(contact.securityEmail)}</a></p>
 </div>`;
 }

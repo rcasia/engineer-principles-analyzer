@@ -169,6 +169,22 @@ describe("createRequestHandler", () => {
     await expect(response.text()).resolves.toContain("Privacy notice");
   });
 
+  it("serves the imprint without a domicile for personal projects", async () => {
+    const response = await handlerFor({
+      legalContact: {
+        operatorName: "Jane Doe",
+        operatorAddress: undefined,
+        privacyEmail: "privacy@example.test",
+        securityEmail: "security@example.test",
+      },
+    })(new Request("http://localhost/imprint"));
+
+    expect(response.status).toBe(200);
+    const body = await response.text();
+    expect(body).toContain("Operator");
+    expect(body).toContain("Jane Doe");
+  });
+
   it("refuses legal pages when production identity is not configured", async () => {
     const response = await handlerFor()(new Request("http://localhost/imprint"));
 
