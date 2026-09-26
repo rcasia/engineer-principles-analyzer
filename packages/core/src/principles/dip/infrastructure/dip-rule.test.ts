@@ -30,6 +30,29 @@ describe("DipRule", () => {
     );
   });
 
+  test("analyzes an unknown language generically", async () => {
+    const result = await rule.evaluate(
+      subjectOf('import fs from "node:fs";', "unknown"),
+    );
+
+    expect(result.status).toBe("uncertain");
+    expect(result.method).toBe("heuristic");
+    expect(result.confidence.value).toBe(0.4);
+    expect(result.language).toBe("unknown");
+    expect(result.explanation).toBe(
+      "Could not confidently confirm or rule out a dependency-inversion violation. Found 1 inversion signal(s): 1 infrastructure import(s), 0 concrete instantiation(s).",
+    );
+  });
+
+  test("reads unknown despite surrounding whitespace and case", async () => {
+    const result = await rule.evaluate(
+      subjectOf('import { format } from "./format";', " Unknown "),
+    );
+
+    expect(result.status).toBe("compliant");
+    expect(result.language).toBe(" Unknown ");
+  });
+
   test("reports compliant for decoupled code", async () => {
     const result = await rule.evaluate(
       subjectOf('import { format } from "./format";\nconst m = new Map();'),

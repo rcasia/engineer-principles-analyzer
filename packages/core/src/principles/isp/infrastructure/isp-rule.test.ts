@@ -34,6 +34,29 @@ describe("IspRule", () => {
     );
   });
 
+  test("analyzes an unknown language generically", async () => {
+    const result = await rule.evaluate(
+      subjectOf(`interface User {\n${members(3)}\n}`, "unknown"),
+    );
+
+    expect(result.status).toBe("compliant");
+    expect(result.method).toBe("heuristic");
+    expect(result.confidence.value).toBe(0.65);
+    expect(result.language).toBe("unknown");
+  });
+
+  test("reads unknown despite surrounding whitespace and case", async () => {
+    const result = await rule.evaluate(
+      subjectOf("export function add(a: number, b: number) { return a + b; }", " Unknown "),
+    );
+
+    expect(result.status).toBe("not_applicable");
+    expect(result.language).toBe(" Unknown ");
+    expect(result.explanation).toBe(
+      "No interface- or object-type construct was found to evaluate for interface segregation.",
+    );
+  });
+
   test("reports not_applicable when the subject has no interface", async () => {
     const result = await rule.evaluate(
       subjectOf("export function add(a: number, b: number) { return a + b; }"),

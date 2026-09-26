@@ -13,8 +13,8 @@
  * The six languages match the closed option set the web detector judges
  * between, so whenever both adapters settle on the same language the
  * shared engine produces identical findings (#20). `"unknown"` is the
- * non-blocking fallback both adapters share: heuristic rules report
- * `not_applicable` for it while Jev-backed rules judge generically.
+ * non-blocking fallback both adapters share: heuristic rules analyze recognizable
+ * constructs generically (ADR-0044) while Jev-backed rules judge generically.
  */
 import { UNKNOWN_LANGUAGE } from "@principled/core";
 

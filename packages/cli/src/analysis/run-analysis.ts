@@ -36,8 +36,8 @@ export function createRuleCatalog(): InMemoryRuleCatalog {
  * an explicit language first, then the filename extension, otherwise
  * `"unknown"` (see `offline-language.ts` for why content is never guessed
  * here). No account, no network, no telemetry — local only (#43).
- * An unidentified language never blocks: heuristic rules report
- * `not_applicable` for it while Jev-backed rules judge generically (ADR-0040).
+ * An unidentified language never blocks: heuristic rules analyze recognizable
+ * constructs generically while Jev-backed rules judge generically (ADR-0040, ADR-0044).
  *
  * Error messages name the failure, never the submitted source: callers can
  * print them without leaking code into logs.

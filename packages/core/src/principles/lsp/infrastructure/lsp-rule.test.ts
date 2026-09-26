@@ -30,6 +30,28 @@ describe("LspRule", () => {
     );
   });
 
+  test("analyzes an unknown language generically", async () => {
+    const source = `${PARENT}\nclass Rock extends Animal {\n  speak() { throw new Error('silent'); }\n  fly() { throw new Error('heavy'); }\n}`;
+    const result = await rule.evaluate(subjectOf(source, "unknown"));
+
+    expect(result.status).toBe("violation");
+    expect(result.method).toBe("heuristic");
+    expect(result.confidence.value).toBe(0.55);
+    expect(result.language).toBe("unknown");
+  });
+
+  test("reads unknown despite surrounding whitespace and case", async () => {
+    const result = await rule.evaluate(
+      subjectOf("class Point {\n  getX() { return 1; }\n}", " Unknown "),
+    );
+
+    expect(result.status).toBe("not_applicable");
+    expect(result.language).toBe(" Unknown ");
+    expect(result.explanation).toBe(
+      "No inheritance relationship was found to evaluate for substitutability.",
+    );
+  });
+
   test("reports not_applicable when the subject has no inheritance", async () => {
     const result = await rule.evaluate(
       subjectOf("class Point {\n  getX() { return 1; }\n}"),

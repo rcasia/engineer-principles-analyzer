@@ -28,6 +28,130 @@ describe("SrpRule", () => {
     );
   });
 
+  test("analyzes an unknown language with brace classes generically", async () => {
+    const source =
+      "class UserManager {\n  save(user) {}\n  load(id) {}\n  send(email) {}\n  notify(user) {}\n  render(user) {}\n  display(user) {}\n}";
+    const result = await rule.evaluate(subjectOf(source, "unknown"));
+
+    expect(result.status).toBe("violation");
+    expect(result.method).toBe("heuristic");
+    expect(result.confidence.value).toBe(0.55);
+    expect(result.language).toBe("unknown");
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.excerpt).toBe("class UserManager { … }");
+    expect(result.remediation).toBe(
+      'Consider splitting responsibilities: extract persistence/communication/presentation out of "UserManager" into its own collaborator(s).',
+    );
+  });
+
+  test("analyzes an unknown language with python classes as python", async () => {
+    const source = [
+      "class UserManager:",
+      "    def save_user(self, user):",
+      "        pass",
+      "    def load_user(self, user_id):",
+      "        pass",
+      "    def send_email(self, email):",
+      "        pass",
+      "    def notify_user(self, user):",
+      "        pass",
+      "    def render_profile(self, user):",
+      "        pass",
+      "    def display_dashboard(self, user):",
+      "        pass",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "unknown"));
+
+    expect(result.status).toBe("violation");
+    expect(result.method).toBe("heuristic");
+    expect(result.language).toBe("unknown");
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.excerpt).toBe("class UserManager: …");
+    expect(result.remediation).toBe(
+      'Consider splitting responsibilities: extract persistence/communication/presentation out of "UserManager" into its own module(s).',
+    );
+  });
+
+  test("reads unknown despite surrounding whitespace and case", async () => {
+    const source =
+      "class UserManager {\n  save(user) {}\n  load(id) {}\n  send(email) {}\n  notify(user) {}\n  render(user) {}\n  display(user) {}\n}";
+    const result = await rule.evaluate(subjectOf(source, " Unknown "));
+
+    expect(result.status).toBe("violation");
+    expect(result.language).toBe(" Unknown ");
+  });
+
+  test("does not read python classes as typescript: known languages stay strict", async () => {
+    const source = [
+      "class UserManager:",
+      "    def save_user(self, user):",
+      "        pass",
+      "    def load_user(self, user_id):",
+      "        pass",
+      "    def send_email(self, email):",
+      "        pass",
+      "    def notify_user(self, user):",
+      "        pass",
+      "    def render_profile(self, user):",
+      "        pass",
+      "    def display_dashboard(self, user):",
+      "        pass",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "typescript"));
+
+    expect(result.status).toBe("not_applicable");
+    expect(result.explanation).toBe(
+      "No class-like construct was found to evaluate for responsibility concentration.",
+    );
+  });
+
+  test("does not read brace classes as python: known languages stay strict", async () => {
+    const source =
+      "class UserManager {\n  save(user) {}\n  load(id) {}\n  send(email) {}\n  notify(user) {}\n  render(user) {}\n  display(user) {}\n}";
+    const result = await rule.evaluate(subjectOf(source, "python"));
+
+    expect(result.status).toBe("not_applicable");
+    expect(result.explanation).toBe(
+      "No class-like construct was found to evaluate for responsibility concentration.",
+    );
+  });
+
+  test("prefers the python shape for unknown when the body carries braces", async () => {
+    const source = [
+      "class Config:",
+      '    options = {"a": 1}',
+      "    def save_data(self):",
+      "        pass",
+      "    def load_data(self):",
+      "        pass",
+      "    def send_mail(self):",
+      "        pass",
+      "    def notify_user(self):",
+      "        pass",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "unknown"));
+
+    expect(result.status).toBe("uncertain");
+    expect(result.explanation).toBe(
+      "Could not confidently confirm or rule out a single-responsibility violation. " +
+        '"Config" touches 2 responsibility domains: persistence (save_data, load_data); communication (send_mail, notify_user).',
+    );
+    expect(result.evidence[0]?.excerpt).toBe("class Config: …");
+  });
+
+  test("reports not_applicable for unknown with no class construct", async () => {
+    const result = await rule.evaluate(subjectOf("hello world", "unknown"));
+
+    expect(result.status).toBe("not_applicable");
+    expect(result.method).toBe("deterministic");
+    expect(result.confidence.value).toBe(1);
+    expect(result.evidence).toEqual([]);
+    expect(result.explanation).toBe(
+      "No class-like construct was found to evaluate for responsibility concentration.",
+    );
+    expect(result.language).toBe("unknown");
+  });
+
   test("reports not_applicable when the subject has no class construct", async () => {
     const result = await rule.evaluate(
       subjectOf("export function add(a: number, b: number) { return a + b; }"),

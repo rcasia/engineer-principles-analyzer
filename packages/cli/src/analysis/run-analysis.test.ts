@@ -69,7 +69,8 @@ describe("runAnalysis", () => {
     expect(outcome.language).toBe("unknown");
     expect(outcome.run.results).toHaveLength(1);
     expect(outcome.run.results[0]?.ruleId).toBe("solid.srp");
-    expect(outcome.run.results[0]?.status).toBe("not_applicable");
+    expect(outcome.run.results[0]?.status).toBe("violation");
+    expect(outcome.run.results[0]?.method).toBe("heuristic");
     expect(outcome.run.results[0]?.language).toBe("unknown");
   });
 
@@ -82,7 +83,8 @@ describe("runAnalysis", () => {
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.language).toBe("unknown");
-    expect(outcome.run.results[0]?.status).toBe("not_applicable");
+    expect(outcome.run.results[0]?.status).toBe("violation");
+    expect(outcome.run.results[0]?.method).toBe("heuristic");
   });
 
   test("reports an empty subject without echoing any source", async () => {

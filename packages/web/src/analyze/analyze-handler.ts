@@ -191,8 +191,8 @@ async function settleAnalysis(
   // effective language always comes from Jev over the source and filename.
   // An unidentified language never blocks (ADR-0040): Jev's `other`,
   // a Jev failure, or a missing key all degrade to `"unknown"` and the run
-  // proceeds — heuristic rules report `not_applicable` for it while
-  // Jev-backed rules judge the source generically.
+  // proceeds — heuristic rules analyze recognizable constructs generically
+  // (ADR-0044) while Jev-backed rules judge the source generically.
   const language = (await detectedLanguage(
     deps.languageDetector,
     sourceCode,

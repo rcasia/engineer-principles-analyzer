@@ -28,6 +28,34 @@ describe("OcpRule", () => {
     );
   });
 
+  test("analyzes an unknown language generically", async () => {
+    const source = [
+      "function area(shape) {",
+      "  switch (shape.kind) {",
+      "    case 'circle': return 1;",
+      "  }",
+      "  if (typeof shape === 'string') {}",
+      "  if (shape instanceof Circle) {}",
+      "}",
+    ].join("\n");
+    const result = await rule.evaluate(subjectOf(source, "unknown"));
+
+    expect(result.status).toBe("violation");
+    expect(result.method).toBe("heuristic");
+    expect(result.confidence.value).toBe(0.55);
+    expect(result.language).toBe("unknown");
+    expect(result.explanation).toBe(
+      "Found branching evidence of extension by modification. Found 3 extension signal(s): 1 switch statement(s), 0 else-if(s), 2 type guard(s).",
+    );
+  });
+
+  test("reads unknown despite surrounding whitespace and case", async () => {
+    const result = await rule.evaluate(subjectOf("const x = 1;", " Unknown "));
+
+    expect(result.status).toBe("compliant");
+    expect(result.language).toBe(" Unknown ");
+  });
+
   test("reports compliant for sequential code with no signals", async () => {
     const result = await rule.evaluate(subjectOf("const x = 1;\nreturn x + 1;"));
 

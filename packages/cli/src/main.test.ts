@@ -184,9 +184,9 @@ describe("main", () => {
       },
     });
 
-    expect(code).toBe(0);
+    expect(code).toBe(1);
     expect(io.out).toHaveLength(1);
-    expect(io.out[0]).toContain("not_applicable solid.srp");
+    expect(io.out[0]).toContain("violation solid.srp");
     expect(io.err).toEqual([]);
   });
 

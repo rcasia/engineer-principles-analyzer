@@ -4,7 +4,7 @@ import { Confidence } from "../../../analysis/domain/confidence.ts";
 import { Evidence } from "../../../analysis/domain/evidence.ts";
 import { SourceLocation } from "../../../analysis/domain/source-location.ts";
 import type { Rule } from "../../../engine/application/rule.port.ts";
-import type { Subject } from "../../../engine/domain/subject.ts";
+import { UNKNOWN_LANGUAGE, type Subject } from "../../../engine/domain/subject.ts";
 import { unwrap } from "../../../shared/result.ts";
 import {
   assessClass,
@@ -63,16 +63,19 @@ export class SrpRule implements Rule {
   readonly id = SRP_RULE_ID;
 
   async evaluate(subject: Subject): Promise<AnalysisResult> {
-    if (!isSupportedLanguage(subject.language)) {
+    if (
+      !isSupportedLanguage(subject.language) &&
+      !isUnknownLanguage(subject.language)
+    ) {
       return notApplicable(
         subject,
         `This rule does not yet know how to detect class-shaped constructs in "${subject.language}".`,
       );
     }
 
-    const classes = extractDeclarations(subject);
+    const extracted = extractDeclarations(subject);
 
-    if (classes.length === 0) {
+    if (extracted.declarations.length === 0) {
       return notApplicable(
         subject,
         "No class-like construct was found to evaluate for responsibility concentration.",
@@ -81,18 +84,69 @@ export class SrpRule implements Rule {
 
     return fromAssessments(
       subject,
-      classes.map((declaration) => assessClass(declaration, subject.language)),
+      extracted.declarations.map((declaration) =>
+        assessClass(declaration, extracted.assessmentLanguage),
+      ),
+      extracted.helperLanguage,
     );
   }
 }
 
-/** The class-shaped constructs of one subject, read in its own language. */
-function extractDeclarations(subject: Subject): readonly ClassDeclaration[] {
-  if (subject.language.trim().toLowerCase() === "python") {
-    return extractPythonClasses(subject.sourceCode);
+function isUnknownLanguage(language: string): boolean {
+  return language.trim().toLowerCase() === UNKNOWN_LANGUAGE;
+}
+
+/**
+ * The class-shaped constructs of one subject, read in its own language.
+ *
+ * An `"unknown"` subject carries no language to interpret against, so both
+ * shapes are tried: Python's indentation shape first (a brace scan would
+ * otherwise misread a `{` inside a Python body, e.g. a dict literal, as a
+ * class body), then brace-shaped classes (TypeScript, JavaScript, Java and
+ * any other brace language pasted without a filename) when no Python class
+ * was found. The returned languages drive method-name interpretation,
+ * evidence shape and remediation wording, while the result itself still
+ * reports `"unknown"` — provenance stays honest about what was (not)
+ * detected.
+ */
+function extractDeclarations(subject: Subject): {
+  readonly declarations: readonly ClassDeclaration[];
+  readonly assessmentLanguage: string;
+  readonly helperLanguage: string;
+} {
+  if (isUnknownLanguage(subject.language)) {
+    const python = extractPythonClasses(subject.sourceCode);
+
+    if (python.length > 0) {
+      return {
+        declarations: python,
+        assessmentLanguage: "python",
+        helperLanguage: "python",
+      };
+    }
+
+    const braced = extractClasses(subject.sourceCode);
+
+    return {
+      declarations: braced,
+      assessmentLanguage: subject.language,
+      helperLanguage: subject.language,
+    };
   }
 
-  return extractClasses(subject.sourceCode);
+  if (subject.language.trim().toLowerCase() === "python") {
+    return {
+      declarations: extractPythonClasses(subject.sourceCode),
+      assessmentLanguage: subject.language,
+      helperLanguage: subject.language,
+    };
+  }
+
+  return {
+    declarations: extractClasses(subject.sourceCode),
+    assessmentLanguage: subject.language,
+    helperLanguage: subject.language,
+  };
 }
 
 function notApplicable(subject: Subject, explanation: string): AnalysisResult {
@@ -121,20 +175,39 @@ function notApplicable(subject: Subject, explanation: string): AnalysisResult {
 function fromAssessments(
   subject: Subject,
   assessments: readonly ClassAssessment[],
+  helperLanguage: string,
 ): AnalysisResult {
   const violating = assessments.filter((a) => a.verdict === "violation");
 
   if (violating.length > 0) {
-    return build(subject, "violation", VIOLATION_CONFIDENCE, violating);
+    return build(
+      subject,
+      "violation",
+      VIOLATION_CONFIDENCE,
+      violating,
+      helperLanguage,
+    );
   }
 
   const uncertain = assessments.filter((a) => a.verdict === "uncertain");
 
   if (uncertain.length > 0) {
-    return build(subject, "uncertain", UNCERTAIN_CONFIDENCE, uncertain);
+    return build(
+      subject,
+      "uncertain",
+      UNCERTAIN_CONFIDENCE,
+      uncertain,
+      helperLanguage,
+    );
   }
 
-  return build(subject, "compliant", COMPLIANT_CONFIDENCE, assessments);
+  return build(
+    subject,
+    "compliant",
+    COMPLIANT_CONFIDENCE,
+    assessments,
+    helperLanguage,
+  );
 }
 
 function build(
@@ -142,11 +215,12 @@ function build(
   verdict: Verdict,
   confidence: Confidence,
   highlighted: readonly ClassAssessment[],
+  helperLanguage: string,
 ): AnalysisResult {
   const remediation = remediationForVerdict(
     verdict,
     highlighted,
-    subject.language,
+    helperLanguage,
   );
 
   return unwrap(
@@ -156,7 +230,7 @@ function build(
       confidence,
       method: "heuristic",
       evidence: highlighted.map((assessment) =>
-        toEvidence(assessment, subject.language),
+        toEvidence(assessment, helperLanguage),
       ),
       explanation: explanationFor(verdict, highlighted),
       // Stryker disable next-line ConditionalExpression: spreading an

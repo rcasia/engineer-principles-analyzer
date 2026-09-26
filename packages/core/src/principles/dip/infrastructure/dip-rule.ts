@@ -4,7 +4,7 @@ import { Confidence } from "../../../analysis/domain/confidence.ts";
 import { Evidence } from "../../../analysis/domain/evidence.ts";
 import { SourceLocation } from "../../../analysis/domain/source-location.ts";
 import type { Rule } from "../../../engine/application/rule.port.ts";
-import type { Subject } from "../../../engine/domain/subject.ts";
+import { UNKNOWN_LANGUAGE, type Subject } from "../../../engine/domain/subject.ts";
 import { unwrap } from "../../../shared/result.ts";
 import {
   locateFirstSignal,
@@ -52,7 +52,10 @@ export class DipRule implements Rule {
   readonly id = DIP_RULE_ID;
 
   async evaluate(subject: Subject): Promise<AnalysisResult> {
-    if (!isSupportedLanguage(subject.language)) {
+    if (
+      !isSupportedLanguage(subject.language) &&
+      subject.language.trim().toLowerCase() !== UNKNOWN_LANGUAGE
+    ) {
       return unwrap(
         AnalysisResult.of({
           ruleId: DIP_RULE_ID,
