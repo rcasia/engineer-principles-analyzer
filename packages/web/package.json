@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "3.1141.0",
     "@principled/core": "*",
     "highlight.js": "11.12.0",
     "react": "19.2.0",
