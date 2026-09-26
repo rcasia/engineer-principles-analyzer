@@ -282,39 +282,6 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["*"]
   }
 
-  # ADR-0045: the deploy manages the Jev key's SSM parameter — its name and
-  # tags only. The value is set out of band and ignored by Terraform
-  # (`ignore_changes`), but creating and reading a SecureString still needs
-  # the parameter and KMS actions. Scoped to this project's parameter prefix
-  # (the stack names it `/principled-<environment>/...`, which shares the
-  # bootstrap prefix by the same convention as the Lambda and IAM statements
-  # above) and to the default `aws/ssm` key: no customer-managed key, no
-  # extra cost.
-  statement {
-    sid    = "JevKeyParameter"
-    effect = "Allow"
-    actions = [
-      "ssm:PutParameter",
-      "ssm:GetParameter",
-      "ssm:DeleteParameter",
-      "ssm:AddTagsToResource",
-      "ssm:RemoveTagsFromResource",
-      "ssm:ListTagsForResource",
-    ]
-    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.resource_prefix}-*"]
-  }
-
-  statement {
-    sid    = "JevKeyKms"
-    effect = "Allow"
-    actions = [
-      "kms:Encrypt",
-      "kms:Decrypt",
-      "kms:DescribeKey",
-    ]
-    resources = ["arn:aws:kms:*:${data.aws_caller_identity.current.account_id}:alias/aws/ssm"]
-  }
-
   # CloudFront distribution ARNs contain a generated ID, not a name, so they
   # cannot be matched by prefix the way the Lambda and IAM statements are.
   # This is the least scoped statement in the policy; see README.md.
