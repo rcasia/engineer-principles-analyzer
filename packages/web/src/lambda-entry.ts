@@ -12,11 +12,9 @@ import {
   SrpRule,
   WebMetrics,
 } from "@principled/core";
-import { SSMClient } from "@aws-sdk/client-ssm";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { apiKeyFor, SsmParameterStore } from "./api-key-store.ts";
 import { createLambdaHandler } from "./lambda.ts";
 import { detectorFor } from "./language-detector.ts";
 import { createRequestHandler } from "./server.ts";
@@ -33,13 +31,10 @@ import { legalContactFromEnvironment } from "./legal/legal-page.ts";
 // need no durability.
 //
 // Language detection asks Jev (ADR-0028) and the key reaches the function
-// from SSM Parameter Store at cold start (ADR-0045): Terraform wires only
-// the parameter *name* (`TYPESAFE_API_KEY_SSM_PARAMETER`), the value itself
-// never crosses the deploy pipeline. When it is absent or unreadable the
-// cold start must still succeed: detectorFor reports every submission as
-// undetectable, so pages serve and submissions run as `"unknown"`
-// (ADR-0040, ADR-0044), instead of every route 502ing because detection
-// cannot run.
+// through the `typesafe_api_key` infra variable (ADR-0037). When it is
+// absent the cold start must still succeed: detectorFor reports every
+// submission as undetectable, so pages serve and submissions get the 400
+// guidance, instead of every route 502ing because detection cannot run.
 
 // Client bundles ship beside the handler in the zip (build-lambda.ts) and
 // are read once per cold start; absent without a client build, in which
@@ -54,17 +49,6 @@ const clientAssets = await loadClientAssets(
 // does not survive a cold start — the port (recordMetric/readMetrics) is
 // real, the durable adapter is not built yet.
 let metrics = WebMetrics.empty();
-// Awaited before the handler exists: the SSM read happens once per cold
-// start (the module-scoped detector below is reused across warm
-// invocations), and apiKeyFor degrades any failure to keyless rather than
-// throwing, so this await cannot fail the cold start.
-const apiKey = await apiKeyFor(
-  {
-    directApiKey: process.env["TYPESAFE_API_KEY"],
-    ssmParameterName: process.env["TYPESAFE_API_KEY_SSM_PARAMETER"],
-  },
-  new SsmParameterStore(new SSMClient({})),
-);
 export const handler = createLambdaHandler(
   createRequestHandler({
     listPrinciples: new ListPrinciples(
@@ -73,7 +57,7 @@ export const handler = createLambdaHandler(
     analyzeSubject: new AnalyzeSubject(
       new InMemoryRuleCatalog([new SrpRule(), new OcpRule(), new LspRule(), new IspRule(), new DipRule()]),
     ),
-    languageDetector: detectorFor(apiKey),
+    languageDetector: detectorFor(process.env["TYPESAFE_API_KEY"]),
     eventStore: new InMemoryEventStore(),
     clientAssets,
     legalContact: legalContactFromEnvironment(process.env),

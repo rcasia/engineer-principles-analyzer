@@ -69,35 +69,6 @@ terraform -chdir=infra init \
 terraform -chdir=infra apply -var environment=prod
 ```
 
-## Jev API key
-
-Language detection calls Jev, which needs an API key
-([ADR-0028](../docs/adr/0028-jev-language-detection.md)). The key lives in
-SSM Parameter Store as a `SecureString`
-([ADR-0045](../docs/adr/0045-ssm-secret-for-jev-key.md)) — never in
-Terraform inputs, state, or GitHub configuration, so the deploy pipeline
-stays secret-free and rotation needs no redeploy. Until the real value is
-set, detection runs keyless and submissions analyze as `"unknown"`.
-
-After (or before) the first production apply, write the key once. The
-parameter name is the `typesafe_api_key_ssm_parameter` output
-(`/principled-prod/typesafe-api-key` for `environment=prod`):
-
-```sh
-terraform -chdir=infra output -raw typesafe_api_key_ssm_parameter
-aws ssm put-parameter \
-  --name "/principled-prod/typesafe-api-key" \
-  --value "$TYPESAFE_API_KEY" \
-  --type SecureString \
-  --overwrite
-```
-
-The Lambda reads it at the next cold start — no redeploy. The same command
-rotates the key later. Verify with a `POST /analyze`: the finding
-provenance should name a detected language instead of `Unknown`. To run the
-server locally with a key, export `TYPESAFE_API_KEY` instead; the local
-stack and CI gates always run keyless by design.
-
 ## Custom domain
 
 The stack serves the distribution's default `cloudfront.net` domain until a
@@ -140,7 +111,7 @@ directory — a bare `terraform apply` here targets **production**.
 | `versions.tf`         | Terraform and provider version constraints          |
 | `providers.tf`        | Provider config, LocalStack switch, naming and tags |
 | `variables.tf`        | Inputs, with validation                             |
-| `main.tf`             | IAM role, log group, Lambda, Function URL, SSM key parameter |
+| `main.tf`             | IAM role, log group, Lambda, Function URL           |
 | `custom-domain.tf`    | Optional apex domain: ACM cert, aliases, DNS, redirect |
 | `cloudfront/`         | CloudFront Function sources (canonical-host redirect) |
 | `outputs.tf`          | Public URL, function name, log group                |
