@@ -1,3 +1,16 @@
+# [1.19.0](https://github.com/rcasia/principled/compare/v1.18.2...v1.19.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* **cli:** update package gate for seeded SOLID principles ([5c5d9d3](https://github.com/rcasia/principled/commit/5c5d9d321e2cfb6e6831516db2c5f9d86e502b43))
+
+
+### Features
+
+* **cli:** list shipped SOLID principles by default ([ce47ba9](https://github.com/rcasia/principled/commit/ce47ba9fde319afa19e65fcca6a2791600b31c66))
+* **core:** seed principles catalog with shipped SOLID rules ([85d14a2](https://github.com/rcasia/principled/commit/85d14a2956fceaa237640b445f4e4f292e25e210)), closes [10-#14](https://github.com/10-/issues/14)
+
 ## [1.18.2](https://github.com/rcasia/principled/compare/v1.18.1...v1.18.2) (2026-09-23)
 
 
