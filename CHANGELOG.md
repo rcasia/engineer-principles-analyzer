@@ -1,3 +1,10 @@
+## [1.20.1](https://github.com/rcasia/principled/compare/v1.20.0...v1.20.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **deps:** use bun ecosystem for Dependabot updates ([7495cf2](https://github.com/rcasia/principled/commit/7495cf2650f1afeecbe5aeee3f3ec679309ca983))
+
 # [1.20.0](https://github.com/rcasia/principled/compare/v1.19.0...v1.20.0) (2026-09-26)
 
 
