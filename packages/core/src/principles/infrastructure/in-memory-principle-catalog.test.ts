@@ -2,8 +2,22 @@ import { describe, expect, it } from "bun:test";
 import type { Principle } from "../domain/principle.ts";
 import { InMemoryPrincipleCatalog } from "./in-memory-principle-catalog.ts";
 
-const tdd: Principle = { id: "tdd", title: "Test Driven Development" };
-const ci: Principle = { id: "ci", title: "Continuous Integration" };
+const tdd: Principle = {
+  id: "tdd",
+  title: "Test Driven Development",
+  summary: "Write the failing test before the implementation.",
+  whyItMatters: "Without it, untested paths accumulate silently.",
+  howChecked: "Not checked by the analyzer; a catalog placeholder.",
+  fixDirection: "Add the missing test first, then make it pass.",
+};
+const ci: Principle = {
+  id: "ci",
+  title: "Continuous Integration",
+  summary: "Merge every change to main daily.",
+  whyItMatters: "Long-lived branches hide integration risk.",
+  howChecked: "Not checked by the analyzer; a catalog placeholder.",
+  fixDirection: "Integrate the branch and run the checks.",
+};
 
 describe("InMemoryPrincipleCatalog", () => {
   it("ships no principles by default", async () => {

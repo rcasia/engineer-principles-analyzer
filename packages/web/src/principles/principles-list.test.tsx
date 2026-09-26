@@ -3,8 +3,22 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { Principle } from "@principled/core";
 import { EMPTY_STATE, PrinciplesList } from "./principles-list.tsx";
 
-const tdd: Principle = { id: "tdd", title: "Test Driven Development" };
-const ci: Principle = { id: "ci", title: "Continuous Integration" };
+const tdd: Principle = {
+  id: "tdd",
+  title: "Test Driven Development",
+  summary: "Write the failing test before the implementation.",
+  whyItMatters: "Without it, untested paths accumulate silently.",
+  howChecked: "Not checked by the analyzer; a catalog placeholder.",
+  fixDirection: "Add the missing test first, then make it pass.",
+};
+const ci: Principle = {
+  id: "ci",
+  title: "Continuous Integration",
+  summary: "Merge every change to main daily.",
+  whyItMatters: "Long-lived branches hide integration risk.",
+  howChecked: "Not checked by the analyzer; a catalog placeholder.",
+  fixDirection: "Integrate the branch and run the checks.",
+};
 
 function render(principles: readonly Principle[]): string {
   return renderToStaticMarkup(<PrinciplesList principles={principles} />);
@@ -36,29 +50,57 @@ describe("PrinciplesList", () => {
     expect(html).toContain(
       '<ul aria-label="Engineering principles" class="principles-list">',
     );
-    expect(html).toContain(
-      '<li class="principle"><h2>Test Driven Development</h2><p>tdd</p></li>',
-    );
-    expect(html).toContain(
-      '<li class="principle"><h2>Continuous Integration</h2><p>ci</p></li>',
-    );
+    expect(html).toContain("Test Driven Development");
+    expect(html).toContain("Write the failing test before the implementation.");
+    expect(html).toContain("Without it, untested paths accumulate silently.");
+    expect(html).toContain("Continuous Integration");
+    expect(html).toContain("Merge every change to main daily.");
+    expect(html).toContain("Why it matters");
+    expect(html).toContain("How Principled checks it");
+    expect(html).toContain("If you get a finding");
+    expect(html).toContain('<a href="/analyze">Try it in the analyzer →</a>');
     expect(html).not.toContain("The standards behind the rules");
   });
 
   it("escapes principle content", () => {
     const html = render([
-      { id: "<id>", title: "<script>alert(1)</script>" },
+      {
+        id: "<id>",
+        title: "<script>alert(1)</script>",
+        summary: "<b>bold</b>",
+        whyItMatters: "<i>why</i>",
+        howChecked: "<u>how</u>",
+        fixDirection: "<em>fix</em>",
+      },
     ]);
 
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).toContain("&lt;id&gt;");
+    expect(html).toContain("&lt;b&gt;bold&lt;/b&gt;");
+    expect(html).toContain("&lt;i&gt;why&lt;/i&gt;");
     expect(html).not.toContain("<script>");
   });
 
   it("encodes apostrophes, which the old string template left raw", () => {
-    const html = render([{ id: "obrien", title: "O'Brien's rule" }]);
+    const html = render([
+      {
+        id: "obrien",
+        title: "O'Brien's rule",
+        summary: "It's summarised",
+        whyItMatters: "It's why",
+        howChecked: "It's how",
+        fixDirection: "It's the fix",
+      },
+    ]);
 
     expect(html).toContain("O&#x27;Brien&#x27;s rule");
+  });
+
+  it("links each card's article to its heading for assistive tech", () => {
+    const html = render([tdd]);
+
+    expect(html).toContain('aria-labelledby="tdd-title"');
+    expect(html).toContain('id="tdd-title"');
   });
 
   it("renders static markup with no client script", () => {

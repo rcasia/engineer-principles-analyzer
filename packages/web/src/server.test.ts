@@ -40,7 +40,14 @@ import {
 import type { ClientAssets } from "./shared/client-assets.ts";
 import { InvalidJevResponseError } from "@principled/core";
 
-const tdd: Principle = { id: "tdd", title: "Test Driven Development" };
+const tdd: Principle = {
+  id: "tdd",
+  title: "Test Driven Development",
+  summary: "Write the failing test before the implementation.",
+  whyItMatters: "Without it, untested paths accumulate silently.",
+  howChecked: "Not checked by the analyzer; a catalog placeholder.",
+  fixDirection: "Add the missing test first, then make it pass.",
+};
 
 /** Echoes the subject it was given, so a test can prove which source a request actually resolved to. */
 const echoRule: Rule = {

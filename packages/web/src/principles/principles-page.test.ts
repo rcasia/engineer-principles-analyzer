@@ -2,8 +2,22 @@ import { describe, expect, it } from "bun:test";
 import type { Principle } from "@principled/core";
 import { escapeHtml, renderPrinciplesPage } from "./principles-page.ts";
 
-const tdd: Principle = { id: "tdd", title: "Test Driven Development" };
-const ci: Principle = { id: "ci", title: "Continuous Integration" };
+const tdd: Principle = {
+  id: "tdd",
+  title: "Test Driven Development",
+  summary: "Write the failing test before the implementation.",
+  whyItMatters: "Without it, untested paths accumulate silently.",
+  howChecked: "Not checked by the analyzer; a catalog placeholder.",
+  fixDirection: "Add the missing test first, then make it pass.",
+};
+const ci: Principle = {
+  id: "ci",
+  title: "Continuous Integration",
+  summary: "Merge every change to main daily.",
+  whyItMatters: "Long-lived branches hide integration risk.",
+  howChecked: "Not checked by the analyzer; a catalog placeholder.",
+  fixDirection: "Integrate the branch and run the checks.",
+};
 
 describe("escapeHtml", () => {
   it.each([
@@ -100,19 +114,41 @@ describe("renderPrinciplesPage", () => {
     expect(html).toContain(
       '<ul aria-label="Engineering principles" class="principles-list">',
     );
-    expect(html).toContain("<h2>Test Driven Development</h2><p>tdd</p>");
-    expect(html).toContain("<h2>Continuous Integration</h2><p>ci</p>");
-    expect(html).toContain("</li><li");
+    expect(html).toContain("Test Driven Development");
+    expect(html).toContain("Write the failing test before the implementation.");
+    expect(html).toContain("Continuous Integration");
+    expect(html).toContain("Merge every change to main daily.");
+    expect(html).toContain("Why it matters");
+    expect(html).toContain("How Principled checks it");
     expect(html).not.toContain("Catalog is being drafted");
+  });
+
+  it("links the catalog to the analyzer", () => {
+    const html = renderPrinciplesPage([tdd]);
+
+    expect(html).toContain(
+      '<a class="button button--primary" href="/analyze">Analyze a file against these principles →</a>',
+    );
+    expect(renderPrinciplesPage([])).not.toContain("/analyze\">Analyze a file");
+    expect(renderPrinciplesPage([])).not.toContain('<p class="principles__cta">');
+    expect(renderPrinciplesPage([])).toContain("</div>\n</main>");
   });
 
   it("escapes principle content", () => {
     const html = renderPrinciplesPage([
-      { id: "<id>", title: "<script>alert(1)</script>" },
+      {
+        id: "<id>",
+        title: "<script>alert(1)</script>",
+        summary: "<b>bold</b>",
+        whyItMatters: "<i>why</i>",
+        howChecked: "<u>how</u>",
+        fixDirection: "<em>fix</em>",
+      },
     ]);
 
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).toContain("&lt;id&gt;");
+    expect(html).toContain("&lt;b&gt;bold&lt;/b&gt;");
     expect(html).not.toContain("<script>");
   });
 
@@ -141,7 +177,14 @@ describe("renderPrinciplesPage", () => {
 
   it("encodes apostrophes through the component's stricter escaping", () => {
     const html = renderPrinciplesPage([
-      { id: "obrien", title: "O'Brien's rule" },
+      {
+        id: "obrien",
+        title: "O'Brien's rule",
+        summary: "It's summarised",
+        whyItMatters: "It's why",
+        howChecked: "It's how",
+        fixDirection: "It's the fix",
+      },
     ]);
 
     expect(html).toContain("O&#x27;Brien&#x27;s rule");

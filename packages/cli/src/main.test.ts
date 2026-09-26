@@ -55,7 +55,7 @@ describe("main", () => {
 
     expect(code).toBe(0);
     expect(io.out).toEqual([
-      "- solid.srp: Single Responsibility Principle\n- solid.ocp: Open/Closed Principle\n- solid.lsp: Liskov Substitution Principle\n- solid.isp: Interface Segregation Principle\n- solid.dip: Dependency Inversion Principle",
+      "- solid.srp: Single Responsibility Principle\n  A class should have one responsibility — one reason to change.\n- solid.ocp: Open/Closed Principle\n  Software should be open for extension but closed for modification — add new behaviour with new code, not by editing existing branches.\n- solid.lsp: Liskov Substitution Principle\n  Subtypes must be substitutable for their base types — callers using the parent should never be surprised by a subclass.\n- solid.isp: Interface Segregation Principle\n  Clients should not depend on operations they do not use — prefer small, consumer-specific interfaces over one broad one.\n- solid.dip: Dependency Inversion Principle\n  High-level logic should depend on abstractions it owns, not on concrete infrastructure — depend on ports, not clients, pools, or brokers.",
     ]);
     expect(io.err).toEqual([]);
   });

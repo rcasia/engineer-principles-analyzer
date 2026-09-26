@@ -22,6 +22,11 @@ function renderPrinciples(principles: readonly Principle[]): string {
  * keyboard and screen reader by construction, and costs nothing to serve.
  */
 export function renderPrinciplesPage(principles: readonly Principle[]): string {
+  const cta =
+    principles.length === 0
+      ? ""
+      : `<p class="principles__cta"><a class="button button--primary" href="/analyze">Analyze a file against these principles →</a></p>`;
+
   return renderPage({
     title: PAGE_TITLE,
     path: "/principles",
@@ -44,6 +49,6 @@ export function renderPrinciplesPage(principles: readonly Principle[]): string {
     <p>The result of the rule: verdict, evidence and confidence, naming its principle.</p>
   </li>
 </ol>
-${renderPrinciples(principles)}`,
+${renderPrinciples(principles)}${cta}`,
   });
 }

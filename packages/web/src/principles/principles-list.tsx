@@ -12,6 +12,10 @@ export const EMPTY_STATE =
  * escaped by React, which is a superset of `escapeHtml` (it additionally
  * encodes `'` as `&#x27;`) — still XSS-safe at the boundary, and rendering
  * identically in the browser.
+ *
+ * Each entry is a self-contained card: the definition, why it matters, how
+ * the shipped rule checks it, and the fix direction — plus a link into the
+ * analyzer so the catalog leads somewhere checkable.
  */
 export function PrinciplesList(props: {
   readonly principles: readonly Principle[];
@@ -29,8 +33,30 @@ export function PrinciplesList(props: {
     <ul aria-label="Engineering principles" className="principles-list">
       {props.principles.map((principle) => (
         <li className="principle" key={principle.id}>
-          <h2>{principle.title}</h2>
-          <p>{principle.id}</p>
+          <article aria-labelledby={`${principle.id}-title`}>
+            <h2 id={`${principle.id}-title`}>{principle.title}</h2>
+            <p className="principle__id">
+              <code>{principle.id}</code>
+            </p>
+            <p className="principle__summary">{principle.summary}</p>
+            <dl className="principle__details">
+              <div>
+                <dt>Why it matters</dt>
+                <dd>{principle.whyItMatters}</dd>
+              </div>
+              <div>
+                <dt>How Principled checks it</dt>
+                <dd>{principle.howChecked}</dd>
+              </div>
+              <div>
+                <dt>If you get a finding</dt>
+                <dd>{principle.fixDirection}</dd>
+              </div>
+            </dl>
+            <p className="principle__cta">
+              <a href="/analyze">Try it in the analyzer →</a>
+            </p>
+          </article>
         </li>
       ))}
     </ul>

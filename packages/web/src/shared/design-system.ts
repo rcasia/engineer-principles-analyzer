@@ -415,8 +415,16 @@ h1 {
 .principles__flow p { margin: 0; color: var(--color-text-secondary); font-size: 0.8125rem; }
 .principles-list { margin: 0; padding: 0; list-style: none; }
 .principle { padding: var(--space-6) 0; border-bottom: 1px solid var(--color-border); }
+.principle:last-child { border-bottom: 0; }
 .principle h2 { margin-bottom: var(--space-1); font-size: 1rem; }
-.principle p { margin: 0; color: var(--color-text-muted); font: 0.75rem/1.4 var(--font-mono); }
+.principle__id { margin: 0 0 var(--space-3); color: var(--color-text-muted); font: 0.75rem/1.4 var(--font-mono); }
+.principle__summary { margin: 0 0 var(--space-4); color: var(--color-text); font-size: 0.9375rem; font-weight: 600; line-height: 1.5; }
+.principle__details { display: grid; margin: 0 0 var(--space-4); gap: var(--space-3); }
+.principle__details div { display: grid; gap: var(--space-1); }
+.principle__details dt { color: var(--color-text-muted); font: 0.6875rem/1.4 var(--font-mono); letter-spacing: 0.07em; text-transform: uppercase; }
+.principle__details dd { margin: 0; color: var(--color-text-secondary); font-size: 0.8125rem; line-height: 1.6; }
+.principle__cta { margin: 0; font-size: 0.8125rem; }
+.principles__cta { margin: var(--space-8) 0 0; }
 .empty-state { padding: var(--space-12); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-2); text-align: center; }
 .empty-state strong { display: block; margin-bottom: var(--space-2); }
 .empty-state p { max-width: 42ch; margin: 0 auto; color: var(--color-text-secondary); }

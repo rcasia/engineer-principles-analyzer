@@ -78,10 +78,15 @@ try {
   const listed = await $`${bin}`.cwd(sandbox).text();
   const expectedPrinciples = [
     "- solid.srp: Single Responsibility Principle",
+    "  A class should have one responsibility — one reason to change.",
     "- solid.ocp: Open/Closed Principle",
+    "  Software should be open for extension but closed for modification — add new behaviour with new code, not by editing existing branches.",
     "- solid.lsp: Liskov Substitution Principle",
+    "  Subtypes must be substitutable for their base types — callers using the parent should never be surprised by a subclass.",
     "- solid.isp: Interface Segregation Principle",
+    "  Clients should not depend on operations they do not use — prefer small, consumer-specific interfaces over one broad one.",
     "- solid.dip: Dependency Inversion Principle",
+    "  High-level logic should depend on abstractions it owns, not on concrete infrastructure — depend on ports, not clients, pools, or brokers.",
   ].join("\n");
   if (listed.trim() !== expectedPrinciples) {
     fail(`unexpected default output: ${JSON.stringify(listed)}`);
