@@ -1,3 +1,15 @@
+# [1.20.0](https://github.com/rcasia/principled/compare/v1.19.0...v1.20.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* **core:** analyze unknown languages generically ([4834f54](https://github.com/rcasia/principled/commit/4834f54a0c9da1a0a7070324a1df4cc1093cb546))
+
+
+### Features
+
+* **core:** explain each SOLID principle in the catalog ([1460421](https://github.com/rcasia/principled/commit/14604217c456a321f5147d497269df722f5fb105))
+
 # [1.19.0](https://github.com/rcasia/principled/compare/v1.18.2...v1.19.0) (2026-09-26)
 
 
