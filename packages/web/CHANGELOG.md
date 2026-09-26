@@ -1,3 +1,15 @@
+# [1.21.0](https://github.com/rcasia/principled/compare/web-v1.20.0...web-v1.21.0) (2026-09-26)
+
+
+### Features
+
+* **infra:** deliver the Jev API key from SSM Parameter Store ([61a31e8](https://github.com/rcasia/principled/commit/61a31e8c7ada52e36baa8e4fdbc41e80cababd60))
+
+
+### Reverts
+
+* **infra:** drop SSM key delivery until bootstrap grants access ([414ed46](https://github.com/rcasia/principled/commit/414ed4626c091c4e3cab4ddc8f8e6658061820fe))
+
 # [1.20.0](https://github.com/rcasia/principled/compare/web-v1.19.1...web-v1.20.0) (2026-09-26)
 
 
