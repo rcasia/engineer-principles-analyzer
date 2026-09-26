@@ -1,3 +1,18 @@
+# [1.18.0](https://github.com/rcasia/principled/compare/web-v1.17.2...web-v1.18.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* **infra:** allow unconfigured legal pages on local deploys ([0edf1f3](https://github.com/rcasia/principled/commit/0edf1f3691b6a4f15bdee6ca8a3d1731de621356))
+* **web:** sync detected language with live highlighting ([41b1daa](https://github.com/rcasia/principled/commit/41b1daa4d3187aadc93736d6a6b58f92665e4c12))
+
+
+### Features
+
+* **core:** seed principles catalog with shipped SOLID rules ([85d14a2](https://github.com/rcasia/principled/commit/85d14a2956fceaa237640b445f4e4f292e25e210)), closes [10-#14](https://github.com/10-/issues/14)
+* **web:** publish legal notices and enforce launch safeguards ([4541c5d](https://github.com/rcasia/principled/commit/4541c5d64d7356e24123ac69feaafef98bf1c436))
+* **web:** serve shipped SOLID principles at /principles ([27a8df6](https://github.com/rcasia/principled/commit/27a8df6cc6b6a1dc37f5b323f658c17cd6c4eb73)), closes [#58](https://github.com/rcasia/principled/issues/58)
+
 ## [1.17.2](https://github.com/rcasia/principled/compare/web-v1.17.1...web-v1.17.2) (2026-09-23)
 
 ## [1.17.1](https://github.com/rcasia/principled/compare/web-v1.17.0...web-v1.17.1) (2026-09-23)
