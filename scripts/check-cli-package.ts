@@ -76,7 +76,14 @@ try {
   const bin = join(sandbox, "node_modules", ".bin", "principled");
 
   const listed = await $`${bin}`.cwd(sandbox).text();
-  if (listed.trim() !== "No principles are defined yet.") {
+  const expectedPrinciples = [
+    "- solid.srp: Single Responsibility Principle",
+    "- solid.ocp: Open/Closed Principle",
+    "- solid.lsp: Liskov Substitution Principle",
+    "- solid.isp: Interface Segregation Principle",
+    "- solid.dip: Dependency Inversion Principle",
+  ].join("\n");
+  if (listed.trim() !== expectedPrinciples) {
     fail(`unexpected default output: ${JSON.stringify(listed)}`);
   }
 
