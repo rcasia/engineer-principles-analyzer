@@ -46,18 +46,32 @@ if (!page.headers.get("cache-control")?.includes("max-age=60")) {
   fail(`page is not cacheable: ${page.headers.get("cache-control")}`);
 }
 
-for (const [path, marker] of [
-  ["/imprint", "Operator"],
-  ["/privacy", "Source code and optional filename"],
-  ["/security", "Report a vulnerability"],
-] as const) {
-  const legal = await fetch(new URL(path, base), {
+if (!body.includes('href="/privacy"') || !body.includes('href="/imprint"')) {
+  fail("landing page footer is missing the legal links");
+}
+
+if (cdnEnabled) {
+  for (const [path, marker] of [
+    ["/imprint", "Operator"],
+    ["/privacy", "Source code and optional filename"],
+    ["/security", "Report a vulnerability"],
+  ] as const) {
+    const legal = await fetch(new URL(path, base), {
+      signal: AbortSignal.timeout(60_000),
+    });
+    const legalBody = await legal.text();
+
+    if (legal.status !== 200 || !legalBody.includes(marker)) {
+      fail(`legal page ${path} was not publicly configured correctly`);
+    }
+  }
+} else {
+  const legal = await fetch(new URL("/imprint", base), {
     signal: AbortSignal.timeout(60_000),
   });
-  const legalBody = await legal.text();
 
-  if (legal.status !== 200 || !legalBody.includes(marker)) {
-    fail(`legal page ${path} was not publicly configured correctly`);
+  if (legal.status !== 503) {
+    fail(`expected 503 for unconfigured legal pages locally, got ${legal.status}`);
   }
 }
 
